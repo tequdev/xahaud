@@ -20,6 +20,7 @@ jobs:
       matrix:
         compiler: [gcc]
         configuration: [Debug]
+        job_type: [build, coverage]
         include:
           - compiler: gcc
             cc: gcc-11
@@ -40,6 +41,11 @@ jobs:
           sudo apt-get install -y ninja-build ${{ matrix.cc }} ${{ matrix.cxx }} ccache
           # Install specific Conan version needed
           pip install --upgrade "conan<2"
+          
+          # Install gcovr for coverage jobs
+          if [ "${{ matrix.job_type }}" = "coverage" ]; then
+            pip install "gcovr>=7,<8"
+          fi
 
       - name: Configure ccache
         uses: ./.github/actions/xahau-configure-ccache
@@ -76,6 +82,12 @@ jobs:
           which ${{ matrix.cc }} && ${{ matrix.cc }} --version || echo "${{ matrix.cc }} not found"
           which ${{ matrix.cxx }} && ${{ matrix.cxx }} --version || echo "${{ matrix.cxx }} not found"
           which ccache && ccache --version || echo "ccache not found"
+          
+          # Check gcovr for coverage jobs
+          if [ "${{ matrix.job_type }}" = "coverage" ]; then
+            which gcovr && gcovr --version || echo "gcovr not found"
+          fi
+          
           echo "---- Full Environment ----"
           env
 
@@ -99,9 +111,12 @@ jobs:
           compiler-id: ${{ matrix.compiler_id }}
           cache_version: ${{ env.CACHE_VERSION }}
           main_branch: ${{ env.MAIN_BRANCH_NAME }}
+          cmake-args: ${{ matrix.job_type == 'coverage' && '-Dcoverage=ON -Dcoverage_format=xml -DCODE_COVERAGE_VERBOSE=ON -DCMAKE_CXX_FLAGS="-O0" -DCMAKE_C_FLAGS="-O0"' || '' }}
+          cmake-target: ${{ matrix.job_type == 'coverage' && 'coverage' || '' }}
 
       - name: Set artifact name
         id: set-artifact-name
+        if: matrix.job_type == 'build'
         run: |
           ARTIFACT_NAME="build-output-nix-${{ github.run_id }}-${{ matrix.compiler }}-${{ matrix.configuration }}"
           echo "artifact_name=${ARTIFACT_NAME}" >> "$GITHUB_OUTPUT"
@@ -113,6 +128,7 @@ jobs:
           ls -la ${{ env.build_dir }} || echo "Build directory not found or empty"
 
       - name: Run tests
+        if: matrix.job_type == 'build'
         run: |
           # Ensure the binary exists before trying to run
           if [ -f "${{ env.build_dir }}/rippled" ]; then
@@ -121,3 +137,33 @@ jobs:
              echo "Error: rippled executable not found in ${{ env.build_dir }}"
              exit 1
           fi
+
+      # Coverage-specific steps
+      - name: Move coverage report
+        if: matrix.job_type == 'coverage'
+        shell: bash
+        run: |
+          mv "${build_dir}/coverage.xml" ./
+
+      - name: Archive coverage report
+        if: matrix.job_type == 'coverage'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage.xml
+          path: coverage.xml
+          retention-days: 30
+
+      - name: Upload coverage report
+        if: matrix.job_type == 'coverage'
+        uses: wandalen/wretry.action@v1.4.10
+        with:
+          action: codecov/codecov-action@v4.3.0
+          with: |
+            files: coverage.xml
+            fail_ci_if_error: true
+            disable_search: true
+            verbose: true
+            plugin: noop
+            token: ${{ secrets.CODECOV_TOKEN }}
+          attempt_limit: 5
+          attempt_delay: 210000 # in milliseconds

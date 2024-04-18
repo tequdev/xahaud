@@ -2,6 +2,14 @@ name: build
 description: 'Builds the project with ccache integration'
 
 inputs:
+  cmake-target:
+    description: 'CMake target to build'
+    required: false
+    default: all
+  cmake-args:
+    description: 'Additional CMake arguments'
+    required: false
+    default: null
   generator:
     description: 'CMake generator to use'
     required: true
@@ -89,13 +97,14 @@ runs:
           -DCMAKE_TOOLCHAIN_FILE:FILEPATH=build/generators/conan_toolchain.cmake \
           -DCMAKE_BUILD_TYPE=${{ inputs.configuration }} \
           -Dtests=TRUE \
-          -Dxrpld=TRUE
+          -Dxrpld=TRUE \
+          ${{ inputs.cmake-args }}
 
     - name: Build project
       shell: bash
       run: |
         cd ${{ inputs.build_dir }}
-        cmake --build . --config ${{ inputs.configuration }} --parallel $(nproc)
+        cmake --build . --config ${{ inputs.configuration }} --parallel $(nproc) --target ${{ inputs.cmake-target }}
 
     - name: Show ccache statistics
       if: inputs.ccache_enabled == 'true'
