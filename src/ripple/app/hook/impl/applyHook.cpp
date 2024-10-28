@@ -29,6 +29,7 @@
 #include <tuple>
 #include <ripple/json/json_value.h>
 #include <ripple/json/json_writer.h>
+#include <ripple/json/json_reader.h>
 
 using namespace ripple;
 // check if any std::optionals are missing (any !has_value())
