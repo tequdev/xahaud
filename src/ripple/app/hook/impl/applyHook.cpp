@@ -72,6 +72,7 @@ getTransactionalStakeHolders(STTx const& tx, ReadView const& rv)
 
     bool const fixV1 = rv.rules().enabled(fixXahauV1);
     bool const fixV2 = rv.rules().enabled(fixXahauV2);
+    bool const iouIssuerWeakTSH = rv.rules().enabled(featureIOUIssuerWeakTSH);
 
     switch (tt)
     {
@@ -108,6 +109,21 @@ getTransactionalStakeHolders(STTx const& tx, ReadView const& rv)
                             issuer,
                             (ut->getFlags() & lsfBurnable) ? tshSTRONG
                                                            : tshWEAK);
+                    }
+                }
+
+                if (iouIssuerWeakTSH)
+                {
+                    STArray const& sEntries(ctx.tx.getFieldArray(sfAmounts));
+                    for (STObject const& sEntry : sEntries)
+                    {
+                        STAmount const amount = sEntry.getFieldAmount(sfAmount);
+
+                        if (!isXRP(amount))
+                        {
+                            ADD_TSH(amount.getIssuer(), tshWEAK);
+                            continue;
+                        }
                     }
                 }
             }
@@ -196,6 +212,13 @@ getTransactionalStakeHolders(STTx const& tx, ReadView const& rv)
                 ADD_TSH(
                     issuer,
                     (ut->getFlags() & lsfBurnable) ? tshSTRONG : tshWEAK);
+
+            if (iouIssuerWeakTSH)
+            {
+                STAmount const amount = ut->getFieldAmount(sfAmount);
+                if (!isXRP(amount))
+                    ADD_TSH(amount.getIssuer(), tshWEAK);
+            }
 
             break;
         }
@@ -301,6 +324,12 @@ getTransactionalStakeHolders(STTx const& tx, ReadView const& rv)
                 ADD_TSH(bo->getAccountID(sfOwner), tshSTRONG);
                 if (bo->isFieldPresent(sfDestination))
                     ADD_TSH(bo->getAccountID(sfDestination), tshSTRONG);
+                if (iouIssuerWeakTSH)
+                {
+                    STAmount const amount = bo->getFieldAmount(sfAmount);
+                    if (!isXRP(amount))
+                        ADD_TSH(amount.getIssuer(), tshWEAK);
+                }
             }
 
             if (so)
@@ -308,6 +337,12 @@ getTransactionalStakeHolders(STTx const& tx, ReadView const& rv)
                 ADD_TSH(so->getAccountID(sfOwner), tshSTRONG);
                 if (so->isFieldPresent(sfDestination))
                     ADD_TSH(so->getAccountID(sfDestination), tshSTRONG);
+                if (iouIssuerWeakTSH)
+                {
+                    STAmount const amount = so->getFieldAmount(sfAmount);
+                    if (!isXRP(amount))
+                        ADD_TSH(amount.getIssuer(), tshWEAK);
+                }
             }
 
             break;
@@ -366,10 +401,22 @@ getTransactionalStakeHolders(STTx const& tx, ReadView const& rv)
         case ttESCROW_CREATE:
         case ttCHECK_CREATE:
         case ttACCOUNT_DELETE:
-        case ttPAYCHAN_CREATE:
         case ttINVOKE: {
             if (destAcc)
                 ADD_TSH(*destAcc, tshSTRONG);
+            break;
+        }
+
+        case ttPAYCHAN_CREATE: {
+            if (destAcc)
+                ADD_TSH(*destAcc, tshSTRONG);
+
+            if (iouIssuerWeakTSH)
+            {
+                auto const amount = tx.getFieldAmount(sfAmount);
+                if (!isXRP(amount))
+                    ADD_TSH(amount.getIssuer(), tshWEAK);
+            }
             break;
         }
 
@@ -421,6 +468,13 @@ getTransactionalStakeHolders(STTx const& tx, ReadView const& rv)
                 if (src != dst)
                     ADD_TSH(dst, tt == ttESCROW_FINISH ? tshSTRONG : tshWEAK);
 
+                if (iouIssuerWeakTSH)
+                {
+                    auto const amount = escrow->getFieldAmount(sfAmount);
+                    if (!isXRP(amount))
+                        ADD_TSH(amount.getIssuer(), tshWEAK);
+                }
+
                 break;
             }
             // old logic
@@ -439,6 +493,13 @@ getTransactionalStakeHolders(STTx const& tx, ReadView const& rv)
                 ADD_TSH(
                     escrow->getAccountID(sfDestination),
                     tt == ttESCROW_FINISH ? tshSTRONG : tshWEAK);
+
+                if (iouIssuerWeakTSH)
+                {
+                    auto const amount = escrow->getFieldAmount(sfAmount);
+                    if (!isXRP(amount))
+                        ADD_TSH(amount.getIssuer(), tshWEAK);
+                }
                 break;
             }
         }
@@ -454,6 +515,13 @@ getTransactionalStakeHolders(STTx const& tx, ReadView const& rv)
 
             ADD_TSH(chan->getAccountID(sfAccount), tshSTRONG);
             ADD_TSH(chan->getAccountID(sfDestination), tshWEAK);
+
+            if (iouIssuerWeakTSH)
+            {
+                auto const amount = chan->getFieldAmount(sfAmount);
+                if (!isXRP(amount))
+                    ADD_TSH(amount.getIssuer(), tshWEAK);
+            }
             break;
         }
 
@@ -468,6 +536,16 @@ getTransactionalStakeHolders(STTx const& tx, ReadView const& rv)
 
             ADD_TSH(check->getAccountID(sfAccount), tshSTRONG);
             ADD_TSH(check->getAccountID(sfDestination), tshWEAK);
+
+            if (tt == ttCHECK_CASH)
+            {
+                if (iouIssuerWeakTSH)
+                {
+                    auto const amount = tx.getFieldAmount(sfSendMax);
+                    if (!isXRP(amount))
+                        ADD_TSH(amount.getIssuer(), tshWEAK);
+                }
+            }
             break;
         }
 
