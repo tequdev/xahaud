@@ -4617,7 +4617,8 @@ DEFINE_HOOK_FUNCTION(
     }
     catch (std::exception& e)
     {
-        JLOG(j.trace()) << "HookInfo[" << HC_ACC() << "]: etxn_fee_base exception: " << e.what();
+        JLOG(j.trace()) << "HookInfo[" << HC_ACC()
+                        << "]: etxn_fee_base exception: " << e.what();
         return INVALID_TXN;
     }
 
