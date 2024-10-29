@@ -1465,14 +1465,16 @@ Transactor::addWeakTSHFromSandbox(detail::ApplyViewBase const& pv)
 
             AccountID const& lowAcc = std::get<0>(tpl);
             AccountID const& highAcc = std::get<1>(tpl);
-            if (ctx_.view().rules().enabled(featureIOUIssuerWeakTSH)){
+            if (ctx_.view().rules().enabled(featureIOUIssuerWeakTSH))
+            {
                 additionalWeakTSH_.emplace(lowAcc);
                 additionalWeakTSH_.emplace(highAcc);
             }
             else
             {
                 STAmount const& amt = entry.second;
-                additionalWeakTSH_.emplace(amt >= beast::zero ? lowAcc : highAcc);
+                additionalWeakTSH_.emplace(
+                    amt >= beast::zero ? lowAcc : highAcc);
             }
         }
     }
