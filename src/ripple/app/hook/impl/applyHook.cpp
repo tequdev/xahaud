@@ -114,7 +114,7 @@ getTransactionalStakeHolders(STTx const& tx, ReadView const& rv)
 
                 if (iouIssuerWeakTSH)
                 {
-                    STArray const& sEntries(ctx.tx.getFieldArray(sfAmounts));
+                    STArray const& sEntries(tx.getFieldArray(sfAmounts));
                     for (STObject const& sEntry : sEntries)
                     {
                         STAmount const amount = sEntry.getFieldAmount(sfAmount);
