@@ -111,19 +111,19 @@ getTransactionalStakeHolders(STTx const& tx, ReadView const& rv)
                                                            : tshWEAK);
                     }
                 }
+            }
 
-                if (iouIssuerWeakTSH)
+            if (iouIssuerWeakTSH && tx.isFieldPresent(sfAmounts))
+            {
+                STArray const& sEntries(tx.getFieldArray(sfAmounts));
+                for (STObject const& sEntry : sEntries)
                 {
-                    STArray const& sEntries(tx.getFieldArray(sfAmounts));
-                    for (STObject const& sEntry : sEntries)
-                    {
-                        STAmount const amount = sEntry.getFieldAmount(sfAmount);
+                    STAmount const amount = sEntry.getFieldAmount(sfAmount);
 
-                        if (!isXRP(amount))
-                        {
-                            ADD_TSH(amount.getIssuer(), tshWEAK);
-                            continue;
-                        }
+                    if (!isXRP(amount))
+                    {
+                        ADD_TSH(amount.getIssuer(), tshWEAK);
+                        continue;
                     }
                 }
             }
