@@ -1,4 +1,4 @@
-find_package(Boost 1.86 REQUIRED
+find_package(Boost 1.83 REQUIRED
   COMPONENTS
     chrono
     container
