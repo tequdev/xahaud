@@ -561,7 +561,6 @@ operator<=>(base_uint<Bits, Tag> const& lhs, base_uint<Bits, Tag> const& rhs)
     //
     // FIXME: use std::lexicographical_compare_three_way once support is
     //        added to MacOS.
-
     auto const ret = std::mismatch(lhs.cbegin(), lhs.cend(), rhs.cbegin());
 
     // a == b
@@ -571,7 +570,7 @@ operator<=>(base_uint<Bits, Tag> const& lhs, base_uint<Bits, Tag> const& rhs)
     return (*ret.first > *ret.second) ? std::strong_ordering::greater
                                       : std::strong_ordering::less;
 }
-#elif
+#else
 template <std::size_t Bits, class Tag>
 [[nodiscard]] inline constexpr std::strong_ordering
 operator<=>(base_uint<Bits, Tag> const& lhs, base_uint<Bits, Tag> const& rhs)
