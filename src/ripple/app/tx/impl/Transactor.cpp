@@ -1212,12 +1212,16 @@ Transactor::executeHookChain(
         if (!hook::canHook(ctx_.tx.getTxnType(), hookOn))
             continue;  // skip if it can't
 
+        // default allows all transaction types
+        uint256 defaultHookEmit = uint256();
+        defaultHookEmit ^= UINT256_BIT[ttHOOK_SET];
+
         uint256 hookEmit =
             (hookObj.isFieldPresent(sfHookEmit)
                  ? hookObj.getFieldH256(sfHookEmit)
                  : hookDef->isFieldPresent(sfHookEmit)
                  ? hookDef->getFieldH256(sfHookEmit)
-                 : uint256());
+                 : defaultHookEmit);
 
         uint32_t flags =
             (hookObj.isFieldPresent(sfFlags) ? hookObj.getFieldU32(sfFlags)
@@ -1377,12 +1381,16 @@ Transactor::doHookCallback(
         if (hookObj.getFieldH256(sfHookHash) != callbackHookHash)
             continue;
 
+        // default allows all transaction types
+        uint256 defaultHookEmit = uint256();
+        defaultHookEmit ^= UINT256_BIT[ttHOOK_SET];
+
         uint256 hookEmit =
             (hookObj.isFieldPresent(sfHookEmit)
                  ? hookObj.getFieldH256(sfHookEmit)
                  : hookDef->isFieldPresent(sfHookEmit)
                  ? hookDef->getFieldH256(sfHookEmit)
-                 : uint256());
+                 : defaultHookEmit);
 
         // fetch the namespace either from the hook object of, if absent, the
         // hook def
@@ -1655,12 +1663,16 @@ Transactor::doAgainAsWeak(
             continue;
         }
 
+        // default allows all transaction types
+        uint256 defaultHookEmit = uint256();
+        defaultHookEmit ^= UINT256_BIT[ttHOOK_SET];
+
         uint256 hookEmit =
             (hookObj.isFieldPresent(sfHookEmit)
                  ? hookObj.getFieldH256(sfHookEmit)
                  : hookDef->isFieldPresent(sfHookEmit)
                  ? hookDef->getFieldH256(sfHookEmit)
-                 : uint256());
+                 : defaultHookEmit);
 
         // fetch the namespace either from the hook object of, if absent, the
         // hook def
