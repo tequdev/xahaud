@@ -205,7 +205,7 @@ validateHookParams(SetHookCtx& ctx, STArray const& hookParams)
 // infer which operation the user is attempting to execute from the present and
 // absent fields
 HookSetOperation
-SetHook::inferOperation(STObject const& hookSetObj)
+SetHook::inferOperation(SetHookCtx& ctx, STObject const& hookSetObj)
 {
     uint64_t wasmByteCount = hookSetObj.isFieldPresent(sfCreateCode)
         ? hookSetObj.getFieldVL(sfCreateCode).size()
@@ -225,6 +225,8 @@ SetHook::inferOperation(STObject const& hookSetObj)
         !hookSetObj.isFieldPresent(sfHookNamespace) &&
         !hookSetObj.isFieldPresent(sfHookParameters) &&
         !hookSetObj.isFieldPresent(sfHookOn) &&
+        (!ctx.rules.enabled(featureHookEmit) ||
+         !hookSetObj.isFieldPresent(sfHookEmit)) &&
         !hookSetObj.isFieldPresent(sfHookApiVersion) &&
         !hookSetObj.isFieldPresent(sfFlags))
         return hsoNOOP;
@@ -248,7 +250,7 @@ SetHook::validateHookSetEntry(SetHookCtx& ctx, STObject const& hookSetObj)
         ? hookSetObj.getFieldU32(sfFlags)
         : 0;
 
-    switch (inferOperation(hookSetObj))
+    switch (inferOperation(ctx, hookSetObj))
     {
         case hsoNOOP: {
             return true;
@@ -259,6 +261,8 @@ SetHook::validateHookSetEntry(SetHookCtx& ctx, STObject const& hookSetObj)
             if (hookSetObj.isFieldPresent(sfHookGrants) ||
                 hookSetObj.isFieldPresent(sfHookParameters) ||
                 hookSetObj.isFieldPresent(sfHookOn) ||
+                (ctx.rules.enabled(featureHookEmit) &&
+                 hookSetObj.isFieldPresent(sfHookEmit)) ||
                 hookSetObj.isFieldPresent(sfHookApiVersion) ||
                 !hookSetObj.isFieldPresent(sfFlags) ||
                 !hookSetObj.isFieldPresent(sfHookNamespace))
@@ -288,6 +292,8 @@ SetHook::validateHookSetEntry(SetHookCtx& ctx, STObject const& hookSetObj)
             if (hookSetObj.isFieldPresent(sfHookGrants) ||
                 hookSetObj.isFieldPresent(sfHookParameters) ||
                 hookSetObj.isFieldPresent(sfHookOn) ||
+                (ctx.rules.enabled(featureHookEmit) &&
+                 hookSetObj.isFieldPresent(sfHookEmit)) ||
                 hookSetObj.isFieldPresent(sfHookApiVersion) ||
                 hookSetObj.isFieldPresent(sfHookNamespace) ||
                 !hookSetObj.isFieldPresent(sfFlags))
@@ -451,6 +457,9 @@ SetHook::validateHookSetEntry(SetHookCtx& ctx, STObject const& hookSetObj)
                        "sfHookOn when creating a new hook.";
                 return false;
             }
+
+            // validate sfHookEmit
+            // HookEmit field is an optional field for backward compatibility
 
             // finally validate web assembly byte code
             {
@@ -720,7 +729,8 @@ SetHook::preflight(PreflightContext const& ctx)
             if (name != sfCreateCode && name != sfHookHash &&
                 name != sfHookNamespace && name != sfHookParameters &&
                 name != sfHookOn && name != sfHookGrants &&
-                name != sfHookApiVersion && name != sfFlags)
+                name != sfHookApiVersion && name != sfFlags &&
+                (!ctx.rules.enabled(featureHookEmit) || name != sfHookEmit))
             {
                 JLOG(ctx.j.trace())
                     << "HookSet(" << hook::log::HOOK_INVALID_FIELD << ")["
@@ -1221,6 +1231,10 @@ SetHook::setHook()
         std::optional<uint256> newHookOn;
         std::optional<uint256> defHookOn;
 
+        std::optional<uint256> oldHookEmit;
+        std::optional<uint256> newHookEmit;
+        std::optional<uint256> defHookEmit;
+
         // when hsoCREATE is invoked it populates this variable in case the hook
         // definition already exists and the operation falls through into a
         // hsoINSTALL operation instead
@@ -1243,7 +1257,7 @@ SetHook::setHook()
         HookSetOperation op = hsoNOOP;
 
         if (hookSetObj)
-            op = inferOperation(hookSetObj->get());
+            op = inferOperation(ctx, hookSetObj->get());
 
         // these flags are not able to be passed onto the ledger object
         int newFlags = 0;
@@ -1281,6 +1295,14 @@ SetHook::setHook()
                 oldHookOn = oldHook->get().getFieldH256(sfHookOn);
             else if (defHookOn)
                 oldHookOn = *defHookOn;
+
+            if (oldDefSLE && oldDefSLE->isFieldPresent(sfHookEmit))
+                defHookEmit = oldDefSLE->getFieldH256(sfHookEmit);
+
+            if (oldHook && oldHook->get().isFieldPresent(sfHookEmit))
+                oldHookEmit = oldHook->get().getFieldH256(sfHookEmit);
+            else if (defHookEmit)
+                oldHookEmit = *defHookEmit;
         }
 
         // in preparation for three way merge populate fields if they are
@@ -1296,6 +1318,9 @@ SetHook::setHook()
 
             if (hookSetObj->get().isFieldPresent(sfHookOn))
                 newHookOn = hookSetObj->get().getFieldH256(sfHookOn);
+
+            if (hookSetObj->get().isFieldPresent(sfHookEmit))
+                newHookEmit = hookSetObj->get().getFieldH256(sfHookEmit);
 
             if (hookSetObj->get().isFieldPresent(sfHookNamespace))
             {
@@ -1406,6 +1431,9 @@ SetHook::setHook()
                 if (oldHook->get().isFieldPresent(sfHookOn))
                     newHook.setFieldH256(
                         sfHookOn, oldHook->get().getFieldH256(sfHookOn));
+                if (oldHook->get().isFieldPresent(sfHookEmit))
+                    newHook.setFieldH256(
+                        sfHookEmit, oldHook->get().getFieldH256(sfHookEmit));
                 if (oldHook->get().isFieldPresent(sfHookNamespace))
                     newHook.setFieldH256(
                         sfHookNamespace,
@@ -1433,6 +1461,18 @@ SetHook::setHook()
                     }
                     else
                         newHook.setFieldH256(sfHookOn, *newHookOn);
+                }
+
+                // set the hookemit field if it differs from definition
+                if (newHookEmit)
+                {
+                    if (*defHookEmit == *newHookEmit)
+                    {
+                        if (newHook.isFieldPresent(sfHookEmit))
+                            newHook.makeFieldAbsent(sfHookEmit);
+                    }
+                    else
+                        newHook.setFieldH256(sfHookEmit, *newHookEmit);
                 }
 
                 // parameters
@@ -1584,6 +1624,7 @@ SetHook::setHook()
                     auto newHookDef = std::make_shared<SLE>(keylet);
                     newHookDef->setFieldH256(sfHookHash, *createHookHash);
                     newHookDef->setFieldH256(sfHookOn, *newHookOn);
+                    newHookDef->setFieldH256(sfHookEmit, *newHookEmit);
                     newHookDef->setFieldH256(sfHookNamespace, *newNamespace);
                     newHookDef->setFieldArray(
                         sfHookParameters,
@@ -1677,6 +1718,7 @@ SetHook::setHook()
                 // change which definition we're using to the new target
                 defNamespace = newDefSLE->getFieldH256(sfHookNamespace);
                 defHookOn = newDefSLE->getFieldH256(sfHookOn);
+                defHookEmit = newDefSLE->getFieldH256(sfHookEmit);
 
                 // set the namespace if it differs from the definition namespace
                 if (newNamespace && *defNamespace != *newNamespace)
@@ -1685,6 +1727,10 @@ SetHook::setHook()
                 // set the hookon field if it differs from definition
                 if (newHookOn && *defHookOn != *newHookOn)
                     newHook.setFieldH256(sfHookOn, *newHookOn);
+
+                // set the hookemit field if it differs from definition
+                if (newHookEmit && *defHookEmit != *newHookEmit)
+                    newHook.setFieldH256(sfHookEmit, *newHookEmit);
 
                 // parameters
                 TER result = updateHookParameters(
@@ -1734,8 +1780,8 @@ SetHook::setHook()
         // sfHook: 1 reserve PER non-blank entry
         // sfParameters: 1 reserve PER entry
         // sfGrants are: 1 reserve PER entry
-        // sfHookHash, sfHookNamespace, sfHookOn, sfHookApiVersion, sfFlags:
-        // free
+        // sfHookHash, sfHookNamespace, sfHookOn, sfHookEmit, sfHookApiVersion,
+        // sfFlags: free
 
         // sfHookDefinition is not reserved because it is an unowned object,
         // rather the uploader is billed via fee according to the following:

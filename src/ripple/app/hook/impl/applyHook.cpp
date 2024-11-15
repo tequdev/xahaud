@@ -1028,6 +1028,12 @@ hook::canHook(ripple::TxType txType, ripple::uint256 hookOn)
     return (hookOn & UINT256_BIT[txType]) != beast::zero;
 }
 
+bool
+hook::canEmit(ripple::TxType txType, ripple::uint256 hookEmit)
+{
+    return hook::canHook(txType, hookEmit);
+}
+
 // Update HookState ledger objects for the hook... only called after accept()
 // assumes the specified acc has already been checked for authoriation (hook
 // grants)
@@ -1179,6 +1185,7 @@ hook::apply(
                                             used for caching (one day) */
     ripple::uint256 const&
         hookHash, /* hash of the actual hook byte code, used for metadata */
+    ripple::uint256 const& hookEmit,
     ripple::uint256 const& hookNamespace,
     ripple::Blob const& wasm,
     std::map<
@@ -1206,6 +1213,7 @@ hook::apply(
         .result =
             {.hookSetTxnID = hookSetTxnID,
              .hookHash = hookHash,
+             .hookEmit = hookEmit,
              .accountKeylet = keylet::account(account),
              .ownerDirKeylet = keylet::ownerDir(account),
              .hookKeylet = keylet::hook(account),
@@ -3266,6 +3274,16 @@ DEFINE_HOOK_FUNCTION(
     {
         JLOG(j.trace()) << "HookEmit[" << HC_ACC()
                         << "]: Attempted to emit pseudo txn.";
+        return EMISSION_FAILURE;
+    }
+
+    ripple::TxType txType = stpTrans->getTxnType();
+
+    ripple::uint256 const& hookEmit = hookCtx.result.hookEmit;
+    if (!hook::canEmit(txType, hookEmit))
+    {
+        JLOG(j.trace()) << "HookEmit[" << HC_ACC()
+                        << "]: Hook cannot emit this txn.";
         return EMISSION_FAILURE;
     }
 

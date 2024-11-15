@@ -428,6 +428,9 @@ namespace hook {
 bool
 canHook(ripple::TxType txType, ripple::uint256 hookOn);
 
+bool
+canEmit(ripple::TxType txType, ripple::uint256 hookEmit);
+
 struct HookResult;
 
 HookResult
@@ -436,6 +439,7 @@ apply(
                                             used for caching (one day) */
     ripple::uint256 const&
         hookHash, /* hash of the actual hook byte code, used for metadata */
+    ripple::uint256 const& hookEmit,
     ripple::uint256 const& hookNamespace,
     ripple::Blob const& wasm,
     std::map<
@@ -472,6 +476,7 @@ struct HookResult
 {
     ripple::uint256 const hookSetTxnID;
     ripple::uint256 const hookHash;
+    ripple::uint256 const hookEmit;
     ripple::Keylet const accountKeylet;
     ripple::Keylet const ownerDirKeylet;
     ripple::Keylet const hookKeylet;

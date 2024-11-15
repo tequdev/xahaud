@@ -1977,28 +1977,36 @@ public:
     }
 
     void
-    testInferHookSetOperation()
+    testInferHookSetOperation(FeatureBitset features)
     {
         testcase("Test operation inference");
+        using namespace jtx;
+        Env env{*this, features};
+
+        SetHookCtx ctx{
+            .j = env.app().journal("View"),
+            .tx = *env.tx(),
+            .app = env.app(),
+            .rules = env.current()->rules()};
 
         // hsoNOOP
         {
             STObject hso{sfHook};
-            BEAST_EXPECT(SetHook::inferOperation(hso) == hsoNOOP);
+            BEAST_EXPECT(SetHook::inferOperation(ctx, hso) == hsoNOOP);
         }
 
         // hsoCREATE
         {
             STObject hso{sfHook};
             hso.setFieldVL(sfCreateCode, {1});  // non-empty create code
-            BEAST_EXPECT(SetHook::inferOperation(hso) == hsoCREATE);
+            BEAST_EXPECT(SetHook::inferOperation(ctx, hso) == hsoCREATE);
         }
 
         // hsoDELETE
         {
             STObject hso{sfHook};
             hso.setFieldVL(sfCreateCode, ripple::Blob{});  // empty create code
-            BEAST_EXPECT(SetHook::inferOperation(hso) == hsoDELETE);
+            BEAST_EXPECT(SetHook::inferOperation(ctx, hso) == hsoDELETE);
         }
 
         // hsoINSTALL
@@ -2006,7 +2014,7 @@ public:
             STObject hso{sfHook};
             hso.setFieldH256(
                 sfHookHash, uint256{beast::zero});  // all zeros hook hash
-            BEAST_EXPECT(SetHook::inferOperation(hso) == hsoINSTALL);
+            BEAST_EXPECT(SetHook::inferOperation(ctx, hso) == hsoINSTALL);
         }
 
         // hsoNSDELETE
@@ -2015,14 +2023,14 @@ public:
             hso.setFieldH256(
                 sfHookNamespace, uint256{beast::zero});  // all zeros hook hash
             hso.setFieldU32(sfFlags, hsfNSDELETE);
-            BEAST_EXPECT(SetHook::inferOperation(hso) == hsoNSDELETE);
+            BEAST_EXPECT(SetHook::inferOperation(ctx, hso) == hsoNSDELETE);
         }
 
         // hsoUPDATE
         {
             STObject hso{sfHook};
             hso.setFieldH256(sfHookOn, UINT256_BIT[0]);
-            BEAST_EXPECT(SetHook::inferOperation(hso) == hsoUPDATE);
+            BEAST_EXPECT(SetHook::inferOperation(ctx, hso) == hsoUPDATE);
         }
 
         // hsoINVALID
@@ -2031,7 +2039,7 @@ public:
             hso.setFieldVL(sfCreateCode, {1});  // non-empty create code
             hso.setFieldH256(
                 sfHookHash, uint256{beast::zero});  // all zeros hook hash
-            BEAST_EXPECT(SetHook::inferOperation(hso) == hsoINVALID);
+            BEAST_EXPECT(SetHook::inferOperation(ctx, hso) == hsoINVALID);
         }
     }
 
@@ -11958,7 +11966,7 @@ public:
         testHooksOwnerDir(features);
         testHooksDisabled(features);
         testTxStructure(features);
-        testInferHookSetOperation();
+        testInferHookSetOperation(features);
         testParams(features);
         testGrants(features);
 

@@ -449,6 +449,7 @@ extern SF_UINT256 const sfParentHash;
 extern SF_UINT256 const sfTransactionHash;
 extern SF_UINT256 const sfAccountHash;
 extern SF_UINT256 const sfHookOn;
+extern SF_UINT256 const sfHookEmit;
 extern SF_UINT256 const sfPreviousTxnID;
 extern SF_UINT256 const sfLedgerIndex;
 extern SF_UINT256 const sfWalletLocator;
