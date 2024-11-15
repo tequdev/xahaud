@@ -398,13 +398,21 @@ getTransactionalStakeHolders(STTx const& tx, ReadView const& rv)
 
         // simple two party transactions
         case ttPAYMENT:
-        case ttESCROW_CREATE:
         case ttCHECK_CREATE:
         case ttACCOUNT_DELETE:
         case ttINVOKE: {
             if (destAcc)
                 ADD_TSH(*destAcc, tshSTRONG);
             break;
+        }
+        
+        case ttESCROW_CREATE:{
+            if (iouIssuerWeakTSH)
+            {
+                auto const amount = tx.getFieldAmount(sfAmount);
+                if (!isXRP(amount))
+                    ADD_TSH(amount.getIssuer(), tshWEAK);
+            }
         }
 
         case ttPAYCHAN_CREATE: {
@@ -541,7 +549,8 @@ getTransactionalStakeHolders(STTx const& tx, ReadView const& rv)
             {
                 if (iouIssuerWeakTSH)
                 {
-                    auto const amount = tx.getFieldAmount(sfSendMax);
+                    // ttCHECK_CASH have sfAmount optionally but only check check object
+                    auto const amount = check->getFieldAmount(sfSendMax);
                     if (!isXRP(amount))
                         ADD_TSH(amount.getIssuer(), tshWEAK);
                 }
