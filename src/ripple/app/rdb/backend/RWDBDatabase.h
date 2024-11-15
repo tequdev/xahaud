@@ -224,7 +224,7 @@ public:
 
         if (!ledger->info().accountHash.isNonZero())
         {
-            JLOG(j.fatal()) << "AH is zero: " << getJson({*ledger, {}});
+            JLOG(j.fatal()) << "AH is zero: " << getJson({*ledger, {}}).asString();
             assert(false);
         }
 
