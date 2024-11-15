@@ -1469,7 +1469,7 @@ Transactor::addWeakTSHFromSandbox(detail::ApplyViewBase const& pv)
             STAmount const& amt = entry.second;
             AccountID const& holder = amt >= beast::zero ? lowAcc : highAcc;
             AccountID const& issuer = amt >= beast::zero ? highAcc : lowAcc;
- 
+
             additionalWeakTSH_.emplace(holder);
             if (ctx_.view().rules().enabled(featureIOUIssuerWeakTSH))
                 additionalWeakTSH_.emplace(issuer);

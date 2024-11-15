@@ -405,8 +405,8 @@ getTransactionalStakeHolders(STTx const& tx, ReadView const& rv)
                 ADD_TSH(*destAcc, tshSTRONG);
             break;
         }
-        
-        case ttESCROW_CREATE:{
+
+        case ttESCROW_CREATE: {
             if (iouIssuerWeakTSH)
             {
                 auto const amount = tx.getFieldAmount(sfAmount);
@@ -549,7 +549,8 @@ getTransactionalStakeHolders(STTx const& tx, ReadView const& rv)
             {
                 if (iouIssuerWeakTSH)
                 {
-                    // ttCHECK_CASH have sfAmount optionally but only check check object
+                    // ttCHECK_CASH have sfAmount optionally but only check
+                    // check object
                     auto const amount = check->getFieldAmount(sfSendMax);
                     if (!isXRP(amount))
                         ADD_TSH(amount.getIssuer(), tshWEAK);
