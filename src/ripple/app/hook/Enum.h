@@ -1,3 +1,5 @@
+#include <ripple/protocol/Feature.h>
+#include <ripple/protocol/Rules.h>
 #include <map>
 #include <set>
 #include <string>
@@ -28,6 +30,8 @@ enum HookEmissionFlags : uint16_t {
 };
 }  // namespace ripple
 
+using namespace ripple;
+
 namespace hook {
 // RH TODO: put these somewhere better, and allow rules to be fed in
 inline uint32_t
@@ -43,8 +47,12 @@ maxHookParameterValueSize(void)
 }
 
 inline uint32_t
-maxHookStateDataSize(void)
+maxHookStateDataSize(Rules const& rules)
 {
+    if (rules.enabled(featureExtendedHookState))
+    {
+        return 2048U;
+    }
     return 256U;
 }
 

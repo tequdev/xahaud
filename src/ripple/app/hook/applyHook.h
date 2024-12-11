@@ -461,7 +461,9 @@ apply(
 struct HookContext;
 
 uint32_t
-computeHookStateOwnerCount(uint32_t hookStateCount);
+computeHookStateOwnerCount(Blob hookStateData);
+uint32_t
+computeHookStateOwnerCount(Slice hookStateData);
 
 int64_t
 computeExecutionFee(uint64_t instructionCount);

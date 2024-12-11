@@ -853,9 +853,15 @@ parseCurrency(uint8_t* cu_ptr, uint32_t cu_len)
 }
 
 uint32_t
-hook::computeHookStateOwnerCount(uint32_t hookStateCount)
+hook::computeHookStateOwnerCount(Blob hookStateData)
 {
-    return hookStateCount;
+    return std::floor((hookStateData.size() - 1) / 256) + 1;
+}
+
+uint32_t
+hook::computeHookStateOwnerCount(Slice hookStateData)
+{
+    return std::floor((hookStateData.size() - 1) / 256) + 1;
 }
 
 inline int64_t
@@ -1047,14 +1053,14 @@ hook::setHookState(
         return tefINTERNAL;
 
     // if the blob is too large don't set it
-    if (data.size() > hook::maxHookStateDataSize())
+    if (data.size() > hook::maxHookStateDataSize(view.rules()))
         return temHOOK_DATA_TOO_LARGE;
 
     auto hookStateKeylet = ripple::keylet::hookState(acc, key, ns);
     auto hookStateDirKeylet = ripple::keylet::hookStateDir(acc, ns);
 
-    uint32_t stateCount = sleAccount->getFieldU32(sfHookStateCount);
-    uint32_t oldStateReserve = computeHookStateOwnerCount(stateCount);
+    uint32_t newHookStateCount = sleAccount->getFieldU32(sfHookStateCount);
+    uint32_t oldHookStateCount = newHookStateCount;
 
     auto hookState = view.peek(hookStateKeylet);
 
@@ -1082,16 +1088,22 @@ hook::setHookState(
         view.erase(hookState);
 
         // adjust state object count
-        if (stateCount > 0)
-            --stateCount;  // guard this because in the "impossible" event it is
-                           // already 0 we'll wrap back to int_max
-
+        Blob deletedStateData = hookState->getFieldVL(sfHookStateData);
+        uint32_t deleteOwnerCount =
+            computeHookStateOwnerCount(deletedStateData);
+        if (newHookStateCount >= deleteOwnerCount)
+        {
+            newHookStateCount -=
+                deleteOwnerCount;  // guard this because in the "impossible"
+                                   // event it is already 0 we'll wrap back to
+                                   // int_max
+        }
         // if removing this state entry would destroy the allotment then reduce
         // the owner count
-        if (computeHookStateOwnerCount(stateCount) < oldStateReserve)
-            adjustOwnerCount(view, sleAccount, -1, j);
+        if (newHookStateCount < oldHookStateCount)
+            adjustOwnerCount(view, sleAccount, -deleteOwnerCount, j);
 
-        sleAccount->setFieldU32(sfHookStateCount, stateCount);
+        sleAccount->setFieldU32(sfHookStateCount, newHookStateCount);
 
         if (nsDestroyed)
             hook::removeHookNamespaceEntry(*sleAccount, ns);
@@ -1116,29 +1128,53 @@ hook::setHookState(
 
     if (createNew)
     {
-        ++stateCount;
+        uint32_t createdOwnerCount = computeHookStateOwnerCount(data);
+        newHookStateCount += createdOwnerCount;
 
-        if (computeHookStateOwnerCount(stateCount) > oldStateReserve)
+        if (newHookStateCount > oldHookStateCount)
         {
             // the hook used its allocated allotment of state entries for its
             // previous ownercount increment ownercount and give it another
             // allotment
 
-            ++ownerCount;
+            ownerCount += createdOwnerCount;
             XRPAmount const newReserve{view.fees().accountReserve(ownerCount)};
 
             if (STAmount((*sleAccount)[sfBalance]).xrp() < newReserve)
                 return tecINSUFFICIENT_RESERVE;
 
-            adjustOwnerCount(view, sleAccount, 1, j);
+            adjustOwnerCount(view, sleAccount, createdOwnerCount, j);
         }
 
         // update state count
-        sleAccount->setFieldU32(sfHookStateCount, stateCount);
+        sleAccount->setFieldU32(sfHookStateCount, newHookStateCount);
         view.update(sleAccount);
 
         // create an entry
         hookState = std::make_shared<SLE>(hookStateKeylet);
+    }
+    else
+    {
+        // on Update
+        uint32_t oldOwnerCount =
+            computeHookStateOwnerCount((*hookState)[sfHookStateData]);
+        uint32_t newOwnerCount = computeHookStateOwnerCount(data);
+
+        uint32_t changedOwnerCount = newOwnerCount - oldOwnerCount;
+        newHookStateCount += changedOwnerCount;
+
+        if (changedOwnerCount != 0)
+        {
+            ownerCount += changedOwnerCount;
+            XRPAmount const newReserve{view.fees().accountReserve(ownerCount)};
+            if (STAmount((*sleAccount)[sfBalance]).xrp() < newReserve)
+                return tecINSUFFICIENT_RESERVE;
+
+            adjustOwnerCount(view, sleAccount, changedOwnerCount, j);
+
+            sleAccount->setFieldU32(sfHookStateCount, newHookStateCount);
+            view.update(sleAccount);
+        }
     }
 
     hookState->setFieldVL(sfHookStateData, data);
@@ -1634,7 +1670,7 @@ DEFINE_HOOK_FUNCTION(
         (aread_len && NOT_IN_BOUNDS(aread_ptr, aread_len, memory_length)))
         return OUT_OF_BOUNDS;
 
-    uint32_t maxSize = hook::maxHookStateDataSize();
+    uint32_t maxSize = hook::maxHookStateDataSize(view.rules());
     if (read_len > maxSize)
         return TOO_BIG;
 
