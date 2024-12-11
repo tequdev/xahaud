@@ -7012,6 +7012,8 @@ __etxn_fee_base(
     }
     catch (std::exception& e)
     {
+        JLOG(j.trace()) << "HookInfo[" << HC_ACC()
+                        << "]: etxn_fee_base exception: " << e.what();
         return INVALID_TXN;
     }
 }
@@ -8177,7 +8179,7 @@ DEFINE_JS_FUNCTION(
 const int64_t float_one_internal = make_float(1000000000000000ull, -15, false);
 
 inline int64_t
-float_divide_internal(int64_t float1, int64_t float2)
+float_divide_internal(int64_t float1, int64_t float2, bool hasFix)
 {
     RETURN_IF_INVALID_FLOAT(float1);
     RETURN_IF_INVALID_FLOAT(float2);
@@ -8230,8 +8232,16 @@ float_divide_internal(int64_t float1, int64_t float2)
     while (man2 > 0)
     {
         int i = 0;
-        for (; man1 > man2; man1 -= man2, ++i)
-            ;
+        if (hasFix)
+        {
+            for (; man1 >= man2; man1 -= man2, ++i)
+                ;
+        }
+        else
+        {
+            for (; man1 > man2; man1 -= man2, ++i)
+                ;
+        }
 
         man3 *= 10;
         man3 += i;
@@ -8251,7 +8261,8 @@ DEFINE_WASM_FUNCTION(int64_t, float_divide, int64_t float1, int64_t float2)
     WASM_HOOK_SETUP();  // populates memory_ctx, memory, memory_length, applyCtx,
                    // hookCtx on current stack
 
-    return float_divide_internal(float1, float2);
+    bool const hasFix = view.rules().enabled(fixFloatDivide);
+    return float_divide_internal(float1, float2, hasFix);
 
     WASM_HOOK_TEARDOWN();
 }
@@ -8300,7 +8311,9 @@ DEFINE_WASM_FUNCTION(int64_t, float_invert, int64_t float1)
         return DIVISION_BY_ZERO;
     if (float1 == float_one_internal)
         return float_one_internal;
-    return float_divide_internal(float_one_internal, float1);
+
+    bool const fixV3 = view.rules().enabled(fixFloatDivide);
+    return float_divide_internal(float_one_internal, float1, fixV3);
 
     WASM_HOOK_TEARDOWN();
 }

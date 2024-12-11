@@ -539,7 +539,9 @@ target_sources (rippled PRIVATE
        subdir: nodestore
   #]===============================]
   src/ripple/nodestore/backend/CassandraFactory.cpp
+  src/ripple/nodestore/backend/RWDBFactory.cpp
   src/ripple/nodestore/backend/MemoryFactory.cpp
+  src/ripple/nodestore/backend/FlatmapFactory.cpp
   src/ripple/nodestore/backend/NuDBFactory.cpp
   src/ripple/nodestore/backend/NullFactory.cpp
   src/ripple/nodestore/backend/RocksDBFactory.cpp
