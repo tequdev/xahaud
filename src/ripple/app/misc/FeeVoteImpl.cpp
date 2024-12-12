@@ -24,72 +24,9 @@
 #include <ripple/beast/utility/Journal.h>
 #include <ripple/protocol/STValidation.h>
 #include <ripple/protocol/st.h>
+#include <ripple/app/misc/VotableValue.h>
 
 namespace ripple {
-
-namespace detail {
-
-class VotableValue
-{
-private:
-    using value_type = XRPAmount;
-    value_type const current_;  // The current setting
-    value_type const target_;   // The setting we want
-    std::map<value_type, int> voteMap_;
-
-public:
-    VotableValue(value_type current, value_type target)
-        : current_(current), target_(target)
-    {
-        // Add our vote
-        ++voteMap_[target_];
-    }
-
-    void
-    addVote(value_type vote)
-    {
-        ++voteMap_[vote];
-    }
-
-    void
-    noVote()
-    {
-        addVote(current_);
-    }
-
-    value_type
-    current() const
-    {
-        return current_;
-    }
-
-    std::pair<value_type, bool>
-    getVotes() const;
-};
-
-auto
-VotableValue::getVotes() const -> std::pair<value_type, bool>
-{
-    value_type ourVote = current_;
-    int weight = 0;
-    for (auto const& [key, val] : voteMap_)
-    {
-        // Take most voted value between current and target, inclusive
-        if ((key <= std::max(target_, current_)) &&
-            (key >= std::min(target_, current_)) && (val > weight))
-        {
-            ourVote = key;
-            weight = val;
-        }
-    }
-
-    return {ourVote, ourVote != current_};
-}
-
-}  // namespace detail
-
-//------------------------------------------------------------------------------
-
 class FeeVoteImpl : public FeeVote
 {
 private:
@@ -202,20 +139,20 @@ FeeVoteImpl::doVoting(
     // LCL must be flag ledger
     assert(lastClosedLedger && isFlagLedger(lastClosedLedger->seq()));
 
-    detail::VotableValue baseFeeVote(
+    detail::VotableValue<XRPAmount> baseFeeVote(
         lastClosedLedger->fees().base, target_.reference_fee);
 
-    detail::VotableValue baseReserveVote(
+    detail::VotableValue<XRPAmount> baseReserveVote(
         lastClosedLedger->fees().accountReserve(0), target_.account_reserve);
 
-    detail::VotableValue incReserveVote(
+    detail::VotableValue<XRPAmount> incReserveVote(
         lastClosedLedger->fees().increment, target_.owner_reserve);
 
     auto const& rules = lastClosedLedger->rules();
     if (rules.enabled(featureXRPFees))
     {
         auto doVote = [](std::shared_ptr<STValidation> const& val,
-                         detail::VotableValue& value,
+                         detail::VotableValue<XRPAmount>& value,
                          SF_AMOUNT const& xrpField) {
             if (auto const field = ~val->at(~xrpField);
                 field && field->native())
@@ -244,7 +181,7 @@ FeeVoteImpl::doVoting(
     else
     {
         auto doVote = [](std::shared_ptr<STValidation> const& val,
-                         detail::VotableValue& value,
+                         detail::VotableValue<XRPAmount>& value,
                          auto const& valueField) {
             if (auto const field = val->at(~valueField))
             {

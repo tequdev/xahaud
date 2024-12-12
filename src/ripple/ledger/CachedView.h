@@ -82,6 +82,12 @@ public:
         return base_.fees();
     }
 
+    HooksSettings const&
+    hooksSettings() const override
+    {
+        return base_.hooksSettings();
+    }
+
     Rules const&
     rules() const override
     {

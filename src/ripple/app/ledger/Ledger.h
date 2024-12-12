@@ -166,6 +166,12 @@ public:
         return fees_;
     }
 
+    HooksSettings const&
+    hooksSettings() const override
+    {
+        return hooksSettings_;
+    }
+
     Rules const&
     rules() const override
     {
@@ -403,6 +409,9 @@ private:
     void
     defaultFees(Config const& config);
 
+    void
+    defaultHooksSettings(Config const& config);
+
     bool mImmutable;
 
     // A SHAMap containing the transactions associated with this ledger.
@@ -415,6 +424,7 @@ private:
     std::mutex mutable mutex_;
 
     Fees fees_;
+    HooksSettings hooksSettings_;
     Rules rules_;
     LedgerInfo info_;
     beast::Journal j_;

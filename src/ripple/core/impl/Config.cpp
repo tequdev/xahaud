@@ -633,6 +633,8 @@ Config::loadFromString(std::string const& fileContents)
     if (getSingleSection(secConfig, SECTION_FEE_DEFAULT, strTemp, j_))
         FEES.reference_fee = beast::lexicalCastThrow<std::uint64_t>(strTemp);
 
+    HOOKS_SETTINGS = setup_HooksSettingsVote(section("hooks_voting"));
+
     if (getSingleSection(secConfig, SECTION_LEDGER_HISTORY, strTemp, j_))
     {
         if (boost::iequals(strTemp, "full"))
@@ -1069,6 +1071,22 @@ setup_FeeVote(Section const& section)
             setup.account_reserve = temp;
         if (set(temp, "owner_reserve", section))
             setup.owner_reserve = temp;
+    }
+    return setup;
+}
+
+HooksSettingsSetup
+setup_HooksSettingsVote(Section const& section)
+{
+    HooksSettingsSetup setup;
+    {
+        std::uint16_t temp;
+        if (set(temp, "hook_parameters_size", section))
+            setup.hook_parameters_size = temp;
+        if (set(temp, "hook_parameter_value_size", section))
+            setup.hook_parameter_value_size = temp;
+        if (set(temp, "hook_state_data_size", section))
+            setup.hook_state_data_size = temp;
     }
     return setup;
 }

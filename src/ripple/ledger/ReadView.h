@@ -69,6 +69,13 @@ struct Fees
     }
 };
 
+struct HooksSettings
+{
+    uint16_t hook_parameters_size;
+    uint16_t hook_parameter_value_size;
+    uint16_t hook_state_data_size;
+};
+
 //------------------------------------------------------------------------------
 
 /** Information about the notional ledger backing the view. */
@@ -198,6 +205,10 @@ public:
     /** Returns the fees for the base ledger. */
     virtual Fees const&
     fees() const = 0;
+
+    /** Returns the hooks settings for the base ledger. */
+    virtual HooksSettings const&
+    hooksSettings() const = 0;
 
     /** Returns the tx processing rules. */
     virtual Rules const&

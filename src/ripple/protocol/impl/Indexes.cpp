@@ -61,6 +61,7 @@ enum class LedgerNameSpace : std::uint16_t {
     DEPOSIT_PREAUTH = 'p',
     NEGATIVE_UNL = 'N',
     HOOK = 'H',
+    HOOKS_SETTINGS = 'K',
     HOOK_STATE_DIR = 'J',
     HOOK_STATE = 'v',
     HOOK_DEFINITION = 'D',
@@ -162,6 +163,12 @@ Keylet
 hook(AccountID const& id) noexcept
 {
     return {ltHOOK, indexHash(LedgerNameSpace::HOOK, id)};
+}
+
+Keylet
+hooksSettings() noexcept
+{
+    return {ltHOOKS_SETTINGS, indexHash(LedgerNameSpace::HOOKS_SETTINGS)};
 }
 
 Keylet

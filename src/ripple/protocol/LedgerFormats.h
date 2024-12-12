@@ -122,6 +122,10 @@ enum LedgerEntryType : std::uint16_t
      */
     ltIMPORT_VLSEQ = 0x0049,
 
+    /** The ledger object which records the settings for hooks
+     */
+    ltHOOKS_SETTINGS = 0x0056,
+
     /** A ledger object describing a single escrow.
 
         \sa keylet::escrow

@@ -148,6 +148,12 @@ OpenView::fees() const
     return base_->fees();
 }
 
+HooksSettings const&
+OpenView::hooksSettings() const
+{
+    return base_->hooksSettings();
+}
+
 Rules const&
 OpenView::rules() const
 {

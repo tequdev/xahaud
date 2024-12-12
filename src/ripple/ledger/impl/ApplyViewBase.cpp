@@ -49,6 +49,12 @@ ApplyViewBase::fees() const
     return base_->fees();
 }
 
+HooksSettings const&
+ApplyViewBase::hooksSettings() const
+{
+    return base_->hooksSettings();
+}
+
 Rules const&
 ApplyViewBase::rules() const
 {

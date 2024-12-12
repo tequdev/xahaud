@@ -216,6 +216,15 @@ TxFormats::TxFormats()
         },
         commonFields);
 
+    add(jss::SetHooksSettings,
+        ttSET_HOOKS_SETTINGS,
+        {
+            {sfHookParametersSize, soeREQUIRED},
+            {sfHookParameterValueSize, soeREQUIRED},
+            {sfHookStateDataSize, soeREQUIRED},
+        },
+        commonFields);
+
     add(jss::TicketCreate,
         ttTICKET_CREATE,
         {

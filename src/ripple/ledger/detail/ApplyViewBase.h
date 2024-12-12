@@ -53,6 +53,9 @@ public:
     Fees const&
     fees() const override;
 
+    HooksSettings const&
+    hooksSettings() const override;
+
     Rules const&
     rules() const override;
 

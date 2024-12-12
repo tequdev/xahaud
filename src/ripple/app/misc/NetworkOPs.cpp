@@ -166,6 +166,9 @@ public:
               make_FeeVote(
                   setup_FeeVote(app_.config().section("voting")),
                   app_.logs().journal("FeeVote")),
+              make_HooksSettingsVote(
+                setup_HooksSettingsVote(app_.config().section("hooks_voting")),
+                app_.logs().journal("HooksSettingsVote")),
               ledgerMaster,
               *m_localTX,
               app.getInboundTransactions(),

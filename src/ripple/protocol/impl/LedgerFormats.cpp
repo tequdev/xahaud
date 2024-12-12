@@ -166,6 +166,15 @@ LedgerFormats::LedgerFormats()
         },
         commonFields);
 
+    add(jss::HooksSettings,
+        ltHOOKS_SETTINGS,
+        {
+            {sfHookParametersSize, soeREQUIRED},
+            {sfHookParameterValueSize, soeREQUIRED},
+            {sfHookStateDataSize, soeREQUIRED},
+        },
+        commonFields);
+
     add(jss::FeeSettings,
         ltFEE_SETTINGS,
         {

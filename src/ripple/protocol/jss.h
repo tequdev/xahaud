@@ -88,6 +88,8 @@ JSS(HookParameterName);   // field
 JSS(HookParameterValue);  // field
 JSS(HookParameter);       // field
 JSS(HookGrant);           // field
+JSS(HooksSettings);      // ledger type
+JSS(SetHooksSettings);   // ledger type
 JSS(isSerialized);        // out: RPC server_definitions
 JSS(isSigningField);      // out: RPC server_definitions
 JSS(isVLEncoded);         // out: RPC server_definitions
@@ -346,6 +348,7 @@ JSS(highest_sequence);      // out: AccountInfo
 JSS(highest_ticket);        // out: AccountInfo
 JSS(historical_perminute);  // historical_perminute.
 JSS(hook);                  // in: LedgerEntry
+JSS(hooks_settings);        // in: LedgerEntry
 JSS(hook_definition);       // in: LedgerEntry
 JSS(hook_state);            // in: LedgerEntry
 JSS(hostid);                // out: NetworkOPs

@@ -111,6 +111,17 @@ Change::preflight(PreflightContext const& ctx)
         }
     }
 
+    if (ctx.tx.getTxnType() == ttSET_HOOKS_SETTINGS)
+    {
+        if(!ctx.rules.enabled(featureHooksSettings))
+        {
+            JLOG(ctx.j.warn()) << "Change: HooksSettings is not enabled.";
+            return temDISABLED;
+        }
+        // check if fields are present
+        return tesSUCCESS;
+    }
+
     return tesSUCCESS;
 }
 
@@ -191,6 +202,8 @@ Change::doApply()
             return applyEmitFailure();
         case ttUNL_REPORT:
             return applyUNLReport();
+        case ttSET_HOOKS_SETTINGS:
+            return applySetHooksSettings();
         default:
             assert(0);
             return tefFAILURE;
@@ -1177,6 +1190,33 @@ Change::applyUNLModify()
     }
 
     view().update(negUnlObject);
+    return tesSUCCESS;
+}
+
+TER
+Change::applySetHooksSettings()
+{
+    auto const k = keylet::hooksSettings();
+
+    SLE::pointer hooksSettingsObject = view().peek(k);
+
+    if (!hooksSettingsObject)
+    {
+        hooksSettingsObject = std::make_shared<SLE>(k);
+        view().insert(hooksSettingsObject);
+    }
+    auto set = [](SLE::pointer& hooksSettingsObject, STTx const& tx, auto const& field) {
+        hooksSettingsObject->at(field) = tx[field];
+    };
+
+    set(hooksSettingsObject, ctx_.tx, sfBaseFee);
+    set(hooksSettingsObject, ctx_.tx, sfReferenceFeeUnits);
+    set(hooksSettingsObject, ctx_.tx, sfReserveBase);
+    set(hooksSettingsObject, ctx_.tx, sfReserveIncrement);
+
+    view().update(hooksSettingsObject);
+
+    JLOG(j_.warn()) << "Hooks settings have been changed";
     return tesSUCCESS;
 }
 

@@ -246,6 +246,14 @@ Ledger::Ledger(
         rawInsert(sle);
     }
 
+    {
+        auto sle = std::make_shared<SLE>(keylet::hooksSettings());
+        sle->at(sfHookParametersSize) = config.HOOKS_SETTINGS.hook_parameters_size;
+        sle->at(sfHookParameterValueSize) = config.HOOKS_SETTINGS.hook_parameter_value_size;
+        sle->at(sfHookStateDataSize) = config.HOOKS_SETTINGS.hook_state_data_size;
+        rawInsert(sle);
+    }
+
     stateMap_.flushDirty(hotACCOUNT_NODE);
     setImmutable();
 }
@@ -294,6 +302,7 @@ Ledger::Ledger(
     stateMap_.setImmutable();
 
     defaultFees(config);
+    defaultHooksSettings(config);
     if (!setup())
         loaded = false;
 
@@ -311,6 +320,7 @@ Ledger::Ledger(Ledger const& prevLedger, NetClock::time_point closeTime)
     , txMap_(SHAMapType::TRANSACTION, prevLedger.txMap_.family())
     , stateMap_(prevLedger.stateMap_, true)
     , fees_(prevLedger.fees_)
+    , hooksSettings_(prevLedger.hooksSettings_)
     , rules_(prevLedger.rules_)
     , j_(beast::Journal(beast::Journal::getNullSink()))
 {
@@ -362,6 +372,7 @@ Ledger::Ledger(
     info_.closeTime = closeTime;
     info_.closeTimeResolution = ledgerDefaultTimeResolution;
     defaultFees(config);
+    defaultHooksSettings(config);
     setup();
 }
 
@@ -681,6 +692,19 @@ Ledger::setup()
                 // Can't populate the new fees before the amendment is enabled
                 ret = false;
         }
+
+        if (auto const sle = read(keylet::hooksSettings()))
+        {
+            auto const hookParametersSize = sle->at(~sfHookParametersSize);
+            auto const hookParametersValueSize = sle->at(~sfHookParameterValueSize);
+            auto const hookStateDataSize = sle->at(~sfHookStateDataSize);
+            if (hookParametersSize)
+                hooksSettings_.hook_parameters_size = hookParametersSize.value();
+            if (hookParametersValueSize)
+                hooksSettings_.hook_parameter_value_size = hookParametersValueSize.value();
+            if (hookStateDataSize)
+                hooksSettings_.hook_state_data_size = hookStateDataSize.value();
+        }
     }
     catch (SHAMapMissingNode const&)
     {
@@ -705,6 +729,18 @@ Ledger::defaultFees(Config const& config)
         fees_.reserve = config.FEES.account_reserve;
     if (fees_.increment == 0)
         fees_.increment = config.FEES.owner_reserve;
+}
+
+void
+Ledger::defaultHooksSettings(Config const& config)
+{
+    assert(hooksSettings_.hook_parameters_size == 0 && hooksSettings_.hook_parameter_value_size == 0 && hooksSettings_.hook_state_data_size == 0);
+    if(hooksSettings_.hook_parameters_size == 0)
+        hooksSettings_.hook_parameters_size = config.HOOKS_SETTINGS.hook_parameters_size;
+    if(hooksSettings_.hook_parameter_value_size == 0)
+        hooksSettings_.hook_parameter_value_size = config.HOOKS_SETTINGS.hook_parameter_value_size;
+    if(hooksSettings_.hook_state_data_size == 0)
+        hooksSettings_.hook_state_data_size = config.HOOKS_SETTINGS.hook_state_data_size;
 }
 
 std::shared_ptr<SLE>
@@ -1111,6 +1147,7 @@ finishLoadByIndexOrHash(
         return;
 
     assert(ledger->read(keylet::fees()));
+    assert(ledger->read(keylet::hooksSettings()));
     ledger->setImmutable();
 
     JLOG(j.trace()) << "Loaded ledger: " << to_string(ledger->info().hash);

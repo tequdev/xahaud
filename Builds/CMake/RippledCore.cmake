@@ -389,6 +389,7 @@ target_sources (rippled PRIVATE
   src/ripple/app/misc/CanonicalTXSet.cpp
   src/ripple/app/misc/FeeVoteImpl.cpp
   src/ripple/app/misc/HashRouter.cpp
+  src/ripple/app/misc/HooksSettingsVoteImpl.cpp
   src/ripple/app/misc/NegativeUNLVote.cpp
   src/ripple/app/misc/NetworkOPs.cpp
   src/ripple/app/misc/SHAMapStoreImp.cpp

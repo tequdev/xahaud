@@ -83,6 +83,13 @@ struct FeeSetup
      * values.) */
 };
 
+struct HooksSettingsSetup
+{
+    uint16_t hook_parameters_size;
+    uint16_t hook_parameter_value_size;
+    uint16_t hook_state_data_size;
+};
+
 //  This entire derived class is deprecated.
 //  For new config information use the style implied
 //  in the base class. For existing config information
@@ -222,6 +229,7 @@ public:
         VALIDATION_QUORUM;  // validations to consider ledger authoritative
 
     FeeSetup FEES;
+    HooksSettingsSetup HOOKS_SETTINGS;
 
     // Node storage configuration
     std::uint32_t LEDGER_HISTORY = 256;
@@ -417,6 +425,9 @@ public:
 
 FeeSetup
 setup_FeeVote(Section const& section);
+
+HooksSettingsSetup
+setup_HooksSettingsVote(Section const& section);
 
 }  // namespace ripple
 

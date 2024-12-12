@@ -76,6 +76,9 @@ private:
 
     TER
     applyUNLReport();
+
+    TER
+    applySetHooksSettings();
 };
 
 }  // namespace ripple

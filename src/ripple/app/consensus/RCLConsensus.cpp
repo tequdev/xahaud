@@ -53,6 +53,7 @@ namespace ripple {
 RCLConsensus::RCLConsensus(
     Application& app,
     std::unique_ptr<FeeVote>&& feeVote,
+    std::unique_ptr<HooksSettingsVote>&& hooksSettingsVote,
     LedgerMaster& ledgerMaster,
     LocalTxs& localTxs,
     InboundTransactions& inboundTransactions,
@@ -62,6 +63,7 @@ RCLConsensus::RCLConsensus(
     : adaptor_(
           app,
           std::move(feeVote),
+          std::move(hooksSettingsVote),
           ledgerMaster,
           localTxs,
           inboundTransactions,
@@ -75,6 +77,7 @@ RCLConsensus::RCLConsensus(
 RCLConsensus::Adaptor::Adaptor(
     Application& app,
     std::unique_ptr<FeeVote>&& feeVote,
+    std::unique_ptr<HooksSettingsVote>&& hooksSettingsVote,
     LedgerMaster& ledgerMaster,
     LocalTxs& localTxs,
     InboundTransactions& inboundTransactions,
@@ -82,6 +85,7 @@ RCLConsensus::Adaptor::Adaptor(
     beast::Journal journal)
     : app_(app)
     , feeVote_(std::move(feeVote))
+    , hooksSettingsVote_(std::move(hooksSettingsVote))
     , ledgerMaster_(ledgerMaster)
     , localTxs_(localTxs)
     , inboundTransactions_{inboundTransactions}
@@ -346,6 +350,7 @@ RCLConsensus::Adaptor::onClose(
             if (validations.size() >= app_.validators().quorum())
             {
                 feeVote_->doVoting(prevLedger, validations, initialSet);
+                hooksSettingsVote_->doVoting(prevLedger, validations, initialSet);
                 app_.getAmendmentTable().doVoting(
                     prevLedger, validations, initialSet);
             }
@@ -853,6 +858,9 @@ RCLConsensus::Adaptor::validate(
                 // Fees:
                 feeVote_->doValidation(
                     ledger.ledger_->fees(), ledger.ledger_->rules(), v);
+
+                // Hooks settings:
+                hooksSettingsVote_->doValidation(ledger.ledger_->hooksSettings(), ledger.ledger_->rules(), v);
 
                 // Amendments
                 // FIXME: pass `v` and have the function insert the array

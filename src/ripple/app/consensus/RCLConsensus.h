@@ -25,6 +25,7 @@
 #include <ripple/app/consensus/RCLCxPeerPos.h>
 #include <ripple/app/consensus/RCLCxTx.h>
 #include <ripple/app/misc/FeeVote.h>
+#include <ripple/app/misc/HooksSettingsVote.h>
 #include <ripple/app/misc/NegativeUNLVote.h>
 #include <ripple/basics/CountedObject.h>
 #include <ripple/basics/Log.h>
@@ -58,6 +59,7 @@ class RCLConsensus
     {
         Application& app_;
         std::unique_ptr<FeeVote> feeVote_;
+        std::unique_ptr<HooksSettingsVote> hooksSettingsVote_;
         LedgerMaster& ledgerMaster_;
         LocalTxs& localTxs_;
         InboundTransactions& inboundTransactions_;
@@ -99,6 +101,7 @@ class RCLConsensus
         Adaptor(
             Application& app,
             std::unique_ptr<FeeVote>&& feeVote,
+            std::unique_ptr<HooksSettingsVote>&& hooksSettingsVote,
             LedgerMaster& ledgerMaster,
             LocalTxs& localTxs,
             InboundTransactions& inboundTransactions,
@@ -418,6 +421,7 @@ public:
     RCLConsensus(
         Application& app,
         std::unique_ptr<FeeVote>&& feeVote,
+        std::unique_ptr<HooksSettingsVote>&& hooksSettingsVote,
         LedgerMaster& ledgerMaster,
         LocalTxs& localTxs,
         InboundTransactions& inboundTransactions,

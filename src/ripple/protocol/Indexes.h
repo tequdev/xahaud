@@ -66,6 +66,9 @@ Keylet
 hook(AccountID const& id) noexcept;
 
 Keylet
+hooksSettings() noexcept;
+
+Keylet
 hookState(AccountID const& id, uint256 const& key, uint256 const& ns) noexcept;
 
 Keylet
