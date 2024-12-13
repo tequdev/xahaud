@@ -181,6 +181,7 @@ Change::preclaim(PreclaimContext const& ctx)
         case ttUNL_MODIFY:
         case ttUNL_REPORT:
         case ttEMIT_FAILURE:
+        case ttSET_HOOKS_SETTINGS:
             return tesSUCCESS;
         default:
             return temUNKNOWN;

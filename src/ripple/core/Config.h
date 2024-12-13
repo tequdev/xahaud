@@ -85,9 +85,9 @@ struct FeeSetup
 
 struct HooksSettingsSetup
 {
-    uint16_t hook_parameters_size;
-    uint16_t hook_parameter_value_size;
-    uint16_t hook_state_data_size;
+    uint16_t hook_parameters_size = 16;
+    uint16_t hook_parameter_value_size = 256;
+    uint16_t hook_state_data_size = 256;
 };
 
 //  This entire derived class is deprecated.

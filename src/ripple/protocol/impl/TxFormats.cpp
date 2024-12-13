@@ -219,6 +219,7 @@ TxFormats::TxFormats()
     add(jss::SetHooksSettings,
         ttSET_HOOKS_SETTINGS,
         {
+            {sfLedgerSequence, soeREQUIRED},
             {sfHookParametersSize, soeREQUIRED},
             {sfHookParameterValueSize, soeREQUIRED},
             {sfHookStateDataSize, soeREQUIRED},

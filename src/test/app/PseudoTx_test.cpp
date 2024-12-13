@@ -56,6 +56,14 @@ struct PseudoTx_test : public beast::unit_test::suite
             obj.setFieldU32(sfLedgerSequence, seq);
         }));
 
+        res.emplace_back(STTx(ttSET_HOOKS_SETTINGS, [&](auto& obj) {
+            obj.setAccountID(sfAccount, AccountID());
+            obj.setFieldU32(sfLedgerSequence, seq);
+            obj.setFieldU16(sfHookParametersSize, 16);
+            obj.setFieldU16(sfHookParameterValueSize, 256);
+            obj.setFieldU16(sfHookStateDataSize, 256);
+        }));
+
         return res;
     }
 
