@@ -725,6 +725,7 @@ if (tests)
     src/test/app/Freeze_test.cpp
     src/test/app/GenesisMint_test.cpp
     src/test/app/HashRouter_test.cpp
+    src/test/app/HooksSettingsVote_test.cpp
     src/test/app/Import_test.cpp
     src/test/app/Invoke_test.cpp
     src/test/app/LedgerHistory_test.cpp
