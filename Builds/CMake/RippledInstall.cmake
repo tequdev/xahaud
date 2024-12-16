@@ -4,6 +4,8 @@
 
 install (
   TARGETS
+    ed25519-donna
+    quickjs
     common
     opts
     ripple_syslibs
