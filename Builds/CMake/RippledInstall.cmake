@@ -4,7 +4,7 @@
 
 install (
   TARGETS
-    ed25519-donna
+    # ed25519-donna
     quickjs
     common
     opts

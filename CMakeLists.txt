@@ -96,6 +96,37 @@ include(deps/Postgres)
 include(deps/WasmEdge)
 include(deps/quickjs)
 
+target_link_libraries(ripple_libs INTERFACE
+  ed25519::ed25519
+  LibArchive::LibArchive
+  lz4::lz4
+  OpenSSL::Crypto
+  OpenSSL::SSL
+  Ripple::grpc_pbufs
+  Ripple::pbufs
+  secp256k1::secp256k1
+  soci::soci
+  SQLite::SQLite3
+)
+
+if(TARGET nudb::core)
+  set(nudb nudb::core)
+elseif(TARGET NuDB::nudb)
+  set(nudb NuDB::nudb)
+else()
+  message(FATAL_ERROR "unknown nudb target")
+endif()
+target_link_libraries(ripple_libs INTERFACE ${nudb})
+
+# if(reporting)
+#   find_package(cassandra-cpp-driver REQUIRED)
+#   find_package(PostgreSQL REQUIRED)
+#   target_link_libraries(ripple_libs INTERFACE
+#     cassandra-cpp-driver::cassandra-cpp-driver
+#     PostgreSQL::PostgreSQL
+#   )
+# endif()
+
 ###
 
 include(RippledCore)
