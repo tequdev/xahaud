@@ -22,6 +22,7 @@
 
 #include <ripple/protocol/jss.h>
 #include <ripple/json/json_value.h>
+#include <ripple/protocol/jss.h>
 #include <optional>
 #include <test/jtx/Account.h>
 
