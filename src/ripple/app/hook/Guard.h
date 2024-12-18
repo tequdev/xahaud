@@ -1006,6 +1006,13 @@ validateGuards(
                     {
                         // PASS, this is a version 1 api
                     }
+                    else if (
+                        rulesVersion > 1 &&
+                        hook_api::import_whitelist_2.find(import_name) !=
+                            hook_api::import_whitelist_2.end())
+                    {
+                        // PASS, this is a version 2 api
+                    }
                     else
                     {
                         GUARDLOG(hook::log::IMPORT_ILLEGAL)
@@ -1234,7 +1241,11 @@ validateGuards(
                             hook_api::import_whitelist.find(api_name) !=
                                 hook_api::import_whitelist.end()
                             ? hook_api::import_whitelist.find(api_name)->second
-                            : hook_api::import_whitelist_1.find(api_name)
+                            : hook_api::import_whitelist_1.find(api_name) !=
+                                hook_api::import_whitelist_1.end()
+                            ? hook_api::import_whitelist_1.find(api_name)
+                                  ->second
+                            : hook_api::import_whitelist_2.find(api_name)
                                   ->second;
 
                         if (!first_signature)

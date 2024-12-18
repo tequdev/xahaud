@@ -373,7 +373,6 @@ static const std::map<std::string, std::vector<uint8_t>> import_whitelist{
     {"etxn_reserve", {0x7EU, 0x7FU}},
     {"etxn_generation", {0x7EU}},
     {"etxn_nonce", {0x7EU, 0x7FU, 0x7FU}},
-    {"prepare", {0x7EU, 0x7FU, 0x7FU, 0x7FU, 0x7FU}},
     {"emit", {0x7EU, 0x7FU, 0x7FU, 0x7FU, 0x7FU}},
     {"float_set", {0x7EU, 0x7FU, 0x7EU}},
     {"float_multiply", {0x7EU, 0x7EU, 0x7EU}},
@@ -435,5 +434,9 @@ static const std::map<std::string, std::vector<uint8_t>> import_whitelist{
 // featureHooks1
 static const std::map<std::string, std::vector<uint8_t>> import_whitelist_1{
     {"xpop_slot", {0x7EU, 0x7FU, 0x7FU}}};
+// featureHooks2
+static const std::map<std::string, std::vector<uint8_t>> import_whitelist_2{
+    {"prepare", {0x7EU, 0x7FU, 0x7FU, 0x7FU, 0x7FU}}};
 };  // namespace hook_api
+
 #endif
