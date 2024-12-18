@@ -2254,14 +2254,14 @@ DEFINE_HOOK_FUNCTION(int64_t, otxn_slot, uint32_t slot_into)
 
     HOOK_TEARDOWN();
 }
-// Return the burden of the originating transaction... this will be 1 unless the
-// originating transaction was itself an emitted transaction from a previous
-// hook invocation
-DEFINE_HOOK_FUNCNARG(int64_t, otxn_burden)
-{
-    HOOK_SETUP();  // populates memory_ctx, memory, memory_length, applyCtx,
-                   // hookCtx on current stack
 
+// Compute the burden of an emitted transaction based on a number of factors
+inline int64_t
+__otxn_burden(
+    hook::HookContext& hookCtx,
+    ApplyContext& applyCtx,
+    beast::Journal& j)
+{
     if (hookCtx.burden)
         return hookCtx.burden;
 
@@ -2287,6 +2287,17 @@ DEFINE_HOOK_FUNCNARG(int64_t, otxn_burden)
          1);  // wipe out the two high bits just in case somehow they are set
     hookCtx.burden = burden;
     return (int64_t)(burden);
+}
+
+// Return the burden of the originating transaction... this will be 1 unless the
+// originating transaction was itself an emitted transaction from a previous
+// hook invocation
+DEFINE_HOOK_FUNCNARG(int64_t, otxn_burden)
+{
+    HOOK_SETUP();  // populates memory_ctx, memory, memory_length, applyCtx,
+                   // hookCtx on current stack
+
+    return __otxn_burden(hookCtx, applyCtx, j);
 
     HOOK_TEARDOWN();
 }
@@ -2294,11 +2305,12 @@ DEFINE_HOOK_FUNCNARG(int64_t, otxn_burden)
 // Return the generation of the originating transaction... this will be 1 unless
 // the originating transaction was itself an emitted transaction from a previous
 // hook invocation
-DEFINE_HOOK_FUNCNARG(int64_t, otxn_generation)
+inline int64_t
+__otxn_generation(
+    hook::HookContext& hookCtx,
+    ApplyContext& applyCtx,
+    beast::Journal& j)
 {
-    HOOK_SETUP();  // populates memory_ctx, memory, memory_length, applyCtx,
-                   // hookCtx on current stack
-
     // cache the result as it will not change for this hook execution
     if (hookCtx.generation)
         return hookCtx.generation;
@@ -2321,15 +2333,35 @@ DEFINE_HOOK_FUNCNARG(int64_t, otxn_generation)
 
     hookCtx.generation = pd.getFieldU32(sfEmitGeneration);
     return hookCtx.generation;
+}
+
+DEFINE_HOOK_FUNCNARG(int64_t, otxn_generation)
+{
+    HOOK_SETUP();  // populates memory_ctx, memory, memory_length, applyCtx,
+                   // hookCtx on current stack
+
+    return __otxn_generation(hookCtx, applyCtx, j);
 
     HOOK_TEARDOWN();
 }
 
 // Return the generation of a hypothetically emitted transaction from this hook
+inline int64_t
+__etxn_generation(
+    hook::HookContext& hookCtx,
+    ApplyContext& applyCtx,
+    beast::Journal& j)
+{
+    return __otxn_generation(hookCtx, applyCtx, j) + 1;
+}
+
 DEFINE_HOOK_FUNCNARG(int64_t, etxn_generation)
 {
-    // proxy only, no setup or teardown
-    return otxn_generation(hookCtx, frameCtx) + 1;
+    HOOK_SETUP();
+
+    return __etxn_generation(hookCtx, applyCtx, j);
+
+    HOOK_TEARDOWN();
 }
 
 // Return the current ledger sequence number
@@ -3216,6 +3248,157 @@ DEFINE_HOOK_FUNCTION(
     HOOK_TEARDOWN();
 }
 
+inline int64_t
+__etxn_fee_base(
+    hook::HookContext& hookCtx,
+    ApplyContext& applyCtx,
+    beast::Journal& j,
+    uint8_t* read_ptr,
+    size_t read_len);
+
+inline int64_t
+__etxn_details(
+    hook::HookContext& hookCtx,
+    ApplyContext& applyCtx,
+    beast::Journal& j,
+    uint8_t* out_ptr,
+    size_t max_len);
+
+inline int64_t
+__etxn_burden(
+    hook::HookContext& hookCtx,
+    ApplyContext& applyCtx,
+    beast::Journal& j);
+
+inline int64_t
+__otxn_burden(
+    hook::HookContext& hookCtx,
+    ApplyContext& applyCtx,
+    beast::Journal& j);
+
+DEFINE_HOOK_FUNCTION(
+    int64_t,
+    prepare,
+    uint32_t write_ptr,
+    uint32_t write_len,
+    uint32_t read_ptr,
+    uint32_t read_len)
+{
+    HOOK_SETUP();  // populates memory_ctx, memory, memory_length, applyCtx,
+                   // hookCtx on current stack
+
+    Json::Value json;
+
+    // std::shared_ptr<STObject const> stpTrans;
+    try
+    {
+        SerialIter sitTrans{memory + read_ptr, read_len};
+        json =
+            STObject(std::ref(sitTrans), sfGeneric).getJson(JsonOptions::none);
+    }
+    catch (std::exception& e)
+    {
+        JLOG(j.trace()) << "prepare[" << HC_ACC() << "]: Failed " << e.what()
+                        << "\n";
+        return INVALID_ARGUMENT;
+    }
+
+    // add a dummy fee
+    json[jss::Fee] = "0";
+
+    // force key to empty
+    json[jss::SigningPubKey] = "";
+
+    // force sequence to 0
+    json[jss::Sequence] = Json::Value(0u);
+
+    std::string raddr = encodeBase58Token(
+        TokenType::AccountID, hookCtx.result.account.data(), 20);
+
+    json[jss::Account] = raddr;
+
+    int64_t seq = view.info().seq;
+    if (!json.isMember(jss::FirstLedgerSequence))
+        json[jss::FirstLedgerSequence] = Json::Value((uint32_t)(seq + 1));
+
+    if (!json.isMember(jss::LastLedgerSequence))
+        json[jss::LastLedgerSequence] = Json::Value((uint32_t)(seq + 5));
+
+    uint8_t details[512];
+    if (!json.isMember(jss::EmitDetails))
+    {
+        int64_t ret = __etxn_details(hookCtx, applyCtx, j, details, 512);
+        if (ret <= 2)
+            return INTERNAL_ERROR;
+
+        // truncate the head and tail (emit details object markers)
+        Slice s(reinterpret_cast<void const*>(details + 1), (size_t)(ret - 2));
+
+        std::cout << "emitdets: " << strHex(s) << "\n";
+        try
+        {
+            SerialIter sit{s};
+            STObject st{sit, sfEmitDetails};
+            json[jss::EmitDetails] = st.getJson(JsonOptions::none);
+        }
+        catch (std::exception const& ex)
+        {
+            JLOG(j.warn()) << "Exception in " << __func__ << ": " << ex.what();
+            return INTERNAL_ERROR;
+        }
+    }
+
+    {
+        const std::string flat = Json::FastWriter().write(json);
+        std::cout << "intermediate: `" << flat << "`\n";
+    }
+
+    Blob tx_blob;
+    {
+        STParsedJSONObject parsed(std::string(jss::tx_json), json);
+        if (!parsed.object.has_value())
+            return INVALID_ARGUMENT;
+
+        STObject& obj = *(parsed.object);
+
+        // serialize it
+        Serializer s;
+        obj.add(s);
+        tx_blob = s.getData();
+    }
+
+    // run it through the fee estimate, this doubles as a txn sanity check
+    int64_t fee =
+        __etxn_fee_base(hookCtx, applyCtx, j, tx_blob.data(), tx_blob.size());
+    if (fee < 0)
+        return INVALID_ARGUMENT;
+
+    json[jss::Fee] = to_string(fee);
+
+    {
+        STParsedJSONObject parsed(std::string(jss::tx_json), json);
+        if (!parsed.object.has_value())
+            return INVALID_ARGUMENT;
+
+        STObject& obj = *(parsed.object);
+
+        // serialize it
+        Serializer s;
+        obj.add(s);
+        tx_blob = s.getData();
+    }
+
+    WRITE_WASM_MEMORY_AND_RETURN(
+        write_ptr,
+        tx_blob.size(),
+        tx_blob.data(),
+        tx_blob.size(),
+        memory,
+        memory_length);
+
+    HOOK_TEARDOWN();
+}
+
 /* Emit a transaction from this hook. Transaction must be in STObject form,
  * fully formed and valid. XRPLD does not modify transactions it only checks
  * them for validity. */
@@ -3392,7 +3575,7 @@ DEFINE_HOOK_FUNCTION(
 
     auto const& hash = emitDetails.getFieldH256(sfEmitHookHash);
 
-    uint32_t gen_proper = etxn_generation(hookCtx, frameCtx);
+    uint32_t gen_proper = __etxn_generation(hookCtx, applyCtx, j);
 
     if (gen != gen_proper)
     {
@@ -3403,7 +3586,7 @@ DEFINE_HOOK_FUNCTION(
         return EMISSION_FAILURE;
     }
 
-    uint64_t bur_proper = etxn_burden(hookCtx, frameCtx);
+    uint64_t bur_proper = __etxn_burden(hookCtx, applyCtx, j);
     if (bur != bur_proper)
     {
         JLOG(j.trace()) << "HookEmit[" << HC_ACC()
@@ -3490,7 +3673,8 @@ DEFINE_HOOK_FUNCTION(
     }
 
     // rule 7 check the emitted txn pays the appropriate fee
-    int64_t minfee = etxn_fee_base(hookCtx, frameCtx, read_ptr, read_len);
+    int64_t minfee =
+        __etxn_fee_base(hookCtx, applyCtx, j, memory + read_ptr, read_len);
 
     if (minfee < 0)
     {
@@ -3644,24 +3828,14 @@ DEFINE_HOOK_FUNCTION(
 }
 
 // Deterministic nonces (can be called multiple times)
-// Writes nonce into the write_ptr
-DEFINE_HOOK_FUNCTION(
-    int64_t,
-    etxn_nonce,
-    uint32_t write_ptr,
-    uint32_t write_len)
+inline std::optional<uint256>
+__etxn_nonce(
+    hook::HookContext& hookCtx,
+    ApplyContext& applyCtx,
+    beast::Journal& j)
 {
-    HOOK_SETUP();  // populates memory_ctx, memory, memory_length, applyCtx,
-                   // hookCtx, view on current stack
-
-    if (NOT_IN_BOUNDS(write_ptr, write_len, memory_length))
-        return OUT_OF_BOUNDS;
-
     if (hookCtx.emit_nonce_counter > hook_api::max_nonce)
-        return TOO_MANY_NONCES;
-
-    if (write_len < 32)
-        return TOO_SMALL;
+        return {};
 
     // in some cases the same hook might execute multiple times
     // on one txn, therefore we need to pass this information to the nonce
@@ -3680,8 +3854,32 @@ DEFINE_HOOK_FUNCTION(
 
     hookCtx.nonce_used[hash] = true;
 
+    return hash;
+}
+
+// Writes nonce into the write_ptr
+DEFINE_HOOK_FUNCTION(
+    int64_t,
+    etxn_nonce,
+    uint32_t write_ptr,
+    uint32_t write_len)
+{
+    HOOK_SETUP();  // populates memory_ctx, memory, memory_length, applyCtx,
+                   // hookCtx, view on current stack
+
+    if (NOT_IN_BOUNDS(write_ptr, write_len, memory_length))
+        return OUT_OF_BOUNDS;
+
+    if (write_len < 32)
+        return TOO_SMALL;
+
+    auto hash = __etxn_nonce(hookCtx, applyCtx, j);
+
+    if (!hash.has_value())
+        return TOO_MANY_NONCES;
+
     WRITE_WASM_MEMORY_AND_RETURN(
-        write_ptr, 32, hash.data(), 32, memory, memory_length);
+        write_ptr, 32, hash->data(), 32, memory, memory_length);
 
     HOOK_TEARDOWN();
 }
@@ -3790,17 +3988,17 @@ DEFINE_HOOK_FUNCTION(int64_t, etxn_reserve, uint32_t count)
     HOOK_TEARDOWN();
 }
 
-// Compute the burden of an emitted transaction based on a number of factors
-DEFINE_HOOK_FUNCNARG(int64_t, etxn_burden)
+inline int64_t
+__etxn_burden(
+    hook::HookContext& hookCtx,
+    ApplyContext& applyCtx,
+    beast::Journal& j)
 {
-    HOOK_SETUP();  // populates memory_ctx, memory, memory_length, applyCtx,
-                   // hookCtx on current stack
-
     if (hookCtx.expected_etxn_count <= -1)
         return PREREQUISITE_NOT_MET;
 
-    uint64_t last_burden = (uint64_t)otxn_burden(
-        hookCtx, frameCtx);  // always non-negative so cast is safe
+    // always non-negative so cast is safe
+    uint64_t last_burden = (uint64_t)__otxn_burden(hookCtx, applyCtx, j);
 
     uint64_t burden = last_burden * hookCtx.expected_etxn_count;
     if (burden <
@@ -3808,6 +4006,15 @@ DEFINE_HOOK_FUNCNARG(int64_t, etxn_burden)
         return FEE_TOO_LARGE;
 
     return burden;
+}
+
+// Compute the burden of an emitted transaction based on a number of factors
+DEFINE_HOOK_FUNCNARG(int64_t, etxn_burden)
+{
+    HOOK_SETUP();  // populates memory_ctx, memory, memory_length, applyCtx,
+                   // hookCtx on current stack
+
+    return __etxn_burden(hookCtx, applyCtx, j);
 
     HOOK_TEARDOWN();
 }
@@ -4586,25 +4793,20 @@ DEFINE_HOOK_FUNCNARG(int64_t, fee_base)
 
 // Return the fee base for a hypothetically emitted transaction from the current
 // hook based on byte count
-DEFINE_HOOK_FUNCTION(
-    int64_t,
-    etxn_fee_base,
-    uint32_t read_ptr,
-    uint32_t read_len)
+inline int64_t
+__etxn_fee_base(
+    hook::HookContext& hookCtx,
+    ApplyContext& applyCtx,
+    beast::Journal& j,
+    uint8_t* read_ptr,
+    size_t read_len)
 {
-    HOOK_SETUP();  // populates memory_ctx, memory, memory_length, applyCtx,
-                   // hookCtx on current stack
-
-    if (NOT_IN_BOUNDS(read_ptr, read_len, memory_length))
-        return OUT_OF_BOUNDS;
-
     if (hookCtx.expected_etxn_count <= -1)
         return PREREQUISITE_NOT_MET;
 
     try
     {
-        ripple::Slice tx{
-            reinterpret_cast<const void*>(read_ptr + memory), read_len};
+        ripple::Slice tx{reinterpret_cast<const void*>(read_ptr), read_len};
 
         SerialIter sitTrans(tx);
 
@@ -4621,41 +4823,53 @@ DEFINE_HOOK_FUNCTION(
                         << "]: etxn_fee_base exception: " << e.what();
         return INVALID_TXN;
     }
+}
+
+// Return the fee base for a hypothetically emitted transaction from the current
+// hook based on byte count
+DEFINE_HOOK_FUNCTION(
+    int64_t,
+    etxn_fee_base,
+    uint32_t read_ptr,
+    uint32_t read_len)
+{
+    HOOK_SETUP();  // populates memory_ctx, memory, memory_length, applyCtx,
+                   // hookCtx on current stack
+
+    if (NOT_IN_BOUNDS(read_ptr, read_len, memory_length))
+        return OUT_OF_BOUNDS;
+
+    return __etxn_fee_base(hookCtx, applyCtx, j, memory + read_ptr, read_len);
 
     HOOK_TEARDOWN();
 }
 
 // Populate an sfEmitDetails field in a soon-to-be emitted transaction
-DEFINE_HOOK_FUNCTION(
-    int64_t,
-    etxn_details,
-    uint32_t write_ptr,
-    uint32_t write_len)
+inline int64_t
+__etxn_details(
+    hook::HookContext& hookCtx,
+    ApplyContext& applyCtx,
+    beast::Journal& j,
+    uint8_t* out_ptr,
+    size_t max_len)
 {
-    HOOK_SETUP();  // populates memory_ctx, memory, memory_length, applyCtx,
-                   // hookCtx on current stack
-
-    if (NOT_IN_BOUNDS(write_ptr, write_len, memory_length))
-        return OUT_OF_BOUNDS;
-
     int64_t expected_size = 138U;
     if (!hookCtx.result.hasCallback)
         expected_size -= 22U;
 
-    if (write_len < expected_size)
+    if (max_len < expected_size)
         return TOO_SMALL;
 
     if (hookCtx.expected_etxn_count <= -1)
         return PREREQUISITE_NOT_MET;
 
-    uint32_t generation = (uint32_t)(etxn_generation(
-        hookCtx, frameCtx));  // always non-negative so cast is safe
+    uint32_t generation = __etxn_generation(hookCtx, applyCtx, j);
 
-    int64_t burden = etxn_burden(hookCtx, frameCtx);
+    int64_t burden = __etxn_burden(hookCtx, applyCtx, j);
     if (burden < 1)
         return FEE_TOO_LARGE;
 
-    unsigned char* out = memory + write_ptr;
+    uint8_t* out = out_ptr;
 
     *out++ = 0xEDU;  // begin sfEmitDetails                            /* upto =
                      // 0 | size =  1 */
@@ -4678,13 +4892,18 @@ DEFINE_HOOK_FUNCTION(
     *out++ = (burden >> 0U) & 0xFFU;
     *out++ = 0x5BU;  // sfEmitParentTxnID preamble                      /* upto
                      // =  16 | size = 33 */
-    if (otxn_id(hookCtx, frameCtx, out - memory, 32, 1) != 32)
-        return INTERNAL_ERROR;
+    auto const& txID = applyCtx.tx.getTransactionID();
+    memcpy(out, txID.data(), 32);
     out += 32;
     *out++ = 0x5CU;  // sfEmitNonce                                     /* upto
                      // =  49 | size = 33 */
-    if (etxn_nonce(hookCtx, frameCtx, out - memory, 32) != 32)
+
+    auto hash = __etxn_nonce(hookCtx, applyCtx, j);
+    if (!hash.has_value())
         return INTERNAL_ERROR;
+
+    memcpy(out, hash->data(), 32);
+
     out += 32;
     *out++ = 0x5DU;  // sfEmitHookHash preamble                          /* upto
                      // =  82 | size = 33 */
@@ -4696,17 +4915,34 @@ DEFINE_HOOK_FUNCTION(
         *out++ = 0x8AU;  // sfEmitCallback preamble                         /*
                          // upto = 115 | size = 22 */
         *out++ = 0x14U;  // preamble cont
-        if (hook_account(hookCtx, frameCtx, out - memory, 20) != 20)
-            return INTERNAL_ERROR;
+
+        memcpy(out, hookCtx.result.account.data(), 20);
+
         out += 20;
     }
     *out++ = 0xE1U;  // end object (sfEmitDetails)                     /* upto =
                      // 137 | size =  1 */
                      /* upto = 138 | --------- */
-    int64_t outlen = out - memory - write_ptr;
+    int64_t outlen = out - out_ptr;
 
     DBG_PRINTF("emitdetails size = %d\n", outlen);
     return outlen;
+}
+
+// Populate an sfEmitDetails field in a soon-to-be emitted transaction
+DEFINE_HOOK_FUNCTION(
+    int64_t,
+    etxn_details,
+    uint32_t write_ptr,
+    uint32_t write_len)
+{
+    HOOK_SETUP();  // populates memory_ctx, memory, memory_length, applyCtx,
+                   // hookCtx on current stack
+
+    if (NOT_IN_BOUNDS(write_ptr, write_len, memory_length))
+        return OUT_OF_BOUNDS;
+
+    return __etxn_details(hookCtx, applyCtx, j, memory + write_ptr, write_len);
 
     HOOK_TEARDOWN();
 }
