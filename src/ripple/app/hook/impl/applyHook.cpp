@@ -1217,7 +1217,7 @@ hook::apply(
              .hookParamOverrides = hookParamOverrides,
              .hookParams = hookParams,
              .hookSkips = {},
-             .exitType = applyCtx.view().rules().enabled(fixXahauV1)
+             .exitType = applyCtx.view().rules().enabled(fixXahauV3)
                  ? hook_api::ExitType::UNSET
                  : hook_api::ExitType::ROLLBACK,  // default is to rollback
                                                   // unless hook calls accept()
