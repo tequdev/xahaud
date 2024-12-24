@@ -1274,6 +1274,14 @@ Transactor::executeHookChain(
                                     << "]: Execution failure (graceful) "
                                     << "HookHash: " << hookHash;
                 }
+                if (results.back().exitType == hook_api::ExitType::UNSET)
+                {
+                    JLOG(j_.warn())
+                        << "HookError[" << account << "-"
+                        << ctx_.tx.getAccountID(sfAccount) << "]: "
+                        << "]: Execution failure (no exit type specified) "
+                        << "HookHash: " << hookHash;
+                }
                 return tecHOOK_REJECTED;
             }
 
