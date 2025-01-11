@@ -94,19 +94,6 @@ public:
     void
     testServerDefinitions()
     {
-        using namespace test::jtx;
-
-        {
-            Env env(*this);
-            auto const result = env.rpc("server_definitions");
-            BEAST_EXPECT(!result[jss::result].isMember(jss::error));
-            BEAST_EXPECT(result[jss::result][jss::status] == "success");
-        }
-    }
-
-    void
-    testServerDefinitions()
-    {
         testcase("server_definitions");
 
         using namespace test::jtx;

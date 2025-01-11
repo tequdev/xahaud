@@ -21,6 +21,25 @@
 #define RIPPLE_PROTOCOL_TXFLAGS_H_INCLUDED
 
 #include <cstdint>
+#include <map>
+
+#pragma push_macro("TO_ENUM")
+#undef TO_ENUM
+#define TO_ENUM(name, value) name = value,
+
+#pragma push_macro("TO_MAP")
+#undef TO_MAP
+#define TO_MAP(name, value) {#name, value},
+
+#pragma push_macro("ENTRY")
+#undef ENTRY
+#define ENTRY(name, value) name = value,
+
+#pragma push_macro("TxFlags")
+#undef TxFlags
+#define TxFlags(name, macro)                 \
+    enum name : uint32_t { macro(TO_ENUM) }; \
+    static std::map<std::string, uint32_t> const name##Map = {macro(TO_MAP)};
 
 namespace ripple {
 
@@ -55,98 +74,103 @@ namespace ripple {
 // wrapped lines
 // clang-format off
 // Universal Transaction flags:
-enum UniversalFlags : uint32_t {
-    tfFullyCanonicalSig = 0x80000000,
-};
+#define UNIVERSAL_XMACRO(ENTRY)\
+ ENTRY(tfFullyCanonicalSig, 0x80000000)
+TxFlags(UniversalFlags, UNIVERSAL_XMACRO);
+
 constexpr std::uint32_t tfUniversal                        = tfFullyCanonicalSig;
 constexpr std::uint32_t tfUniversalMask                    = ~tfUniversal;
 
 // AccountSet flags:
-enum AccountSetFlags : uint32_t {
-    tfRequireDestTag = 0x00010000,
-    tfOptionalDestTag = 0x00020000,
-    tfRequireAuth = 0x00040000,
-    tfOptionalAuth = 0x00080000,
-    tfDisallowXRP = 0x00100000,
-    tfAllowXRP = 0x00200000,
-};
+#define ACCOUNT_SET_XMACRO(ENTRY)\
+ ENTRY(tfRequireDestTag, 0x00010000) \
+ ENTRY(tfOptionalDestTag, 0x00020000) \
+ ENTRY(tfRequireAuth, 0x00040000) \
+ ENTRY(tfOptionalAuth, 0x00080000) \
+ ENTRY(tfDisallowXRP, 0x00100000) \
+ ENTRY(tfAllowXRP, 0x00200000)
+TxFlags(AccountSetFlags, ACCOUNT_SET_XMACRO);
+
 constexpr std::uint32_t tfAccountSetMask =
     ~(tfUniversal | tfRequireDestTag | tfOptionalDestTag | tfRequireAuth |
       tfOptionalAuth | tfDisallowXRP | tfAllowXRP);
 
 // AccountSet SetFlag/ClearFlag values
-enum AccountFlags : uint32_t {
-    asfRequireDest = 1,
-    asfRequireAuth = 2,
-    asfDisallowXRP = 3,
-    asfDisableMaster = 4,
-    asfAccountTxnID = 5,
-    asfNoFreeze = 6,
-    asfGlobalFreeze = 7,
-    asfDefaultRipple = 8,
-    asfDepositAuth = 9,
-    asfAuthorizedNFTokenMinter = 10,
-    asfTshCollect = 11,
-    asfDisallowIncomingNFTokenOffer = 12,
-    asfDisallowIncomingCheck = 13,
-    asfDisallowIncomingPayChan = 14,
-    asfDisallowIncomingTrustline = 15,
-    asfDisallowIncomingRemit = 16,
-};
+#define ACCOUNT_FLAGS_XMACRO(ENTRY)\
+ ENTRY(asfRequireDest, 1) \
+ ENTRY(asfRequireAuth, 2) \
+ ENTRY(asfDisallowXRP, 3) \
+ ENTRY(asfDisableMaster, 4) \
+ ENTRY(asfAccountTxnID, 5) \
+ ENTRY(asfNoFreeze, 6) \
+ ENTRY(asfGlobalFreeze, 7) \
+ ENTRY(asfDefaultRipple, 8) \
+ ENTRY(asfDepositAuth, 9) \
+ ENTRY(asfAuthorizedNFTokenMinter, 10) \
+ ENTRY(asfTshCollect, 11) \
+ ENTRY(asfDisallowIncomingNFTokenOffer, 12) \
+ ENTRY(asfDisallowIncomingCheck, 13) \
+ ENTRY(asfDisallowIncomingPayChan, 14) \
+ ENTRY(asfDisallowIncomingTrustline, 15) \
+ ENTRY(asfDisallowIncomingRemit, 16)
+TxFlags(AccountFlags, ACCOUNT_FLAGS_XMACRO);
 
 // OfferCreate flags:
-enum OfferCreateFlags : uint32_t {
-    tfPassive = 0x00010000,
-    tfImmediateOrCancel = 0x00020000,
-    tfFillOrKill = 0x00040000,
-    tfSell = 0x00080000,
-};
+#define OFFER_CREATE_XMACRO(ENTRY)\
+ ENTRY(tfPassive, 0x00010000) \
+ ENTRY(tfImmediateOrCancel, 0x00020000) \
+ ENTRY(tfFillOrKill, 0x00040000) \
+ ENTRY(tfSell, 0x00080000)
+TxFlags(OfferCreateFlags, OFFER_CREATE_XMACRO);
+
 constexpr std::uint32_t tfOfferCreateMask =
     ~(tfUniversal | tfPassive | tfImmediateOrCancel | tfFillOrKill | tfSell);
 
 // Payment flags:
-enum PaymentFlags : uint32_t {
-    tfNoRippleDirect = 0x00010000,
-    tfPartialPayment = 0x00020000,
-    tfLimitQuality = 0x00040000,
-};
+#define PAYMENT_XMACRO(ENTRY)\
+ ENTRY(tfNoRippleDirect, 0x00010000) \
+ ENTRY(tfPartialPayment, 0x00020000) \
+ ENTRY(tfLimitQuality, 0x00040000)
+TxFlags(PaymentFlags, PAYMENT_XMACRO);
+
 constexpr std::uint32_t tfPaymentMask =
     ~(tfUniversal | tfPartialPayment | tfLimitQuality | tfNoRippleDirect);
 
 // TrustSet flags:
-enum TrustSetFlags : uint32_t {
-    tfSetfAuth = 0x00010000,
-    tfSetNoRipple = 0x00020000,
-    tfClearNoRipple = 0x00040000,
-    tfSetFreeze = 0x00100000,
-    tfClearFreeze = 0x00200000,
-};
+#define TRUST_SET_XMACRO(ENTRY)\
+ ENTRY(tfSetfAuth, 0x00010000) \
+ ENTRY(tfSetNoRipple, 0x00020000) \
+ ENTRY(tfClearNoRipple, 0x00040000) \
+ ENTRY(tfSetFreeze, 0x00100000) \
+ ENTRY(tfClearFreeze, 0x00200000)
+TxFlags(TrustSetFlags, TRUST_SET_XMACRO);
+
 constexpr std::uint32_t tfTrustSetMask =
     ~(tfUniversal | tfSetfAuth | tfSetNoRipple | tfClearNoRipple | tfSetFreeze |
       tfClearFreeze);
 
 // EnableAmendment flags:
-enum EnableAmendmentFlags : std::uint32_t {
-    tfGotMajority = 0x00010000,
-    tfLostMajority = 0x00020000,
-    tfTestSuite = 0x80000000,
-};
+#define ENABLE_AMENDMENT_XMACRO(ENTRY)\
+ ENTRY(tfGotMajority, 0x00010000) \
+ ENTRY(tfLostMajority, 0x00020000) \
+ ENTRY(tfTestSuite, 0x80000000)
+TxFlags(EnableAmendmentFlags, ENABLE_AMENDMENT_XMACRO);
 
 // PaymentChannelClaim flags:
-enum PaymentChannelClaimFlags : uint32_t {
-    tfRenew = 0x00010000,
-    tfClose = 0x00020000,
-};
+#define PAYMENT_CHANNEL_CLAIM_XMACRO(ENTRY)\
+ ENTRY(tfRenew, 0x00010000) \
+ ENTRY(tfClose, 0x00020000)
+TxFlags(PaymentChannelClaimFlags, PAYMENT_CHANNEL_CLAIM_XMACRO);
 constexpr std::uint32_t tfPayChanClaimMask = ~(tfUniversal | tfRenew | tfClose);
 
 // NFTokenMint flags:
-enum NFTokenMintFlags : uint32_t {
-    tfBurnable = 0x00000001,
-    tfOnlyXRP = 0x00000002,
-    tfTrustLine = 0x00000004,
-    tfTransferable = 0x00000008,
-    tfStrongTSH = 0x00008000,
-};
+#define NFTOKEN_MINT_XMACRO(ENTRY)\
+ ENTRY(tfBurnable, 0x00000001) \
+ ENTRY(tfOnlyXRP, 0x00000002) \
+ ENTRY(tfTrustLine, 0x00000004) \
+ ENTRY(tfTransferable, 0x00000008) \
+ ENTRY(tfStrongTSH, 0x00008000)
+TxFlags(NFTokenMintFlags, NFTOKEN_MINT_XMACRO);
 
 constexpr std::uint32_t const tfNFTokenMintOldMask =
     ~(tfUniversal | tfBurnable | tfOnlyXRP | tfTrustLine | tfTransferable | tfStrongTSH);
@@ -169,9 +193,10 @@ constexpr std::uint32_t const tfNFTokenMintMask =
     ~(tfUniversal | tfBurnable | tfOnlyXRP | tfTransferable | tfStrongTSH);
 
 // NFTokenCreateOffer flags:
-enum NFTokenCreateOfferFlags : uint32_t {
-    tfSellNFToken = 0x00000001,
-};
+#define NFTOKEN_CREATE_OFFER_XMACRO(ENTRY)\
+ ENTRY(tfSellNFToken, 0x00000001)
+TxFlags(NFTokenCreateOfferFlags, NFTOKEN_CREATE_OFFER_XMACRO);
+
 constexpr std::uint32_t const tfNFTokenCreateOfferMask =
     ~(tfUniversal | tfSellNFToken);
 
@@ -181,16 +206,26 @@ constexpr std::uint32_t const tfNFTokenCancelOfferMask     = ~(tfUniversal);
 // NFTokenAcceptOffer flags:
 constexpr std::uint32_t const tfNFTokenAcceptOfferMask     = ~tfUniversal;
 
-// URIToken mask
+// URITokenMint flags:
+// tfBurnable is duplicate of tfBurnable in NFTokenMintFlags
+static std::map<std::string, uint32_t> const URITokenMintFlagsMap = {
+    {"tfBurnable", tfBurnable},
+};
 constexpr std::uint32_t const tfURITokenMintMask = ~(tfUniversal | tfBurnable);
 constexpr std::uint32_t const tfURITokenNonMintMask = ~tfUniversal;
 
 // ClaimReward flags:
-enum ClaimRewardFlags : uint32_t {
-    tfOptOut = 0x00000001,
-};
+#define CLAIM_REWARD_XMACRO(ENTRY)\
+ ENTRY(tfOptOut, 0x00000001)
+TxFlags(ClaimRewardFlags, CLAIM_REWARD_XMACRO);
+constexpr std::uint32_t const tfClaimRewardMask = ~(tfUniversal | tfOptOut);
 
 // clang-format on
+
+#pragma pop_macro("TO_ENUM")
+#pragma pop_macro("TO_MAP")
+#pragma pop_macro("ENTRY")
+#pragma pop_macro("TxFlags")
 
 }  // namespace ripple
 

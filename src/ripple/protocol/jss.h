@@ -71,6 +71,7 @@ JSS(EscrowFinish);       // transaction type.
 JSS(Fee);                // in/out: TransactionSign; field.
 JSS(FeeSettings);        // ledger type.
 JSS(FIELDS);             // out: RPC server_definitions
+                         // matches definitions.json format
 JSS(Flags);              // in/out: TransactionSign; field.
 JSS(incomplete_shards);  // out: OverlayImpl, PeerImp
 JSS(GenesisMint);        // tt
@@ -89,8 +90,11 @@ JSS(HookParameterValue);  // field
 JSS(HookParameter);       // field
 JSS(HookGrant);           // field
 JSS(isSerialized);        // out: RPC server_definitions
+                          // matches definitions.json format
 JSS(isSigningField);      // out: RPC server_definitions
+                          // matches definitions.json format
 JSS(isVLEncoded);         // out: RPC server_definitions
+                          // matches definitions.json format
 JSS(Import);
 JSS(ImportVLSequence);
 JSS(Invalid);                  //
@@ -320,8 +324,6 @@ JSS(fee_level);             // out: AccountInfo
 JSS(fee_mult_max);          // in: TransactionSign
 JSS(fee_ref);               // out: NetworkOPs
 JSS(fetch_pack);            // out: NetworkOPs
-JSS(FIELDS);                // out: RPC server_definitions
-                            // matches definitions.json format
 JSS(first);                 // out: rpc/Version
 JSS(firstSequence);         // out: NodeToShardStatus
 JSS(firstShardIndex);       // out: NodeToShardStatus
@@ -371,12 +373,6 @@ JSS(invalid_API_version);  // out: Many, when a request has an invalid
 JSS(io_latency_ms);        // out: NetworkOPs
 JSS(ip);                   // in: Connect, out: OverlayImpl
 JSS(is_burned);            // out: nft_info (clio)
-JSS(isSerialized);         // out: RPC server_definitions
-                           // matches definitions.json format
-JSS(isSigningField);       // out: RPC server_definitions
-                           // matches definitions.json format
-JSS(isVLEncoded);          // out: RPC server_definitions
-                           // matches definitions.json format
 JSS(issuer);               // in: RipplePathFind, Subscribe,
                            //     Unsubscribe, BookOffers
                            // out: STPathSet, STAmount
@@ -674,12 +670,6 @@ JSS(transaction);             // in: Tx
 JSS(transaction_hash);        // out: RCLCxPeerPos, LedgerToJson
 JSS(transactions);            // out: LedgerToJson,
                               // in: AccountTx*, Unsubscribe
-JSS(TRANSACTION_RESULTS);     // out: RPC server_definitions
-                              // matches definitions.json format
-JSS(TRANSACTION_TYPES);       // out: RPC server_definitions
-                              // matches definitions.json format
-JSS(TYPES);                   // out: RPC server_definitions
-                              // matches definitions.json format
 JSS(transfer_rate);           // out: nft_info (clio)
 JSS(transitions);             // out: NetworkOPs
 JSS(treenode_cache_size);     // out: GetCounts
@@ -688,46 +678,58 @@ JSS(trusted);                 // out: UnlList
 JSS(trusted_validator_keys);  // out: ValidatorList
 JSS(tx);                      // out: STTx, AccountTx*
 JSS(txroot);
-JSS(tx_blob);                 // in/out: Submit,
-                              // in: TransactionSign, AccountTx*
-JSS(tx_hash);                 // in: TransactionEntry
-JSS(tx_json);                 // in/out: TransactionSign
-                              // out: TransactionEntry
-JSS(tx_signing_hash);         // out: TransactionSign
-JSS(tx_unsigned);             // out: TransactionSign
-JSS(txn_count);               // out: NetworkOPs
-JSS(txr_tx_cnt);              // out: protocol message tx's count
-JSS(txr_tx_sz);               // out: protocol message tx's size
-JSS(txr_have_txs_cnt);        // out: protocol message have tx count
-JSS(txr_have_txs_sz);         // out: protocol message have tx size
-JSS(txr_get_ledger_cnt);      // out: protocol message get ledger count
-JSS(txr_get_ledger_sz);       // out: protocol message get ledger size
-JSS(txr_ledger_data_cnt);     // out: protocol message ledger data count
-JSS(txr_ledger_data_sz);      // out: protocol message ledger data size
-JSS(txr_transactions_cnt);    // out: protocol message get object count
-JSS(txr_transactions_sz);     // out: protocol message get object size
-JSS(txr_selected_cnt);        // out: selected peers count
-JSS(txr_suppressed_cnt);      // out: suppressed peers count
-JSS(txr_not_enabled_cnt);     // out: peers with tx reduce-relay disabled count
-JSS(txr_missing_tx_freq);     // out: missing tx frequency average
-JSS(txs);                     // out: TxHistory
-JSS(type);                    // in: AccountObjects
-                              // out: NetworkOPs, RPC server_definitions
-                              //      OverlayImpl, Logic
-JSS(type_hex);                // out: STPathSet
-JSS(unl);                     // out: UnlList
-JSS(unlimited);               // out: Connection.h
-JSS(uptime);                  // out: GetCounts
-JSS(uri);                     // out: ValidatorSites
-JSS(url);                     // in/out: Subscribe, Unsubscribe
-JSS(url_password);            // in: Subscribe
-JSS(url_username);            // in: Subscribe
-JSS(urlgravatar);             //
-JSS(username);                // in: Subscribe
-JSS(validated);               // out: NetworkOPs, RPCHelpers, AccountTx*
-                              //      Tx
-JSS(validator_list_expires);  // out: NetworkOps, ValidatorList
-JSS(validator_list);          // out: NetworkOps, ValidatorList
+JSS(tx_blob);                    // in/out: Submit,
+                                 // in: TransactionSign, AccountTx*
+JSS(tx_hash);                    // in: TransactionEntry
+JSS(tx_json);                    // in/out: TransactionSign
+                                 // out: TransactionEntry
+JSS(tx_signing_hash);            // out: TransactionSign
+JSS(tx_unsigned);                // out: TransactionSign
+JSS(txn_count);                  // out: NetworkOPs
+JSS(txr_tx_cnt);                 // out: protocol message tx's count
+JSS(txr_tx_sz);                  // out: protocol message tx's size
+JSS(txr_have_txs_cnt);           // out: protocol message have tx count
+JSS(txr_have_txs_sz);            // out: protocol message have tx size
+JSS(txr_get_ledger_cnt);         // out: protocol message get ledger count
+JSS(txr_get_ledger_sz);          // out: protocol message get ledger size
+JSS(txr_ledger_data_cnt);        // out: protocol message ledger data count
+JSS(txr_ledger_data_sz);         // out: protocol message ledger data size
+JSS(txr_transactions_cnt);       // out: protocol message get object count
+JSS(txr_transactions_sz);        // out: protocol message get object size
+JSS(txr_selected_cnt);           // out: selected peers count
+JSS(txr_suppressed_cnt);         // out: suppressed peers count
+JSS(txr_not_enabled_cnt);        // out: peers with tx reduce-relay disabled count
+JSS(txr_missing_tx_freq);        // out: missing tx frequency average
+JSS(txs);                        // out: TxHistory
+JSS(type);                       // in: AccountObjects
+                                 // out: NetworkOPs RPC server_definitions
+                                 //      OverlayImpl, Logic
+JSS(TRANSACTION_RESULTS);        // out: RPC server_definitions
+                                 // matches definitions.json format
+JSS(TRANSACTION_TYPES);          // out: RPC server_definitions
+                                 // matches definitions.json format
+JSS(TYPES);                      // out: RPC server_definitions
+                                 // matches definitions.json format
+JSS(TRANSACTION_FLAGS);          // out: RPC server_definitions
+                                 // matches definitions.json format
+JSS(TRANSACTION_FLAGS_INDICES);  // out: RPC server_definitions
+                                 // matches definitions.json format
+JSS(type_hex);                   // out: STPathSet
+JSS(unl);                        // out: UnlList
+JSS(unlimited);                  // out: Connection.h
+JSS(unl_report);                 // in: LedgerEntry
+JSS(uptime);                     // out: GetCounts
+JSS(uri);                        // out: ValidatorSites
+JSS(uri_token);                  // in: LedgerEntry
+JSS(url);                        // in/out: Subscribe, Unsubscribe
+JSS(url_password);               // in: Subscribe
+JSS(url_username);               // in: Subscribe
+JSS(urlgravatar);                //
+JSS(username);                   // in: Subscribe
+JSS(validated);                  // out: NetworkOPs, RPCHelpers, AccountTx*
+                                 //      Tx
+JSS(validator_list_expires);     // out: NetworkOps, ValidatorList
+JSS(validator_list);             // out: NetworkOps, ValidatorList
 JSS(validators);
 JSS(validated_hash);          // out: NetworkOPs
 JSS(validated_ledger);        // out: NetworkOPs
