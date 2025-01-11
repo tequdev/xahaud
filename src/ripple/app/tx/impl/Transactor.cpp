@@ -1926,7 +1926,7 @@ Transactor::operator()()
         bool const has240911 = view().rules().enabled(fix240911);
 
         auto const& sfRewardFields =
-            *(ripple::SField::knownCodeToField.at(917511 - has240819));
+            *(ripple::SField::getKnownCodeToField().at(917511 - has240819));
 
         // iterate all affected balances
         for (auto const& node : meta.getFieldArray(sfAffectedNodes))

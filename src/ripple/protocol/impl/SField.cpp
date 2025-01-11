@@ -446,7 +446,7 @@ SField::compare(SField const& f1, SField const& f2)
 SField const&
 SField::getField(std::string const& fieldName)
 {
-    for (auto const& [_, f] : knownCodeToField)
+    for (auto const& [_, f] : getKnownCodeToField())
     {
         (void)_;
         if (f->fieldName == fieldName)

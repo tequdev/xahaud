@@ -33,52 +33,8 @@
 #include <ripple/protocol/jss.h>
 #include <ripple/rpc/impl/TransactionSign.h>
 #include <boost/algorithm/string.hpp>
-#include <magic/magic_enum.h>
 #include <sstream>
 
-#define MAGIC_ENUM(x)                           \
-    template <>                                 \
-    struct magic_enum::customize::enum_range<x> \
-    {                                           \
-        static constexpr int min = -20000;      \
-        static constexpr int max = 20000;       \
-    };
-
-#define MAGIC_ENUM_16(x)                        \
-    template <>                                 \
-    struct magic_enum::customize::enum_range<x> \
-    {                                           \
-        static constexpr int min = -128;        \
-        static constexpr int max = 127;         \
-    };
-
-#define MAGIC_ENUM_FLAG(x)                      \
-    template <>                                 \
-    struct magic_enum::customize::enum_range<x> \
-    {                                           \
-        static constexpr bool is_flags = true;  \
-    };
-
-MAGIC_ENUM(ripple::SerializedTypeID);
-MAGIC_ENUM(ripple::LedgerEntryType);
-MAGIC_ENUM(ripple::TELcodes);
-MAGIC_ENUM(ripple::TEMcodes);
-MAGIC_ENUM(ripple::TEFcodes);
-MAGIC_ENUM(ripple::TERcodes);
-MAGIC_ENUM(ripple::TEScodes);
-MAGIC_ENUM(ripple::TECcodes);
-MAGIC_ENUM_16(ripple::TxType);
-MAGIC_ENUM_FLAG(ripple::UniversalFlags);
-MAGIC_ENUM_FLAG(ripple::AccountSetFlags);
-MAGIC_ENUM_FLAG(ripple::OfferCreateFlags);
-MAGIC_ENUM_FLAG(ripple::PaymentFlags);
-MAGIC_ENUM_FLAG(ripple::TrustSetFlags);
-MAGIC_ENUM_FLAG(ripple::EnableAmendmentFlags);
-MAGIC_ENUM_FLAG(ripple::PaymentChannelClaimFlags);
-MAGIC_ENUM_FLAG(ripple::NFTokenMintFlags);
-MAGIC_ENUM_FLAG(ripple::NFTokenCreateOfferFlags);
-MAGIC_ENUM_FLAG(ripple::ClaimRewardFlags);
-MAGIC_ENUM_16(ripple::AccountFlags);
 
 namespace ripple {
 
@@ -91,17 +47,6 @@ private:
         return ss << (x), ss.str(); \
     }())
 
-    template <typename EnumType>
-    void
-    addFlagsToJson(Json::Value& json, std::string const& key)
-    {
-        for (auto const& entry : magic_enum::enum_entries<EnumType>())
-        {
-            const auto name = entry.second;
-            json[jss::TRANSACTION_FLAGS][key][STR(name)] =
-                static_cast<uint32_t>(entry.first);
-        }
-    }
 
     Json::Value
     generate()
@@ -189,24 +134,19 @@ private:
 
         ret[jss::TYPES]["Done"] = -1;
         std::map<int32_t, std::string> type_map{{-1, "Done"}};
-        for (auto const& entry : magic_enum::enum_entries<SerializedTypeID>())
+        for (auto const& [rawName, typeValue] : sTypeMap)
         {
-            const auto name = entry.second;
-            std::string type_name =
-                translate(name.data() + 4 /* remove STI_ */);
-            int32_t type_value = static_cast<int32_t>(entry.first);
-            ret[jss::TYPES][type_name] = type_value;
-            type_map[type_value] = type_name;
+            std::string typeName =
+                translate(std::string(rawName).substr(4) /* remove STI_ */);
+            ret[jss::TYPES][typeName] = typeValue;
+            type_map[typeValue] = typeName;
         }
 
         ret[jss::LEDGER_ENTRY_TYPES] = Json::objectValue;
         ret[jss::LEDGER_ENTRY_TYPES][jss::Invalid] = -1;
-        for (auto const& entry : magic_enum::enum_entries<LedgerEntryType>())
+        for (auto const& f : LedgerFormats::getInstance())
         {
-            const auto name = entry.second;
-            std::string type_name = translate(name.data() + 2 /* remove lt_ */);
-            int32_t type_value = static_cast<int32_t>(entry.first);
-            ret[jss::LEDGER_ENTRY_TYPES][type_name] = type_value;
+            ret[jss::LEDGER_ENTRY_TYPES][f.getName()] = f.getType();
         }
 
         ret[jss::FIELDS] = Json::arrayValue;
@@ -316,7 +256,7 @@ private:
             ret[jss::FIELDS][i++] = a;
         }
 
-        for (auto const& [code, f] : ripple::SField::knownCodeToField)
+        for (auto const& [code, f] : ripple::SField::getKnownCodeToField())
         {
             if (f->fieldName == "")
                 continue;
@@ -348,98 +288,50 @@ private:
         }
 
         ret[jss::TRANSACTION_RESULTS] = Json::objectValue;
-        for (auto const& entry : magic_enum::enum_entries<TELcodes>())
+        for (auto const& [code, terInfo] : transResults())
         {
-            const auto name = entry.second;
-            ret[jss::TRANSACTION_RESULTS][STR(name)] =
-                static_cast<int32_t>(entry.first);
-        }
-        for (auto const& entry : magic_enum::enum_entries<TEMcodes>())
-        {
-            const auto name = entry.second;
-            ret[jss::TRANSACTION_RESULTS][STR(name)] =
-                static_cast<int32_t>(entry.first);
-        }
-        for (auto const& entry : magic_enum::enum_entries<TEFcodes>())
-        {
-            const auto name = entry.second;
-            ret[jss::TRANSACTION_RESULTS][STR(name)] =
-                static_cast<int32_t>(entry.first);
-        }
-        for (auto const& entry : magic_enum::enum_entries<TERcodes>())
-        {
-            const auto name = entry.second;
-            ret[jss::TRANSACTION_RESULTS][STR(name)] =
-                static_cast<int32_t>(entry.first);
-        }
-        for (auto const& entry : magic_enum::enum_entries<TEScodes>())
-        {
-            const auto name = entry.second;
-            ret[jss::TRANSACTION_RESULTS][STR(name)] =
-                static_cast<int32_t>(entry.first);
-        }
-        for (auto const& entry : magic_enum::enum_entries<TECcodes>())
-        {
-            const auto name = entry.second;
-            ret[jss::TRANSACTION_RESULTS][STR(name)] =
-                static_cast<int32_t>(entry.first);
+            ret[jss::TRANSACTION_RESULTS][terInfo.first] = code;
         }
 
-        auto const translate_tt = [](std::string inp) -> std::string {
-            if (inp == "PaychanClaim")
-                return "PaymentChannelClaim";
-            if (inp == "PaychanCreate")
-                return "PaymentChannelCreate";
-            if (inp == "PaychanFund")
-                return "PaymentChannelFund";
-            if (inp == "RegularKeySet")
-                return "SetRegularKey";
-            if (inp == "HookSet")
-                return "SetHook";
-            return inp;
-        };
 
         ret[jss::TRANSACTION_TYPES] = Json::objectValue;
         ret[jss::TRANSACTION_TYPES][jss::Invalid] = -1;
-        for (auto const& entry : magic_enum::enum_entries<TxType>())
+        for (auto const& f : TxFormats::getInstance())
         {
-            const auto name = entry.second;
-            std::string type_name = translate_tt(translate(name.data() + 2));
-            int32_t type_value = static_cast<int32_t>(entry.first);
-            ret[jss::TRANSACTION_TYPES][type_name] = type_value;
+            ret[jss::TRANSACTION_TYPES][f.getName()] = f.getType();
         }
 
         // Transaction Flags:
         ret[jss::TRANSACTION_FLAGS] = Json::objectValue;
-        addFlagsToJson<UniversalFlags>(ret, "Universal");
-        addFlagsToJson<AccountSetFlags>(ret, "AccountSet");
-        addFlagsToJson<OfferCreateFlags>(ret, "OfferCreate");
-        addFlagsToJson<PaymentFlags>(ret, "Payment");
-        addFlagsToJson<TrustSetFlags>(ret, "TrustSet");
-        addFlagsToJson<EnableAmendmentFlags>(ret, "EnableAmendment");
-        addFlagsToJson<PaymentChannelClaimFlags>(ret, "PaymentChannelClaim");
-        addFlagsToJson<NFTokenMintFlags>(ret, "NFTokenMint");
-        addFlagsToJson<NFTokenCreateOfferFlags>(ret, "NFTokenCreateOffer");
-        addFlagsToJson<ClaimRewardFlags>(ret, "ClaimReward");
-        struct FlagData
-        {
-            std::string name;
-            std::uint32_t value;
+        const std::map<std::string, std::map<std::string, uint32_t>> flags = {
+            {"Universal", UniversalFlagsMap},
+            {"AccountSet", AccountSetFlagsMap},
+            {"OfferCreate", OfferCreateFlagsMap},
+            {"Payment", PaymentFlagsMap},
+            {"TrustSet", TrustSetFlagsMap},
+            {"EnableAmendment", EnableAmendmentFlagsMap},
+            {"PaymentChannelClaim", PaymentChannelClaimFlagsMap},
+            {"NFTokenMint", NFTokenMintFlagsMap},
+            {"NFTokenCreateOffer", NFTokenCreateOfferFlagsMap},
+            {"ClaimReward", ClaimRewardFlagsMap},
+            {"URITokenMint", URITokenMintMap},
         };
-        std::array<FlagData, 1> uriTokenMintFlags{{{"tfBurnable", tfBurnable}}};
-        for (auto const& entry : uriTokenMintFlags)
+        for (auto const& [name, flagMap] : flags)
         {
-            ret[jss::TRANSACTION_FLAGS]["URITokenMint"][entry.name] =
-                static_cast<uint32_t>(entry.value);
+            for (auto const& [flagName, flagValue] : flagMap)
+                ret[jss::TRANSACTION_FLAGS][name][flagName] = flagValue;
         }
 
         // Transaction Indicies Flags:
         ret[jss::TRANSACTION_FLAGS_INDICES] = Json::objectValue;
-        for (auto const& entry : magic_enum::enum_entries<AccountFlags>())
+        const std::map<std::string, std::map<std::string, int>> flagsIndices = {
+            {"AccountSet", AccountFlagsMap},
+        };
+        for (auto const& [name, flagMap] : flagsIndices)
         {
-            const auto name = entry.second;
-            ret[jss::TRANSACTION_FLAGS_INDICES]["AccountSet"][STR(name)] =
-                static_cast<uint32_t>(entry.first);
+            for (auto const& [flagName, flagValue] : flagMap)
+                ret[jss::TRANSACTION_FLAGS_INDICES][name][flagName] =
+                    flagValue;
         }
 
         ret[jss::native_currency_code] = systemCurrencyCode();

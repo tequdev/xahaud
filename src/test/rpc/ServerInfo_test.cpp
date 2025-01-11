@@ -68,6 +68,8 @@ public:
     void
     testServerInfo()
     {
+        testcase("server_info");
+
         using namespace test::jtx;
 
         {
@@ -92,6 +94,8 @@ public:
     void
     testServerDefinitions()
     {
+        testcase("server_definitions");
+
         using namespace test::jtx;
 
         {
