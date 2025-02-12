@@ -835,7 +835,7 @@ validateGuards(
      * might have unforeseen consequences, without also rolling back further
      * changes that are fine.
      */
-    uint64_t rulesVersion = 0)
+    uint64_t rulesVersion = 0x00U)
 {
     uint64_t byteCount = wasm.size();
 
@@ -1028,14 +1028,14 @@ validateGuards(
                     hook_api::import_whitelist.find(import_name) ==
                     hook_api::import_whitelist.end())
                 {
-                    if (rulesVersion > 0 &&
+                    if (rulesVersion & 0x01U &&
                         hook_api::import_whitelist_1.find(import_name) !=
                             hook_api::import_whitelist_1.end())
                     {
                         // PASS, this is a version 1 api
                     }
                     else if (
-                        rulesVersion > 1 &&
+                        rulesVersion & 0x04U &&
                         hook_api::import_whitelist_2.find(import_name) !=
                             hook_api::import_whitelist_2.end())
                     {

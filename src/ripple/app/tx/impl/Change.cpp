@@ -585,9 +585,9 @@ Change::activateXahauGenesis()
             std::ostringstream loggerStream;
 
             auto rulesVersion =
-                (ctx.rules.enabled(featureHooksUpdate1) ? 0x0001 : 0) +
-                (ctx.rules.enabled(fix20250131) ? 0x0002 : 0) +
-                (ctx.rules.enabled(featureHooksUpdate2) ? 0x0004 : 0);
+                (ctx.rules.enabled(featureHooksUpdate1) ? 0x0001U : 0U) +
+                (ctx.rules.enabled(fix20250131) ? 0x0002U : 0U) +
+                (ctx.rules.enabled(featureHooksUpdate2) ? 0x0004U : 0U);
 
             auto result = validateGuards(
                 wasmBytes,  // wasm to verify
