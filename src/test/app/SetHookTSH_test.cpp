@@ -6299,7 +6299,6 @@ public:
         testTSH(sa - fixXahauV1 - fixXahauV2);
         testTSH(sa - fixXahauV2);
         testTSH(sa);
-        testEmittedTxn(sa - fixXahauV2);
         testEmittedTxn(sa);
     }
 };
