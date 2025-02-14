@@ -3288,6 +3288,12 @@ DEFINE_HOOK_FUNCTION(
     HOOK_SETUP();  // populates memory_ctx, memory, memory_length, applyCtx,
                    // hookCtx on current stack
 
+    if (NOT_IN_BOUNDS(read_ptr, read_len, memory_length))
+        return OUT_OF_BOUNDS;
+
+    if (NOT_IN_BOUNDS(write_ptr, write_len, memory_length))
+        return OUT_OF_BOUNDS;
+
     Json::Value json;
 
     // std::shared_ptr<STObject const> stpTrans;
@@ -3308,7 +3314,8 @@ DEFINE_HOOK_FUNCTION(
     json[jss::Fee] = "0";
 
     // force key to empty
-    json[jss::SigningPubKey] = "";
+    json[jss::SigningPubKey] =
+        "000000000000000000000000000000000000000000000000000000000000000000";
 
     // force sequence to 0
     json[jss::Sequence] = Json::Value(0u);
@@ -3335,7 +3342,7 @@ DEFINE_HOOK_FUNCTION(
         // truncate the head and tail (emit details object markers)
         Slice s(reinterpret_cast<void const*>(details + 1), (size_t)(ret - 2));
 
-        std::cout << "emitdets: " << strHex(s) << "\n";
+        // std::cout << "emitdets: " << strHex(s) << "\n";
         try
         {
             SerialIter sit{s};
@@ -3349,10 +3356,10 @@ DEFINE_HOOK_FUNCTION(
         }
     }
 
-    {
-        const std::string flat = Json::FastWriter().write(json);
-        std::cout << "intermediate: `" << flat << "`\n";
-    }
+    // {
+    //     const std::string flat = Json::FastWriter().write(json);
+    //     std::cout << "intermediate: `" << flat << "`\n";
+    // }
 
     Blob tx_blob;
     {
