@@ -861,12 +861,16 @@ hook::computeHookStateCount(uint32_t hookStateCount)
 uint32_t
 hook::computeHookStateReserves(Blob hookStateData)
 {
+    if (hookStateData.size() == 0)
+        return 1;
     return std::floor((hookStateData.size() - 1) / 256) + 1;
 }
 
 uint32_t
 hook::computeHookStateReserves(Slice hookStateData)
 {
+    if (hookStateData.size() == 0)
+        return 1;
     return std::floor((hookStateData.size() - 1) / 256) + 1;
 }
 
@@ -1512,7 +1516,8 @@ set_state_cache(
 
         availableForReserves /= increment;
 
-        if (availableForReserves < 1 && modified)
+        if (availableForReserves < hook::computeHookStateReserves(data) &&
+            modified)
             return RESERVE_INSUFFICIENT;
 
         int64_t namespaceCount = accSLE->isFieldPresent(sfHookNamespaces)
@@ -1532,7 +1537,7 @@ set_state_cache(
         stateMap.modified_entry_count++;
 
         stateMap[acc] = {
-            availableForReserves - 1,
+            availableForReserves - hook::computeHookStateReserves(data),
             namespaceCount,
             {{ns, {{key, {modified, data}}}}}};
         return 1;
@@ -1541,7 +1546,8 @@ set_state_cache(
     auto& availableForReserves = std::get<0>(stateMap[acc]);
     auto& namespaceCount = std::get<1>(stateMap[acc]);
     auto& stateMapAcc = std::get<2>(stateMap[acc]);
-    bool const canReserveNew = availableForReserves > 0;
+    bool const canReserveNew =
+        availableForReserves >= hook::computeHookStateReserves(data);
 
     if (stateMapAcc.find(ns) == stateMapAcc.end())
     {
@@ -1562,7 +1568,7 @@ set_state_cache(
                 namespaceCount++;
             }
 
-            availableForReserves--;
+            availableForReserves -= hook::computeHookStateReserves(data);
             stateMap.modified_entry_count++;
         }
 
@@ -1578,7 +1584,7 @@ set_state_cache(
         {
             if (!canReserveNew)
                 return RESERVE_INSUFFICIENT;
-            availableForReserves--;
+            availableForReserves -= hook::computeHookStateReserves(data);
             stateMap.modified_entry_count++;
         }
 
@@ -1587,10 +1593,23 @@ set_state_cache(
         return 1;
     }
 
+    auto const newReserve = hook::computeHookStateReserves(data);
+    auto const oldReserve =
+        hook::computeHookStateReserves(stateMapNs[key].second);
+    bool const canReserveUpdate =
+        availableForReserves >= hook::computeHookStateReserves(data);
+
     if (modified)
     {
+        if (!canReserveUpdate)
+            return RESERVE_INSUFFICIENT;
+
         if (!stateMapNs[key].first)
             hookCtx.result.changedStateCount++;
+
+        if (view.rules().enabled(featureExtendedHookState) &&
+            newReserve > oldReserve)
+            availableForReserves -= newReserve - oldReserve;
 
         stateMap.modified_entry_count++;
         stateMapNs[key].first = true;
