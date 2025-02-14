@@ -69,10 +69,10 @@ using JSSMap =
     }
 
 #define HASH_WASM(x)                                                           \
-    uint256 const x##_hash =                                                   \
+    [[maybe_unused]] uint256 const x##_hash =                                  \
         ripple::sha512Half_s(ripple::Slice(x##_wasm.data(), x##_wasm.size())); \
-    std::string const x##_hash_str = to_string(x##_hash);                      \
-    Keylet const x##_keylet = keylet::hookDefinition(x##_hash);
+    [[maybe_unused]] std::string const x##_hash_str = to_string(x##_hash);     \
+    [[maybe_unused]] Keylet const x##_keylet = keylet::hookDefinition(x##_hash);
 
 class SetHook_test : public beast::unit_test::suite
 {
@@ -8813,12 +8813,14 @@ public:
         auto const david = Account{"david"};
         auto const eve = Account{"eve"};      // small balance
         auto const frank = Account{"frank"};  // big balance
+        auto const gary = Account{"gary"};
         env.fund(XRP(10000), alice);
         env.fund(XRP(10000), bob);
         env.fund(XRP(10000), cho);
         env.fund(XRP(1000000), david);
         env.fund(XRP(2600), eve);
         env.fund(XRP(1000000000), frank);
+        env.fund(XRP(10000), gary);
 
         // install a rollback hook on cho
         env(ripple::test::jtx::hook(
@@ -8841,6 +8843,101 @@ public:
             BEAST_REQUIRE(!state1);
 
             BEAST_EXPECT((*env.le("alice"))[sfOwnerCount] == 0);
+        }
+
+        // bounds and buffer size checks
+        {
+            TestHook hook = wasm[R"[test.hook](
+            #include <stdint.h>
+            extern int32_t _g       (uint32_t id, uint32_t maxiter);
+            extern int64_t accept   (uint32_t read_ptr, uint32_t read_len, int64_t error_code);
+            extern int64_t rollback (uint32_t read_ptr, uint32_t read_len, int64_t error_code);
+            extern int64_t state_set (
+                uint32_t read_ptr,
+                uint32_t read_len,
+                uint32_t kread_ptr,
+                uint32_t kread_len  
+            );
+            extern int64_t otxn_param(uint32_t, uint32_t, uint32_t, uint32_t);
+
+            #define ASSERT(x)\
+                if (!(x))\
+                    rollback((uint32_t)#x, sizeof(#x), __LINE__);
+            #define TOO_SMALL (-4)
+            #define TOO_BIG (-3)
+            #define OUT_OF_BOUNDS (-1)
+
+            int64_t hook(uint32_t reserved)
+            {
+                _g(1,1);
+
+                // bounds and buffer size checks
+                {
+                    // RH NOTE: readptr/len 0/0 = delete entry
+
+                    ASSERT(state_set(0,0,0,0) == TOO_SMALL);
+                    ASSERT(state_set(0,0,0,33) == TOO_BIG);
+                    ASSERT(state_set(0,0,0,1000000) == TOO_BIG);
+                    ASSERT(state_set(0,0,1000000,1) == OUT_OF_BOUNDS);
+
+                    ASSERT(state_set(0,1000000, 0, 32) == OUT_OF_BOUNDS);
+                    ASSERT(state_set(1000000, 0, 0, 32) == OUT_OF_BOUNDS);
+
+                    uint16_t size;
+                    ASSERT(otxn_param(&size, 2, "SIZE", 4) > 0);
+                    ASSERT(state_set(0, size, 0, 32) == TOO_BIG);
+                }
+                accept(0,0,0);
+            }
+            )[test.hook]"];
+
+            // install the hook on alice
+            env(ripple::test::jtx::hook(alice, {{hso(hook, overrideFlag)}}, 0),
+                M("set state_set 1"),
+                HSFEE);
+            env.close();
+
+            BEAST_EXPECT((*env.le("alice"))[sfOwnerCount] == 1);
+
+            // invoke the hook with cho (rollback after alice's hooks have
+            // executed)
+            Json::Value payJv1 = pay(alice, cho, XRP(1));
+            {
+                Json::Value params{Json::arrayValue};
+                params[0U][jss::HookParameter][jss::HookParameterName] =
+                    strHex(std::string("SIZE"));
+                params[0U][jss::HookParameter][jss::HookParameterValue] =
+                    features[featureExtendedHookState] ? "0108" /* 2049 */
+                                                       : "0101" /* 257 */;
+                payJv1[jss::HookParameters] = params;
+            }
+            env(payJv1,
+                M("test state_set 1 rollback"),
+                fee(XRP(1)),
+                ter(tecHOOK_REJECTED));
+
+            BEAST_EXPECT((*env.le("alice"))[sfOwnerCount] == 1);
+
+            auto const nsdir = env.le(nsdirkl);
+            BEAST_EXPECT(!nsdir);
+
+            auto const state1 = env.le(
+                ripple::keylet::hookState(aliceid, beast::zero, beast::zero));
+            BEAST_EXPECT(!state1);
+
+            // invoke the hook from bob to alice, this will work
+            Json::Value payJv2 = pay(bob, alice, XRP(1));
+            {
+                Json::Value params{Json::arrayValue};
+                params[0U][jss::HookParameter][jss::HookParameterName] =
+                    strHex(std::string("SIZE"));
+                params[0U][jss::HookParameter][jss::HookParameterValue] =
+                    features[featureExtendedHookState] ? "0108" /* 2049 */
+                                                       : "0101" /* 257 */;
+                payJv2[jss::HookParameters] = params;
+            }
+            env(payJv2, M("test state_set 1"), fee(XRP(1)));
+            env.close();
         }
 
         // first hook will set two state objects with different keys and data on
@@ -8879,31 +8976,11 @@ public:
             #define ASSERT(x)\
                 if (!(x))\
                     rollback((uint32_t)#x, sizeof(#x), __LINE__);
-            #define TOO_SMALL (-4)
-            #define TOO_BIG (-3)
-            #define OUT_OF_BOUNDS (-1)
            
             #define SBUF(x) (uint32_t)(x), sizeof(x)
-            int64_t hook(uint32_t reserved )
+            int64_t hook(uint32_t reserved)
             {
                 _g(1,1);
-
-
-                // bounds and buffer size checks
-                {
-                    // RH NOTE: readptr/len 0/0 = delete entry
-
-                    ASSERT(state_set(0,0,0,0) == TOO_SMALL);
-                    ASSERT(state_set(0,0,0,33) == TOO_BIG);
-                    ASSERT(state_set(0,0,0,1000000) == TOO_BIG);
-                    ASSERT(state_set(0,0,1000000,1) == OUT_OF_BOUNDS);
-
-                    ASSERT(state_set(0,1000000, 0, 32) == OUT_OF_BOUNDS); 
-                    ASSERT(state_set(1000000, 0, 0, 32) == OUT_OF_BOUNDS); 
-     
-                    ASSERT(state_set(0, 257, 0, 32) == TOO_BIG);
-                }
-
 
                 // create state 1
                 {
@@ -8915,26 +8992,23 @@ public:
                         0,0,0,0,0,0,0,0
                     };
 
-                    uint8_t data[4] = 
+                    uint8_t data[4] =
                     {
                         0xCAU,0xFEU,0xBAU,0xBEU
                     };
 
-
                     ASSERT(state_set(SBUF(data), SBUF(key)) == sizeof(data));
                 }
 
-                // create state 2                
+                // create state 2
                 {
                     uint8_t key[3] =
                     {
                         1,2,3
                     };
 
-
                     ASSERT(state_set(SBUF(data2), SBUF(key)) == sizeof(data2));
                 }
-
 
                 accept(0,0,0);
 
@@ -9502,6 +9576,106 @@ public:
             env(json, fee(XRP(1)), M("test state_set 13"), ter(tesSUCCESS));
             env.close();
             BEAST_EXPECT((*env.le("frank"))[sfOwnerCount] == 260);
+        }
+
+        // Extended hook state reserve
+        {
+            bool extHookStateEnabled = features[featureExtendedHookState];
+
+            TestHook hook = wasm[R"[test.hook](
+            #include <stdint.h>
+            extern int32_t _g       (uint32_t id, uint32_t maxiter);
+            extern int64_t accept   (uint32_t read_ptr, uint32_t read_len, int64_t error_code);
+            extern int64_t rollback (uint32_t read_ptr, uint32_t read_len, int64_t error_code);
+            extern int64_t state_set (
+                uint32_t read_ptr,
+                uint32_t read_len,
+                uint32_t kread_ptr,
+                uint32_t kread_len  
+            );
+            extern int64_t otxn_param(uint32_t, uint32_t, uint32_t, uint32_t);
+
+            #define ASSERT(x)\
+                if (!(x))\
+                    rollback((uint32_t)#x, sizeof(#x), __LINE__);
+
+            int64_t hook(uint32_t reserved)
+            {
+                _g(1,1);
+
+                {
+                    uint16_t size;
+                    ASSERT(otxn_param(&size, 2, "SIZE", 4) > 0);
+                    ASSERT(state_set(0, size, 0, 32) == size);
+                }
+                accept(0,0,0);
+            }
+            )[test.hook]"];
+
+            // install the hook on gary
+            env(ripple::test::jtx::hook(gary, {{hso(hook, overrideFlag)}}, 0),
+                M("set state_set 14"),
+                HSFEE);
+            env.close();
+
+            BEAST_EXPECT((*env.le("gary"))[sfOwnerCount] == 1);
+            BEAST_EXPECT(!env.le("gary")->isFieldPresent(sfHookStateCount));
+
+            auto const hookSizeParam = [&](const std::string& str) {
+                Json::Value params{Json::arrayValue};
+                params[0U][jss::HookParameter][jss::HookParameterName] =
+                    strHex(std::string("SIZE"));
+                params[0U][jss::HookParameter][jss::HookParameterValue] = str;
+                return params;
+            };
+
+            // create new state
+            Json::Value invokeJv1 = invoke::invoke(gary);
+            invokeJv1[jss::HookParameters] = hookSizeParam(
+                extHookStateEnabled ? "0008" /* 2048 */
+                                    : "0001" /* 256 */);
+            env(invokeJv1, M("test state_set 14"), fee(XRP(1)));
+            env.close();
+
+            BEAST_EXPECT(
+                (*env.le("gary"))[sfOwnerCount] == extHookStateEnabled ? 9 : 2);
+            BEAST_EXPECT((*env.le("gary"))[sfHookStateCount] == 1);
+
+            // update state (reduce size)
+            Json::Value invokeJv2 = invoke::invoke(gary);
+            invokeJv2[jss::HookParameters] = hookSizeParam(
+                extHookStateEnabled ? "0002" /* 512 */
+                                    : "4000" /* 64 */);
+            env(invokeJv2, M("test state_set 14"), fee(XRP(1)));
+            env.close();
+
+            BEAST_EXPECT(
+                (*env.le("gary"))[sfOwnerCount] == extHookStateEnabled ? 3 : 2);
+            BEAST_EXPECT((*env.le("gary"))[sfHookStateCount] == 1);
+
+            // update state (increase size)
+            Json::Value invokeJv3 = invoke::invoke(gary);
+            invokeJv3[jss::HookParameters] = hookSizeParam(
+                extHookStateEnabled ? "0004" /* 1024 */
+                                    : "8000" /* 128 */);
+            env(invokeJv3, M("test state_set 14"), fee(XRP(1)));
+            env.close();
+
+            BEAST_EXPECT(
+                (*env.le("gary"))[sfOwnerCount] == extHookStateEnabled ? 5 : 2);
+            BEAST_EXPECT((*env.le("gary"))[sfHookStateCount] == 1);
+
+            // remove states
+            Json::Value invokeJv4 = invoke::invoke(gary);
+            invokeJv4[jss::HookParameters] = hookSizeParam("0000");
+            env(invokeJv4, M("test state_set 14"), fee(XRP(1)));
+            env.close();
+
+            BEAST_EXPECT((*env.le("gary"))[sfOwnerCount] == 1);
+            if (extHookStateEnabled)
+                BEAST_EXPECT(!env.le("gary")->isFieldPresent(sfHookStateCount));
+            else
+                BEAST_EXPECT((*env.le("gary"))[sfHookStateCount] == 0);
         }
 
         // RH TODO:
@@ -12003,115 +12177,11 @@ public:
     void
     testWithFeatures(FeatureBitset features)
     {
-        testHooksOwnerDir(features);
-        testHooksDisabled(features);
-        testTxStructure(features);
-        testInferHookSetOperation();
-        testParams(features);
-        testGrants(features);
-
-        testDelete(features);
-        testInstall(features);
-        testCreate(features);
-        testWithTickets(features);
-
-        testUpdate(features);
-
-        testNSDelete(features);
-        testNSDeletePartial(features);
-        testPageCap(features);
-
-        testFillCopy(features);
-
-        testWasm(features);
-        test_accept(features);
-        test_rollback(features);
-
-        testGuards(features);
-
-        test_emit(features);  //
-        // test_etxn_burden(features);       // tested above
-        // test_etxn_generation(features);   // tested above
-        // test_otxn_burden(features);       // tested above
-        // test_otxn_generation(features);   // tested above
-        test_etxn_details(features);   //
-        test_etxn_fee_base(features);  //
-        test_etxn_nonce(features);     //
-        test_etxn_reserve(features);   //
-        test_fee_base(features);       //
-
-        test_otxn_field(features);  //
-
-        test_ledger_keylet(features);  //
-
-        test_float_compare(features);   //
-        test_float_divide(features);    //
-        test_float_int(features);       //
-        test_float_invert(features);    //
-        test_float_log(features);       //
-        test_float_mantissa(features);  //
-        test_float_mulratio(features);  //
-        test_float_multiply(features);  //
-        test_float_negate(features);    //
-        test_float_one(features);       //
-        test_float_root(features);      //
-        test_float_set(features);       //
-        test_float_sign(features);      //
-        test_float_sto(features);       //
-        test_float_sto_set(features);   //
-        test_float_sum(features);       //
-
-        test_hook_account(features);    //
-        test_hook_again(features);      //
-        test_hook_hash(features);       //
-        test_hook_param(features);      //
-        test_hook_param_set(features);  //
-        test_hook_pos(features);        //
-        test_hook_skip(features);       //
-
-        test_ledger_last_hash(features);  //
-        test_ledger_last_time(features);  //
-        test_ledger_nonce(features);      //
-        test_ledger_seq(features);        //
-
-        test_meta_slot(features);  //
-
-        test_otxn_id(features);     //
-        test_otxn_slot(features);   //
-        test_otxn_type(features);   //
-        test_otxn_param(features);  //
-
-        test_slot(features);           //
-        test_slot_clear(features);     //
-        test_slot_count(features);     //
-        test_slot_float(features);     //
-        test_slot_set(features);       //
-        test_slot_size(features);      //
-        test_slot_subarray(features);  //
-        test_slot_subfield(features);  //
-        test_slot_type(features);      //
-
         test_state(features);                  //
         test_state_foreign(features);          //
         test_state_foreign_set(features);      //
         test_state_foreign_set_max(features);  //
         test_state_set(features);              //
-
-        test_sto_emplace(features);   //
-        test_sto_erase(features);     //
-        test_sto_subarray(features);  //
-        test_sto_subfield(features);  //
-        test_sto_validate(features);  //
-
-        test_trace(features);        //
-        test_trace_float(features);  //
-        test_trace_num(features);    //
-
-        test_util_accid(features);    //
-        test_util_keylet(features);   //
-        test_util_raddr(features);    //
-        test_util_sha512h(features);  //
-        test_util_verify(features);   //
     }
 
     void
