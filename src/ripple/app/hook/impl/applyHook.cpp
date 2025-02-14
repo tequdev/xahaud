@@ -1107,7 +1107,7 @@ hook::setHookState(
         if (stateCount < oldStateCount)
             adjustOwnerCount(view, sleAccount, -oldHookStateReserves, j);
 
-        if (stateCount == 0)
+        if (view.rules().enabled(featureExtendedHookState) && stateCount == 0)
             sleAccount->makeFieldAbsent(sfHookStateCount);
         else
             sleAccount->setFieldU32(sfHookStateCount, stateCount);
