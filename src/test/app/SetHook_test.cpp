@@ -12177,11 +12177,115 @@ public:
     void
     testWithFeatures(FeatureBitset features)
     {
+        testHooksOwnerDir(features);
+        testHooksDisabled(features);
+        testTxStructure(features);
+        testInferHookSetOperation();
+        testParams(features);
+        testGrants(features);
+
+        testDelete(features);
+        testInstall(features);
+        testCreate(features);
+        testWithTickets(features);
+
+        testUpdate(features);
+
+        testNSDelete(features);
+        testNSDeletePartial(features);
+        testPageCap(features);
+
+        testFillCopy(features);
+
+        testWasm(features);
+        test_accept(features);
+        test_rollback(features);
+
+        testGuards(features);
+
+        test_emit(features);  //
+        // test_etxn_burden(features);       // tested above
+        // test_etxn_generation(features);   // tested above
+        // test_otxn_burden(features);       // tested above
+        // test_otxn_generation(features);   // tested above
+        test_etxn_details(features);   //
+        test_etxn_fee_base(features);  //
+        test_etxn_nonce(features);     //
+        test_etxn_reserve(features);   //
+        test_fee_base(features);       //
+
+        test_otxn_field(features);  //
+
+        test_ledger_keylet(features);  //
+
+        test_float_compare(features);   //
+        test_float_divide(features);    //
+        test_float_int(features);       //
+        test_float_invert(features);    //
+        test_float_log(features);       //
+        test_float_mantissa(features);  //
+        test_float_mulratio(features);  //
+        test_float_multiply(features);  //
+        test_float_negate(features);    //
+        test_float_one(features);       //
+        test_float_root(features);      //
+        test_float_set(features);       //
+        test_float_sign(features);      //
+        test_float_sto(features);       //
+        test_float_sto_set(features);   //
+        test_float_sum(features);       //
+
+        test_hook_account(features);    //
+        test_hook_again(features);      //
+        test_hook_hash(features);       //
+        test_hook_param(features);      //
+        test_hook_param_set(features);  //
+        test_hook_pos(features);        //
+        test_hook_skip(features);       //
+
+        test_ledger_last_hash(features);  //
+        test_ledger_last_time(features);  //
+        test_ledger_nonce(features);      //
+        test_ledger_seq(features);        //
+
+        test_meta_slot(features);  //
+
+        test_otxn_id(features);     //
+        test_otxn_slot(features);   //
+        test_otxn_type(features);   //
+        test_otxn_param(features);  //
+
+        test_slot(features);           //
+        test_slot_clear(features);     //
+        test_slot_count(features);     //
+        test_slot_float(features);     //
+        test_slot_set(features);       //
+        test_slot_size(features);      //
+        test_slot_subarray(features);  //
+        test_slot_subfield(features);  //
+        test_slot_type(features);      //
+
         test_state(features);                  //
         test_state_foreign(features);          //
         test_state_foreign_set(features);      //
         test_state_foreign_set_max(features);  //
         test_state_set(features);              //
+
+        test_sto_emplace(features);   //
+        test_sto_erase(features);     //
+        test_sto_subarray(features);  //
+        test_sto_subfield(features);  //
+        test_sto_validate(features);  //
+
+        test_trace(features);        //
+        test_trace_float(features);  //
+        test_trace_num(features);    //
+
+        test_util_accid(features);    //
+        test_util_keylet(features);   //
+        test_util_raddr(features);    //
+        test_util_sha512h(features);  //
+        test_util_verify(features);   //
     }
 
     void
