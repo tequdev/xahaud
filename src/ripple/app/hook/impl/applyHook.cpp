@@ -853,13 +853,19 @@ parseCurrency(uint8_t* cu_ptr, uint32_t cu_len)
 }
 
 uint32_t
-hook::computeHookStateOwnerCount(Blob hookStateData)
+hook::computeHookStateCount(uint32_t hookStateCount)
+{
+    return hookStateCount;
+}
+
+uint32_t
+hook::computeHookStateReserves(Blob hookStateData)
 {
     return std::floor((hookStateData.size() - 1) / 256) + 1;
 }
 
 uint32_t
-hook::computeHookStateOwnerCount(Slice hookStateData)
+hook::computeHookStateReserves(Slice hookStateData)
 {
     return std::floor((hookStateData.size() - 1) / 256) + 1;
 }
@@ -1059,12 +1065,17 @@ hook::setHookState(
     auto hookStateKeylet = ripple::keylet::hookState(acc, key, ns);
     auto hookStateDirKeylet = ripple::keylet::hookStateDir(acc, ns);
 
-    uint32_t newHookStateCount = sleAccount->getFieldU32(sfHookStateCount);
-    uint32_t oldHookStateCount = newHookStateCount;
+    uint32_t stateCount = sleAccount->getFieldU32(sfHookStateCount);
+    uint32_t oldStateCount = stateCount;
 
     auto hookState = view.peek(hookStateKeylet);
 
     bool createNew = !hookState;
+
+    int32_t newHookStateReserves = computeHookStateReserves(data);
+    int32_t oldHookStateReserves = createNew
+        ? 0
+        : computeHookStateReserves(hookState->getFieldVL(sfHookStateData));
 
     // if the blob is nil then delete the entry if it exists
     if (data.empty())
@@ -1088,22 +1099,18 @@ hook::setHookState(
         view.erase(hookState);
 
         // adjust state object count
-        Blob deletedStateData = hookState->getFieldVL(sfHookStateData);
-        uint32_t deleteOwnerCount =
-            computeHookStateOwnerCount(deletedStateData);
-        if (newHookStateCount >= deleteOwnerCount)
-        {
-            newHookStateCount -=
-                deleteOwnerCount;  // guard this because in the "impossible"
-                                   // event it is already 0 we'll wrap back to
-                                   // int_max
-        }
+        if (stateCount > 0)
+            --stateCount;  // guard this because in the "impossible" event it is
+                           // already 0 we'll wrap back to int_max
         // if removing this state entry would destroy the allotment then reduce
         // the owner count
-        if (newHookStateCount < oldHookStateCount)
-            adjustOwnerCount(view, sleAccount, -deleteOwnerCount, j);
+        if (stateCount < oldStateCount)
+            adjustOwnerCount(view, sleAccount, -oldHookStateReserves, j);
 
-        sleAccount->setFieldU32(sfHookStateCount, newHookStateCount);
+        if (stateCount == 0)
+            sleAccount->makeFieldAbsent(sfHookStateCount);
+        else
+            sleAccount->setFieldU32(sfHookStateCount, stateCount);
 
         if (nsDestroyed)
             hook::removeHookNamespaceEntry(*sleAccount, ns);
@@ -1128,26 +1135,25 @@ hook::setHookState(
 
     if (createNew)
     {
-        uint32_t createdOwnerCount = computeHookStateOwnerCount(data);
-        newHookStateCount += createdOwnerCount;
+        ++stateCount;
 
-        if (newHookStateCount > oldHookStateCount)
+        if (stateCount > oldStateCount)
         {
             // the hook used its allocated allotment of state entries for its
             // previous ownercount increment ownercount and give it another
             // allotment
 
-            ownerCount += createdOwnerCount;
+            ownerCount += newHookStateReserves;
             XRPAmount const newReserve{view.fees().accountReserve(ownerCount)};
 
             if (STAmount((*sleAccount)[sfBalance]).xrp() < newReserve)
                 return tecINSUFFICIENT_RESERVE;
 
-            adjustOwnerCount(view, sleAccount, createdOwnerCount, j);
+            adjustOwnerCount(view, sleAccount, newHookStateReserves, j);
         }
 
         // update state count
-        sleAccount->setFieldU32(sfHookStateCount, newHookStateCount);
+        sleAccount->setFieldU32(sfHookStateCount, stateCount);
         view.update(sleAccount);
 
         // create an entry
@@ -1156,23 +1162,21 @@ hook::setHookState(
     else
     {
         // on Update
-        uint32_t oldOwnerCount =
-            computeHookStateOwnerCount((*hookState)[sfHookStateData]);
-        uint32_t newOwnerCount = computeHookStateOwnerCount(data);
-
-        uint32_t changedOwnerCount = newOwnerCount - oldOwnerCount;
-        newHookStateCount += changedOwnerCount;
+        uint32_t changedOwnerCount =
+            newHookStateReserves - oldHookStateReserves;
 
         if (changedOwnerCount != 0)
         {
             ownerCount += changedOwnerCount;
             XRPAmount const newReserve{view.fees().accountReserve(ownerCount)};
-            if (STAmount((*sleAccount)[sfBalance]).xrp() < newReserve)
+            if (changedOwnerCount > 0 &&
+                STAmount((*sleAccount)[sfBalance]).xrp() < newReserve)
+                // only check if increasing reserve
                 return tecINSUFFICIENT_RESERVE;
 
             adjustOwnerCount(view, sleAccount, changedOwnerCount, j);
 
-            sleAccount->setFieldU32(sfHookStateCount, newHookStateCount);
+            sleAccount->setFieldU32(sfHookStateCount, stateCount);
             view.update(sleAccount);
         }
     }

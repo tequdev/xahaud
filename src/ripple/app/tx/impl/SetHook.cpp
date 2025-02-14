@@ -895,7 +895,7 @@ SetHook::destroyNamespace(
         }
 
         toDeleteOwnerCount +=
-            hook::computeHookStateOwnerCount((*sleItem)[sfHookStateData]);
+            hook::computeHookStateReserves((*sleItem)[sfHookStateData]);
 
         auto const hint = (*sleItem)[sfOwnerNode];
         if (!view.dirRemove(dirKeylet, hint, itemKey, false))
