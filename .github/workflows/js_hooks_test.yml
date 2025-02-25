@@ -1,0 +1,110 @@
+name: JSHooks Test sources
+
+on:
+  push:
+    branches: ["dev", "candidate", "release", "jshooks"]
+  pull_request:
+    branches: ["dev", "candidate", "release", "jshooks"]
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  jshooks-test-sources:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential clang-format bc
+
+      - name: Clone quickjslite repository
+        run: |
+          # Clone only the latest commit with minimal data transfer
+          git clone --depth 1 https://github.com/RichardAH/quickjslite.git
+          # Get the HEAD commit hash for caching
+          cd quickjslite
+          COMMIT_HASH=$(git rev-parse HEAD)
+          echo "QUICKJSLITE_COMMIT_HASH=$COMMIT_HASH" >> $GITHUB_ENV
+          cd ..
+
+      - name: Cache qjsc binary
+        uses: actions/cache@v3
+        id: qjsc-cache
+        with:
+          path: src/test/app/qjsc
+          key: ${{ runner.os }}-qjsc-${{ env.QUICKJSLITE_COMMIT_HASH }}
+
+      - name: Build qjsc if not cached
+        if: steps.qjsc-cache.outputs.cache-hit != 'true'
+        run: |
+          # Build only qjsc
+          cd quickjslite
+          make qjsc
+          # Copy qjsc binary to the project root
+          cp qjsc ../src/test/app/
+          cd ..
+
+      - name: Copy qjsc from cache
+        if: steps.qjsc-cache.outputs.cache-hit == 'true'
+        run: |
+          # Ensure qjsc from cache is executable
+          chmod +x src/test/app/qjsc
+          echo "Using cached qjsc from commit ${{ env.QUICKJSLITE_COMMIT_HASH }}"
+
+      - name: Backup original SetJSHook_wasm.h
+        run: |
+          # Creating backup of the existing file
+          cp src/test/app/SetJSHook_wasm.h src/test/app/SetJSHook_wasm.h.original
+          echo "Original file backed up"
+
+      - name: Setup build environment
+        run: |
+          # Make scripts executable
+          chmod +x src/test/app/build_test_jshooks.sh
+          if [ -f src/test/app/build-js-carray.sh ]; then
+            chmod +x src/test/app/build-js-carray.sh
+          else
+            echo "Error: build-js-carray.sh not found"
+            ls -la src/test/app/
+            exit 1
+          fi
+
+          # Check if necessary test files exist
+          if [ ! -f src/test/app/SetJSHook_test.cpp ]; then
+            echo "Error: SetJSHook_test.cpp not found"
+            ls -la src/test/app/
+            exit 1
+          fi
+
+      - name: Run build_test_jshooks.sh
+        run: |
+          rm -f src/test/app/SetJSHook_wasm.h
+          src/test/app/build_test_jshooks.sh
+          # Check if output file was created
+          if [ ! -f src/test/app/SetJSHook_wasm.h ]; then
+            echo "Error: SetJSHook_wasm.h was not created"
+            exit 1
+          fi
+
+      - name: Check for differences
+        run: |
+          # Format original file for fair comparison
+          cp src/test/app/SetJSHook_wasm.h.original src/test/app/SetJSHook_wasm.h.original.formatted
+          clang-format -i src/test/app/SetJSHook_wasm.h.original.formatted
+
+          # Compare formatted files
+          if diff -u src/test/app/SetJSHook_wasm.h.original.formatted src/test/app/SetJSHook_wasm.h; then
+            echo "✅ SetJSHook_wasm.h is generated consistently with the original file!"
+          else
+            echo "❌ SetJSHook_wasm.h has differences compared to the original file!"
+            echo "Differences:"
+            diff -u src/test/app/SetJSHook_wasm.h.original.formatted src/test/app/SetJSHook_wasm.h
+            echo "Run 'src/test/app/build_test_jshooks.sh' to generate the SetJSHook_wasm.h file."
+            exit 1
+          fi
