@@ -38,7 +38,7 @@ jobs:
           # Clone only the latest commit with minimal data transfer
           git clone --depth 1 https://github.com/RichardAH/hook-cleaner-c.git
           cd hook-cleaner-c
-          make && make install
+          make && sudo make install
           cd ..
 
       - name: Backup original SetHook_wasm.h
