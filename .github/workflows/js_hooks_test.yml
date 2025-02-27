@@ -99,7 +99,7 @@ jobs:
           clang-format -i src/test/app/SetJSHook_wasm.h.original.formatted
 
           # Compare formatted files
-          if diff -u src/test/app/SetJSHook_wasm.h.original.formatted src/test/app/SetJSHook_wasm.h; then
+          if diff -u -q src/test/app/SetJSHook_wasm.h.original.formatted src/test/app/SetJSHook_wasm.h; then
             echo "✅ SetJSHook_wasm.h is generated consistently with the original file!"
           else
             echo "❌ SetJSHook_wasm.h has differences compared to the original file!"

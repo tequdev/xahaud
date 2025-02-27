@@ -11,7 +11,7 @@
 #
 # - clang-format:
 #   Ubuntu: $sudo apt-get install clang-format
-#   macOS: $brew install clang-format
+#   macOS: $brew install r-lib/taps/clang-format@10
 # 
 # - (macOS Only) GNU sed, grep:
 #   $brew install gnu-sed grep
