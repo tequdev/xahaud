@@ -956,6 +956,7 @@ FromJSInt(JSContext* ctx, JSValueConst& v)
 
 #define returnJS(X) return JS_NewInt64(ctx, X)
 #define returnJSXFL(X) return JS_NewBigInt64(ctx, X)
+#define returnJSBigInt(X) return JS_NewBigInt64(ctx, X)
 
 template <typename T>
 inline std::optional<JSValue>
@@ -1750,7 +1751,7 @@ DEFINE_JS_FUNCTION(int64_t, trace, JSValue msg, JSValue data, JSValue as_hex)
     if (out.size() > 0)
         j.trace() << "HookTrace[" << HC_ACC() << "]: " << out;
 
-    return JS_NewInt64(ctx, 0);
+    returnJS(0);
     //    return JS_NewString(ctx, out.c_str());
 
     JS_HOOK_TEARDOWN();
@@ -6182,13 +6183,18 @@ DEFINE_JS_FUNCTION(JSValue, sto_subfield, JSValue raw_sto, JSValue raw_field_id)
     if (*field_id > 0xFFFFFFFFULL || *field_id < 0)
         returnJS(INVALID_ARGUMENT);
 
-    returnJS(__sto_subfield(
+    int64_t const out = __sto_subfield(
         hookCtx,
         applyCtx,
         j,
         sto_in->data(),
         sto_in->size(),
-        (uint32_t)(*field_id)));
+        (uint32_t)(*field_id));
+
+    if (out < 0)
+        returnJS(out);
+
+    returnJSBigInt(out);
 
     JS_HOOK_TEARDOWN();
 }
@@ -6287,13 +6293,18 @@ DEFINE_JS_FUNCTION(JSValue, sto_subarray, JSValue raw_sto, JSValue raw_index_id)
     if (*index_id > 0xFFFFFFFFULL || *index_id < 0)
         returnJS(INVALID_ARGUMENT);
 
-    returnJS(__sto_subarray(
+    int64_t const out = __sto_subarray(
         hookCtx,
         applyCtx,
         j,
         sto_in->data(),
         sto_in->size(),
-        (uint32_t)(*index_id)));
+        (uint32_t)(*index_id));
+
+    if (out < 0)
+        returnJS(out);
+
+    returnJSBigInt(out);
 
     JS_HOOK_TEARDOWN();
 }
@@ -6403,7 +6414,7 @@ DEFINE_JS_FUNCTION(JSValue, util_accid, JSValue raddr)
     JS_HOOK_SETUP();
 
     if (!JS_IsString(raddr))
-        return JS_NewInt64(ctx, INVALID_ARGUMENT);
+        returnJS(INVALID_ARGUMENT);
 
     auto [len, str] = FromJSString(ctx, raddr, 49);
     if (len > 49)
