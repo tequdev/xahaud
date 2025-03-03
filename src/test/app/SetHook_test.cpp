@@ -36,29 +36,6 @@ namespace test {
 
 using TestHook = std::vector<uint8_t> const&;
 
-class JSSHasher
-{
-public:
-    size_t
-    operator()(const Json::StaticString& n) const
-    {
-        return std::hash<std::string_view>{}(n.c_str());
-    }
-};
-
-class JSSEq
-{
-public:
-    bool
-    operator()(const Json::StaticString& a, const Json::StaticString& b) const
-    {
-        return a == b;
-    }
-};
-
-using JSSMap =
-    std::unordered_map<Json::StaticString, Json::Value, JSSHasher, JSSEq>;
-
 // Identical to BEAST_EXPECT except it returns from the function
 // if the condition isn't met (and would otherwise therefore cause a crash)
 #define BEAST_REQUIRE(x)     \
@@ -69,10 +46,10 @@ using JSSMap =
     }
 
 #define HASH_WASM(x)                                                           \
-    uint256 const x##_hash =                                                   \
+    [[maybe_unused]] uint256 const x##_hash =                                  \
         ripple::sha512Half_s(ripple::Slice(x##_wasm.data(), x##_wasm.size())); \
-    std::string const x##_hash_str = to_string(x##_hash);                      \
-    Keylet const x##_keylet = keylet::hookDefinition(x##_hash);
+    [[maybe_unused]] std::string const x##_hash_str = to_string(x##_hash);     \
+    [[maybe_unused]] Keylet const x##_keylet = keylet::hookDefinition(x##_hash);
 
 class SetHook_test : public beast::unit_test::suite
 {

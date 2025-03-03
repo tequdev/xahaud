@@ -91,6 +91,7 @@ find_package(nudb REQUIRED)
 find_package(date REQUIRED)
 include(deps/Protobuf)
 include(deps/gRPC)
+include(deps/quickjs)
 
 target_link_libraries(ripple_libs INTERFACE
   ed25519::ed25519
