@@ -1220,8 +1220,8 @@ Transactor::executeHookChain(
             (hookObj.isFieldPresent(sfHookEmit)
                  ? hookObj.getFieldH256(sfHookEmit)
                  : hookDef->isFieldPresent(sfHookEmit)
-                 ? hookDef->getFieldH256(sfHookEmit)
-                 : defaultHookEmit);
+                     ? hookDef->getFieldH256(sfHookEmit)
+                     : defaultHookEmit);
 
         uint32_t flags =
             (hookObj.isFieldPresent(sfFlags) ? hookObj.getFieldU32(sfFlags)
@@ -1397,8 +1397,8 @@ Transactor::doHookCallback(
             (hookObj.isFieldPresent(sfHookEmit)
                  ? hookObj.getFieldH256(sfHookEmit)
                  : hookDef->isFieldPresent(sfHookEmit)
-                 ? hookDef->getFieldH256(sfHookEmit)
-                 : defaultHookEmit);
+                     ? hookDef->getFieldH256(sfHookEmit)
+                     : defaultHookEmit);
 
         // fetch the namespace either from the hook object of, if absent, the
         // hook def
@@ -1679,8 +1679,8 @@ Transactor::doAgainAsWeak(
             (hookObj.isFieldPresent(sfHookEmit)
                  ? hookObj.getFieldH256(sfHookEmit)
                  : hookDef->isFieldPresent(sfHookEmit)
-                 ? hookDef->getFieldH256(sfHookEmit)
-                 : defaultHookEmit);
+                     ? hookDef->getFieldH256(sfHookEmit)
+                     : defaultHookEmit);
 
         // fetch the namespace either from the hook object of, if absent, the
         // hook def
