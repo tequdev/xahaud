@@ -225,8 +225,7 @@ SetHook::inferOperation(SetHookCtx& ctx, STObject const& hookSetObj)
         !hookSetObj.isFieldPresent(sfHookNamespace) &&
         !hookSetObj.isFieldPresent(sfHookParameters) &&
         !hookSetObj.isFieldPresent(sfHookOn) &&
-        (!ctx.rules.enabled(featureHookEmit) ||
-         !hookSetObj.isFieldPresent(sfHookEmit)) &&
+        !hookSetObj.isFieldPresent(sfHookEmit) &&
         !hookSetObj.isFieldPresent(sfHookApiVersion) &&
         !hookSetObj.isFieldPresent(sfFlags))
         return hsoNOOP;
@@ -261,8 +260,7 @@ SetHook::validateHookSetEntry(SetHookCtx& ctx, STObject const& hookSetObj)
             if (hookSetObj.isFieldPresent(sfHookGrants) ||
                 hookSetObj.isFieldPresent(sfHookParameters) ||
                 hookSetObj.isFieldPresent(sfHookOn) ||
-                (ctx.rules.enabled(featureHookEmit) &&
-                 hookSetObj.isFieldPresent(sfHookEmit)) ||
+                hookSetObj.isFieldPresent(sfHookEmit) ||
                 hookSetObj.isFieldPresent(sfHookApiVersion) ||
                 !hookSetObj.isFieldPresent(sfFlags) ||
                 !hookSetObj.isFieldPresent(sfHookNamespace))
@@ -292,8 +290,7 @@ SetHook::validateHookSetEntry(SetHookCtx& ctx, STObject const& hookSetObj)
             if (hookSetObj.isFieldPresent(sfHookGrants) ||
                 hookSetObj.isFieldPresent(sfHookParameters) ||
                 hookSetObj.isFieldPresent(sfHookOn) ||
-                (ctx.rules.enabled(featureHookEmit) &&
-                 hookSetObj.isFieldPresent(sfHookEmit)) ||
+                hookSetObj.isFieldPresent(sfHookEmit) ||
                 hookSetObj.isFieldPresent(sfHookApiVersion) ||
                 hookSetObj.isFieldPresent(sfHookNamespace) ||
                 !hookSetObj.isFieldPresent(sfFlags))
