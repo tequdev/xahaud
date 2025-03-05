@@ -910,7 +910,7 @@ SetHook::destroyNamespace(
         view.erase(sleItem);
     }
 
-    uint32_t stateCount = oldStateCount - toDeleteOwnerCount;
+    uint32_t stateCount = oldStateCount - toDelete.size();
     if (stateCount > oldStateCount)
     {
         JLOG(ctx.j.fatal()) << "HookSet(" << hook::log::NSDELETE_COUNT << ")["
@@ -1319,13 +1319,12 @@ SetHook::setHook()
             }
             else if (op == hsoNSDELETE && newDirKeylet)
             {
-                printf("Marking a namespace for destruction.... NSDELETE\n");
+                JLOG(ctx.j.trace()) << "Marking a namespace for destruction.... NSDELETE";
                 namespacesToDestroy.emplace(*newNamespace);
             }
             else if (oldDirKeylet)
             {
-                printf(
-                    "Marking a namespace for destruction.... non-NSDELETE\n");
+                JLOG(ctx.j.trace()) << "Marking a namespace for destruction.... non-NSDELETE";
                 namespacesToDestroy.emplace(*oldNamespace);
             }
             else

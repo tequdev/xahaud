@@ -838,6 +838,9 @@ public:
         auto const bob = Account{"bob"};
         env.fund(XRP(10000), bob);
 
+        auto const carol = Account{"carol"};
+        env.fund(XRP(10000), carol);
+
         Json::Value jv;
         jv[jss::Account] = alice.human();
         jv[jss::TransactionType] = jss::SetHook;
@@ -915,6 +918,7 @@ public:
                 data[3] == 'u' && data[4] == 'e' && data[5] == '\0');
 
             BEAST_EXPECT((*env.le(alice))[sfOwnerCount] == 2);
+            BEAST_EXPECT((*env.le(alice))[sfHookStateCount] == 1);
         }
 
         // delete the namespace
@@ -943,7 +947,81 @@ public:
 
             // ensure the state object is gone
             BEAST_EXPECT(!env.le(stateKeylet));
-            BEAST_EXPECT((*env.le(alice))[sfOwnerCount] == fixNS ? 1 : 2);
+            BEAST_EXPECT((*env.le(alice))[sfOwnerCount] == (fixNS ? 1 : 2));
+            BEAST_EXPECT(!(env.le("alice")->isFieldPresent(sfHookStateCount)));
+        }
+        
+        // check ExtendedHookState
+        if (env.current()->rules().enabled(featureExtendedHookState))
+        {
+            TestHook extended_state_wasm = wasm[
+                R"[test.hook](
+                #include <stdint.h>
+                extern int32_t _g           (uint32_t id, uint32_t maxiter);
+                extern int64_t accept       (uint32_t read_ptr, uint32_t read_len, int64_t error_code);
+                extern int64_t rollback     (uint32_t read_ptr, uint32_t read_len, int64_t error_code);
+                extern int64_t state_set    (uint32_t read_ptr, uint32_t read_len, uint32_t kread_ptr, uint32_t kread_len);
+                #define SBUF(x) x, sizeof(x)
+                #define ASSERT(x)\
+                    if (!(x))\
+                        rollback((uint32_t)#x,sizeof(#x),__LINE__)
+                int64_t hook(uint32_t reserved )
+                {
+                    _g(1,1);
+                    uint8_t test_key[] = "key";
+                    uint8_t test_value[] = "value";
+                    uint8_t test_key2[] = "key2";
+                    uint8_t test_value2[] = "value2";
+                    ASSERT(state_set(SBUF(test_value), SBUF(test_key)) > 0);
+                    ASSERT(state_set(test_value2, 2048, SBUF(test_key2)) > 0);
+                    return accept(0,0,0);
+                }
+            )[test.hook]"];
+
+            HASH_WASM(extended_state);
+
+            // create hook
+            Json::Value jv =
+                ripple::test::jtx::hook(carol, {{hso(extended_state_wasm)}}, 0);
+            jv[jss::Hooks][0U][jss::Hook][jss::HookNamespace] = ns_str;
+            env(jv, M("Create makestate hook"), HSFEE, ter(tesSUCCESS));
+            env.close();
+            BEAST_EXPECT((*env.le(carol))[sfOwnerCount] == 1);
+            BEAST_EXPECT(!env.le(carol)->isFieldPresent(sfHookStateCount));
+            // run hook
+            env(pay(bob, carol, XRP(1)),
+                M("Run create state hook"),
+                fee(XRP(1)));
+            env.close();
+            BEAST_EXPECT((*env.le(carol))[sfOwnerCount] == 10);
+            BEAST_EXPECT((*env.le(carol))[sfHookStateCount] == 2);
+
+            Json::Value iv;
+            iv[jss::Flags] = hsfNSDELETE;
+            iv[jss::HookNamespace] = ns_str;
+            jv[jss::Hooks][0U][jss::Hook] = iv;
+            env(jv, M("Normal NSDELETE operation"), HSFEE, ter(tesSUCCESS));
+            env.close();
+
+            // ensure the hook is still installed
+            auto const hook = env.le(keylet::hook(Account("carol").id()));
+            BEAST_REQUIRE(hook);
+
+            BEAST_REQUIRE(hook->isFieldPresent(sfHooks));
+            auto const& hooks = hook->getFieldArray(sfHooks);
+            BEAST_EXPECT(hooks.size() > 0);
+            BEAST_EXPECT(hooks[0].isFieldPresent(sfHookHash));
+            BEAST_EXPECT(
+                hooks[0].getFieldH256(sfHookHash) == extended_state_hash);
+
+            // ensure the directory is gone
+            auto const dirKeylet =
+                keylet::hookStateDir(Account("carol").id(), ns);
+            BEAST_EXPECT(!env.le(dirKeylet));
+
+            // ensure the state objects is gone
+            BEAST_EXPECT((*env.le(carol))[sfOwnerCount] == (fixNS ? 1 : 10));
+            BEAST_EXPECT(!env.le(carol)->isFieldPresent(sfHookStateCount));
         }
     }
 
@@ -12299,6 +12377,9 @@ public:
         testWithFeatures(sa - fixXahauV1 - fixXahauV2 - fixNSDelete);
         testWithFeatures(
             sa - fixXahauV1 - fixXahauV2 - fixNSDelete - fixPageCap);
+        testWithFeatures(
+            sa - fixXahauV1 - fixXahauV2 - fixNSDelete - fixPageCap -
+            featureExtendedHookState);
     }
 
 private:
