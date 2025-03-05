@@ -643,6 +643,9 @@ public:
         using namespace jtx;
         Env env{*this, features};
 
+        bool const hasHookEmit =
+            env.current()->rules().enabled(featureHookEmit);
+
         auto const alice = Account{"alice"};
         env.fund(XRP(10000), alice);
 
@@ -677,24 +680,30 @@ public:
             env.close();
         }
 
-        // grants, parameters, hookon, hookapiversion, hooknamespace keys must
-        // be absent
+        // grants, parameters, hookon, hookemit, hookapiversion, hooknamespace
+        // keys must be absent
         for (auto const& [key, value] : JSSMap{
                  {jss::HookGrants, Json::arrayValue},
                  {jss::HookParameters, Json::arrayValue},
                  {jss::HookOn,
                   "000000000000000000000000000000000000000000000000000000000000"
                   "0000"},
+                 {jss::HookEmit,
+                  "000000000000000000000000000000000000000000000000000000000000"
+                  "0000"},
                  {jss::HookApiVersion, "0"},
                  {jss::HookNamespace, to_string(uint256{beast::zero})}})
         {
+            if (!hasHookEmit && key == jss::HookEmit)
+                continue;
+
             Json::Value iv;
             iv[jss::CreateCode] = "";
             iv[key] = value;
             jv[jss::Hooks][0U][jss::Hook] = iv;
             env(jv,
                 M("Hook DELETE operation cannot include: grants, params, "
-                  "hookon, apiversion, namespace"),
+                  "hookon, hookemit, apiversion, namespace"),
                 HSFEE,
                 ter(temMALFORMED));
             env.close();
@@ -831,6 +840,8 @@ public:
         Env env{*this, features};
 
         bool const fixNS = env.current()->rules().enabled(fixNSDelete);
+        bool const hasHookEmit =
+            env.current()->rules().enabled(featureHookEmit);
 
         auto const alice = Account{"alice"};
         env.fund(XRP(10000), alice);
@@ -850,9 +861,15 @@ public:
                  {jss::HookOn,
                   "000000000000000000000000000000000000000000000000000000000000"
                   "0000"},
+                 {jss::HookEmit,
+                  "000000000000000000000000000000000000000000000000000000000000"
+                  "0000"},
                  {jss::HookApiVersion, "0"},
              })
         {
+            if (!hasHookEmit && key == jss::HookEmit)
+                continue;
+
             Json::Value iv;
             iv[key] = value;
             iv[jss::Flags] = hsfNSDELETE;
@@ -860,7 +877,7 @@ public:
             jv[jss::Hooks][0U][jss::Hook] = iv;
             env(jv,
                 M("Hook NSDELETE operation cannot include: grants, params, "
-                  "hookon, apiversion"),
+                  "hookon, hookemit, apiversion"),
                 HSFEE,
                 ter(temMALFORMED));
             env.close();
@@ -1193,6 +1210,9 @@ public:
         using namespace jtx;
         Env env{*this, features};
 
+        bool const hasHookEmit =
+            env.current()->rules().enabled(featureHookEmit);
+
         auto const bob = Account{"bob"};
         env.fund(XRP(10000), bob);
 
@@ -1236,6 +1256,10 @@ public:
             iv[jss::HookOn] =
                 "00000000000000000000000000000000000000000000000000000000000000"
                 "00";
+            if (hasHookEmit)
+                iv[jss::HookEmit] =
+                    "0000000000000000000000000000000000000000000000000000000000"
+                    "000000";
             jv[jss::Hooks][0U] = Json::Value{};
             jv[jss::Hooks][0U][jss::Hook] = iv;
 
@@ -1254,6 +1278,11 @@ public:
             iv[jss::HookOn] =
                 "00000000000000000000000000000000000000000000000000000000000000"
                 "00";
+            if (hasHookEmit)
+                iv[jss::HookEmit] =
+                    "0000000000000000000000000000000000000000000000000000000000"
+                    "0000"
+                    "00";
             jv[jss::Hooks][0U] = Json::Value{};
             jv[jss::Hooks][0U][jss::Hook] = iv;
 
@@ -1273,6 +1302,11 @@ public:
             iv[jss::HookOn] =
                 "00000000000000000000000000000000000000000000000000000000000000"
                 "00";
+            if (hasHookEmit)
+                iv[jss::HookEmit] =
+                    "0000000000000000000000000000000000000000000000000000000000"
+                    "0000"
+                    "00";
             jv[jss::Hooks][0U] = Json::Value{};
             jv[jss::Hooks][0U][jss::Hook] = iv;
 
@@ -1289,6 +1323,11 @@ public:
             iv[jss::CreateCode] = strHex(accept_wasm);
             iv[jss::HookNamespace] = to_string(uint256{beast::zero});
             iv[jss::HookApiVersion] = 0U;
+            if (hasHookEmit)
+                iv[jss::HookEmit] =
+                    "0000000000000000000000000000000000000000000000000000000000"
+                    "0000"
+                    "00";
             jv[jss::Hooks][0U] = Json::Value{};
             jv[jss::Hooks][0U][jss::Hook] = iv;
 
@@ -1435,6 +1474,9 @@ public:
         using namespace jtx;
         Env env{*this, features};
 
+        bool const hasHookEmit =
+            env.current()->rules().enabled(featureHookEmit);
+
         auto const alice = Account{"alice"};
         env.fund(XRP(10000), alice);
 
@@ -1456,6 +1498,10 @@ public:
             iv[jss::HookOn] =
                 "00000000000000000000000000000000000000000000000000000000000000"
                 "00";
+            if (hasHookEmit)
+                iv[jss::HookEmit] =
+                    "0000000000000000000000000000000000000000000000000000000000"
+                    "000000";
             iv[jss::HookParameters] = Json::Value{Json::arrayValue};
             iv[jss::HookParameters][0U] = Json::Value{};
             iv[jss::HookParameters][0U][jss::HookParameter] = Json::Value{};
@@ -1537,12 +1583,18 @@ public:
                      {jss::HookOn,
                       "00000000000000000000000000000000000000000000000000000000"
                       "00000001"},
+                     {jss::HookEmit,
+                      "00000000000000000000000000000000000000000000000000000000"
+                      "00000001"},
                      {jss::HookNamespace,
                       "CAFECAFECAFECAFECAFECAFECAFECAFECAFECAFECAFECAFECAFECAFE"
                       "CAFECAFE"},
                      {jss::HookParameters, params},
                      {jss::HookGrants, grants}})
             {
+                if (!hasHookEmit && key == jss::HookEmit)
+                    continue;
+
                 Json::Value iv;
                 iv[key] = value;
                 jv[jss::Hooks][0U] = Json::Value{};
@@ -1564,6 +1616,13 @@ public:
             // check all fields were updated to correct values
             BEAST_REQUIRE(hooks[0].isFieldPresent(sfHookOn));
             BEAST_EXPECT(hooks[0].getFieldH256(sfHookOn) == UINT256_BIT[0]);
+
+            if (hasHookEmit)
+            {
+                BEAST_REQUIRE(hooks[0].isFieldPresent(sfHookEmit));
+                BEAST_EXPECT(
+                    hooks[0].getFieldH256(sfHookEmit) == UINT256_BIT[0]);
+            }
 
             auto const ns = uint256::fromVoid(
                 (std::array<uint8_t, 32>{
@@ -1596,14 +1655,20 @@ public:
             BEAST_REQUIRE(g[0].getFieldH256(sfHookHash) == accept_hash);
         }
 
-        // reset hookon and namespace to defaults
+        // reset hookon, hookemit, and namespace to defaults
         {
             for (auto const& [key, value] : JSSMap{
                      {jss::HookOn,
                       "00000000000000000000000000000000000000000000000000000000"
                       "00000000"},
+                     {jss::HookEmit,
+                      "00000000000000000000000000000000000000000000000000000000"
+                      "00000000"},
                      {jss::HookNamespace, to_string(uint256{beast::zero})}})
             {
+                if (key == jss::HookEmit && !hasHookEmit)
+                    continue;
+
                 Json::Value iv;
                 iv[key] = value;
                 jv[jss::Hooks][0U] = Json::Value{};
@@ -1625,6 +1690,7 @@ public:
             // ensure the two fields are now absent (because they were reset to
             // the defaults on the hook def)
             BEAST_EXPECT(!hooks[0].isFieldPresent(sfHookOn));
+            BEAST_EXPECT(!hooks[0].isFieldPresent(sfHookEmit));
             BEAST_EXPECT(!hooks[0].isFieldPresent(sfHookNamespace));
         }
 
@@ -1844,12 +1910,18 @@ public:
                      {jss::HookOn,
                       "00000000000000000000000000000000000000000000000000000000"
                       "00000001"},
+                     {jss::HookEmit,
+                      "00000000000000000000000000000000000000000000000000000000"
+                      "00000001"},
                      {jss::HookNamespace,
                       "CAFECAFECAFECAFECAFECAFECAFECAFECAFECAFECAFECAFECAFECAFE"
                       "CAFECAFE"},
                      {jss::HookParameters, params},
                      {jss::HookGrants, grants}})
             {
+                if (key == jss::HookEmit && !hasHookEmit)
+                    continue;
+
                 Json::Value iv;
                 iv[key] = value;
                 jv[jss::Hooks][0U] = Json::Value{};
@@ -12327,15 +12399,21 @@ public:
 
                 uint8_t hash[32];
                 if (hook_pos() == 0) {
-                    uint32_t result = emit(SBUF(hash), SBUF(payment_tx));
-                    if (result != 32) {
-                         rollback(payment_tx, PREPARE_PAYMENT_SIMPLE_SIZE, result);
-                    }
+                    // default (hookemit not set)
+                    ASSERT(emit(SBUF(hash), SBUF(payment_tx)) == 32);
+                    ASSERT(emit(SBUF(hash), SBUF(account_set_tx)) == 32);
+                    ASSERT(emit(SBUF(hash), SBUF(hook_set_tx)) == 32);
+                    accept(0, 0, hook_pos());
+                } 
+                if (hook_pos() == 1) {
+                    // hookemit all low
                     ASSERT(emit(SBUF(hash), SBUF(payment_tx)) == 32);
                     ASSERT(emit(SBUF(hash), SBUF(account_set_tx)) == 32);
                     ASSERT(emit(SBUF(hash), SBUF(hook_set_tx)) < 0);
                     accept(0, 0, hook_pos());
-                } else {
+                }
+                if (hook_pos() == 2) {
+                    // hookemit all high
                     ASSERT(emit(SBUF(hash), SBUF(payment_tx)) < 0);
                     ASSERT(emit(SBUF(hash), SBUF(account_set_tx)) < 0);
                     ASSERT(emit(SBUF(hash), SBUF(hook_set_tx)) == 32);
@@ -12348,17 +12426,49 @@ public:
 
         if (!hasFeature)
         {
-            Json::Value hookEmitHook = hso(hook, overrideFlag);
-            hookEmitHook[jss::HookEmit] =
-                "00000000000000000000000000000000000000000000000000"
-                "00000000000000";
-            env(ripple::test::jtx::hook(alice, {{hookEmitHook}}, 0),
-                M("set emit on"),
-                HSFEE,
-                ter(temMALFORMED));
-            env.close();
+            {
+                Json::Value hookEmitHook = hso(hook, overrideFlag);
+                hookEmitHook[jss::HookEmit] =
+                    "00000000000000000000000000000000000000000000000000"
+                    "00000000000000";
+                env(ripple::test::jtx::hook(alice, {{hookEmitHook}}, 0),
+                    M("set hookemit"),
+                    HSFEE,
+                    ter(temMALFORMED));
+                env.close();
+            }
+            {
+                Json::Value h = hso(hook, overrideFlag);
+                env(ripple::test::jtx::hook(alice, {{h}}, 0),
+                    M("set hookemit"),
+                    HSFEE);
+                env.close();
+
+                // invoke the hook
+                env(pay(bob, alice, XRP(1)), M("test hookemit"), fee(XRP(1)));
+                env.close();
+
+                auto meta = env.meta();
+
+                // ensure hook execution occured
+                BEAST_REQUIRE(meta);
+                BEAST_REQUIRE(meta->isFieldPresent(sfHookExecutions));
+
+                // ensure there was four hook executions
+                auto const hookExecutions =
+                    meta->getFieldArray(sfHookExecutions);
+                BEAST_REQUIRE(hookExecutions.size() == 1);
+
+                // get the data in the return code of the execution
+                BEAST_EXPECT(
+                    hookExecutions[0].getFieldU64(sfHookReturnCode) == 0);
+            }
             return;
         }
+
+        Json::Value jv;
+        jv[jss::CreateCode] = "";
+        jv[jss::Flags] = hsfOVERRIDE;
 
         {
             // install the hook on alice
@@ -12366,7 +12476,7 @@ public:
             hookEmitHook[jss::HookEmit] =
                 "00000000000000000000000000000000000000000000000000"
                 "00000000000000";
-            env(ripple::test::jtx::hook(alice, {{hookEmitHook}}, 0),
+            env(ripple::test::jtx::hook(alice, {{jv, hookEmitHook}}, 0),
                 M("set hookemit"),
                 HSFEE);
             env.close();
@@ -12386,7 +12496,7 @@ public:
             BEAST_REQUIRE(hookExecutions.size() == 1);
 
             // get the data in the return code of the execution
-            BEAST_EXPECT(hookExecutions[0].getFieldU64(sfHookReturnCode) == 0);
+            BEAST_EXPECT(hookExecutions[0].getFieldU64(sfHookReturnCode) == 1);
         }
 
         {
@@ -12395,8 +12505,7 @@ public:
             hookEmitHook[jss::HookEmit] =
                 "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
                 "FFFFFFFFFFFFFF";
-            env(ripple::test::jtx::hook(
-                    alice, {{hso(accept_wasm, overrideFlag), hookEmitHook}}, 0),
+            env(ripple::test::jtx::hook(alice, {{jv, jv, hookEmitHook}}, 0),
                 M("set hookemit"),
                 HSFEE);
             env.close();
@@ -12413,10 +12522,10 @@ public:
 
             // ensure there was four hook executions
             auto const hookExecutions = meta->getFieldArray(sfHookExecutions);
-            BEAST_REQUIRE(hookExecutions.size() == 2);
+            BEAST_REQUIRE(hookExecutions.size() == 1);
 
             // get the data in the return code of the execution
-            BEAST_EXPECT(hookExecutions[1].getFieldU64(sfHookReturnCode) == 1);
+            BEAST_EXPECT(hookExecutions[0].getFieldU64(sfHookReturnCode) == 2);
         }
     }
 

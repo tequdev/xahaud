@@ -457,6 +457,10 @@ SetHook::validateHookSetEntry(SetHookCtx& ctx, STObject const& hookSetObj)
 
             // validate sfHookEmit
             // HookEmit field is an optional field for backward compatibility
+            if (!hookSetObj.isFieldPresent(sfHookEmit))
+            {
+                // pass
+            }
 
             // finally validate web assembly byte code
             {
@@ -720,24 +724,9 @@ SetHook::preflight(PreflightContext const& ctx)
 
         allBlank = false;
 
-        for (auto const& hookSetElement : hookSetObj)
-        {
-            auto const& name = hookSetElement.getFName();
-
-            if (name != sfCreateCode && name != sfHookHash &&
-                name != sfHookNamespace && name != sfHookParameters &&
-                name != sfHookOn && name != sfHookGrants &&
-                name != sfHookApiVersion && name != sfFlags &&
-                (!ctx.rules.enabled(featureHookEmit) || name != sfHookEmit))
-            {
-                JLOG(ctx.j.trace())
-                    << "HookSet(" << hook::log::HOOK_INVALID_FIELD << ")["
-                    << HS_ACC()
-                    << "]: Malformed transaction: SetHook sfHook contains "
-                       "invalid field.";
-                return temMALFORMED;
-            }
-        }
+        if (!ctx.rules.enabled(featureHookEmit) &&
+            hookSetObj.isFieldPresent(sfHookEmit))
+            return temMALFORMED;
 
         try
         {
