@@ -950,7 +950,7 @@ public:
             BEAST_EXPECT((*env.le(alice))[sfOwnerCount] == (fixNS ? 1 : 2));
             BEAST_EXPECT(!(env.le("alice")->isFieldPresent(sfHookStateCount)));
         }
-        
+
         // check ExtendedHookState
         if (env.current()->rules().enabled(featureExtendedHookState))
         {
