@@ -1611,7 +1611,8 @@ SetHook::setHook()
                     auto newHookDef = std::make_shared<SLE>(keylet);
                     newHookDef->setFieldH256(sfHookHash, *createHookHash);
                     newHookDef->setFieldH256(sfHookOn, *newHookOn);
-                    newHookDef->setFieldH256(sfHookEmit, *newHookEmit);
+                    if (newHookEmit)
+                        newHookDef->setFieldH256(sfHookEmit, *newHookEmit);
                     newHookDef->setFieldH256(sfHookNamespace, *newNamespace);
                     newHookDef->setFieldArray(
                         sfHookParameters,

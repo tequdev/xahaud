@@ -1213,8 +1213,7 @@ Transactor::executeHookChain(
             continue;  // skip if it can't
 
         // default allows all transaction types
-        uint256 defaultHookEmit = uint256();
-        defaultHookEmit ^= UINT256_BIT[ttHOOK_SET];
+        uint256 defaultHookEmit = UINT256_BIT[ttHOOK_SET];
 
         uint256 hookEmit =
             (hookObj.isFieldPresent(sfHookEmit)
@@ -1390,8 +1389,7 @@ Transactor::doHookCallback(
             continue;
 
         // default allows all transaction types
-        uint256 defaultHookEmit = uint256();
-        defaultHookEmit ^= UINT256_BIT[ttHOOK_SET];
+        uint256 defaultHookEmit = UINT256_BIT[ttHOOK_SET];
 
         uint256 hookEmit =
             (hookObj.isFieldPresent(sfHookEmit)
@@ -1672,8 +1670,7 @@ Transactor::doAgainAsWeak(
         }
 
         // default allows all transaction types
-        uint256 defaultHookEmit = uint256();
-        defaultHookEmit ^= UINT256_BIT[ttHOOK_SET];
+        uint256 defaultHookEmit = UINT256_BIT[ttHOOK_SET];
 
         uint256 hookEmit =
             (hookObj.isFieldPresent(sfHookEmit)
