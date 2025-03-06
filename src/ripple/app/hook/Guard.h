@@ -14,9 +14,9 @@
 using GuardLog =
     std::optional<std::reference_wrapper<std::basic_ostream<char>>>;
 
-#define DEBUG_GUARD 1
-#define DEBUG_GUARD_VERBOSE 1
-#define DEBUG_GUARD_VERY_VERBOSE 1
+#define DEBUG_GUARD 0
+#define DEBUG_GUARD_VERBOSE 0
+#define DEBUG_GUARD_VERY_VERBOSE 0
 
 #define GUARDLOG(logCode)                                                    \
     if (!guardLog)                                                           \
@@ -817,11 +817,10 @@ check_guard(
 
 // RH TODO: reprogram this function to use REQUIRE/ADVANCE
 // may throw overflow_error
-inline std::optional<  // unpopulated means invalid
-    std::pair<
-        uint64_t,  // max instruction count for hook()
-        uint64_t   // max instruction count for cbak()
-        >>
+inline std::optional<                // unpopulated means invalid
+    std::map<std::string, uint64_t>  // map of export function name to max
+                                     // instruction count
+    >
 validateGuards(
     std::vector<uint8_t> const& wasm,
     GuardLog guardLog,
@@ -837,6 +836,10 @@ validateGuards(
      */
     uint64_t rulesVersion = 0)
 {
+    // Maps to store export function information and instruction counts
+    std::map<std::string, int> export_func_idx_map;
+    std::map<std::string, uint64_t> export_func_instr_count_map;
+
     uint64_t byteCount = wasm.size();
 
     // 63 bytes is the smallest possible valid hook wasm
@@ -901,25 +904,23 @@ validateGuards(
         // followed by an leb128 length
         int section_type = wasm[i++];
 
-        // if (section_type == 0)
-        // {
-        //     GUARDLOG(hook::log::CUSTOM_SECTION_DISALLOWED)
-        //         << "Malformed transaction. "
-        //         << "Hook contained a custom section, which is not allowed. Use "
-        //            "cleaner.\n";
-        //     return {};
-        // }
+        if (section_type == 0)
+        {
+            GUARDLOG(hook::log::CUSTOM_SECTION_DISALLOWED)
+                << "Malformed transaction. "
+                << "Hook contained a custom section, which is not allowed. Use "
+                   "cleaner.\n";
+            return {};
+        }
 
-        // if (section_type <= last_section_type)
-        // {
-        //     GUARDLOG(hook::log::SECTIONS_OUT_OF_SEQUENCE)
-        //         << "Malformed transcation. "
-        //         << "Hook contained wasm sections that were either repeated or "
-        //            "were out of sequence.\n";
-        //     return {};
-        // }
-
-        last_section_type = section_type;
+        if (section_type <= last_section_type)
+        {
+            GUARDLOG(hook::log::SECTIONS_OUT_OF_SEQUENCE)
+                << "Malformed transcation. "
+                << "Hook contained wasm sections that were either repeated or "
+                   "were out of sequence.\n";
+            return {};
+        }
 
         int section_length = parseLeb128(wasm, i, &i);
         CHECK_SHORT_HOOK();
@@ -1093,66 +1094,47 @@ validateGuards(
             {
                 int name_len = parseLeb128(wasm, i, &i);
                 CHECK_SHORT_HOOK();
-                if (name_len == 4)
+
+                // Get export function name
+                std::string export_name(
+                    reinterpret_cast<const char*>(&wasm[i]), name_len);
+                i += name_len;
+                CHECK_SHORT_HOOK();
+
+                // Check export type (0 = function)
+                if (wasm[i] != 0)
                 {
-                    if (wasm[i] == 'h' && wasm[i + 1] == 'o' &&
-                        wasm[i + 2] == 'o' && wasm[i + 3] == 'k')
-                    {
-                        i += name_len;
-                        CHECK_SHORT_HOOK();
-                        if (wasm[i] != 0)
-                        {
-                            GUARDLOG(hook::log::EXPORT_HOOK_FUNC)
-                                << "Malformed transaction. "
-                                << "Hook did not export: A valid int64_t "
-                                   "hook(uint32_t)"
-                                << "\n";
-                            return {};
-                        }
-
-                        i++;
-                        CHECK_SHORT_HOOK();
-                        hook_func_idx = parseLeb128(wasm, i, &i);
-                        CHECK_SHORT_HOOK();
-                        continue;
-                    }
-
-                    if (wasm[i] == 'c' && wasm[i + 1] == 'b' &&
-                        wasm[i + 2] == 'a' && wasm[i + 3] == 'k')
-                    {
-                        i += name_len;
-                        CHECK_SHORT_HOOK();
-                        if (wasm[i] != 0)
-                        {
-                            GUARDLOG(hook::log::EXPORT_CBAK_FUNC)
-                                << "Malformed transaction. "
-                                << "Hook did not export: A valid int64_t "
-                                   "cbak(uint32_t)"
-                                << "\n";
-                            return {};
-                        }
-                        i++;
-                        CHECK_SHORT_HOOK();
-                        cbak_func_idx = parseLeb128(wasm, i, &i);
-                        CHECK_SHORT_HOOK();
-                        continue;
-                    }
-                }
-
-                if (wasm[i] == 'm' && wasm[i + 1] == 'e' && wasm[i + 2] == 't' && wasm[i + 3] == 'h' && wasm[i + 4] == 'o' && wasm[i + 5] == 'd')
-                {
-                    i += name_len;
-                    CHECK_SHORT_HOOK();
+                    // Skip non-function exports
                     i++;
                     CHECK_SHORT_HOOK();
-                    hook_func_idx = parseLeb128(wasm, i, &i);
+                    parseLeb128(wasm, i, &i);
                     CHECK_SHORT_HOOK();
                     continue;
                 }
 
-                i += name_len + 1;
-                parseLeb128(wasm, i, &i);
+                i++;
                 CHECK_SHORT_HOOK();
+                int func_idx = parseLeb128(wasm, i, &i);
+                CHECK_SHORT_HOOK();
+
+                // Record all export functions
+                export_func_idx_map[export_name] = func_idx;
+
+                if (DEBUG_GUARD)
+                    printf(
+                        "Export function: %s, index: %d\n",
+                        export_name.c_str(),
+                        func_idx);
+
+                // For backward compatibility
+                if (export_name == "hook")
+                {
+                    hook_func_idx = func_idx;
+                }
+                else if (export_name == "cbak")
+                {
+                    cbak_func_idx = func_idx;
+                }
             }
 
             // execution to here means export section was parsed
@@ -1161,7 +1143,7 @@ validateGuards(
             //     GUARDLOG(hook::log::EXPORT_MISSING)
             //         << "Malformed transaction. "
             //         << "Hook did not export: "
-            //         << (!hook_func_idx ? "int64_t hook(uint32_t); " : "")
+            //         << ( !hook_func_idx ? "int64_t hook(uint32_t); " : "" )
             //         << "\n";
             //     return {};
             // }
@@ -1194,42 +1176,50 @@ validateGuards(
         continue;
     }
 
-    // we must subtract import_count from the hook and cbak function in order to
-    // be able to look them up in the functions section. this is a rule of the
-    // webassembly spec note that at this point in execution we are guarenteed
-    // these are populated
-    *hook_func_idx -= import_count;
+    // Adjust function indices by subtracting import count
+    // This is required by WebAssembly spec to look them up in the functions
+    // section
+    for (auto& [func_name, func_idx] : export_func_idx_map)
+    {
+        func_idx -= import_count;
+    }
+
+    // For backward compatibility
+    if (hook_func_idx)
+        *hook_func_idx -= import_count;
 
     if (cbak_func_idx)
         *cbak_func_idx -= import_count;
 
-    if (func_type_map.find(*hook_func_idx) == func_type_map.end() ||
-        (cbak_func_idx &&
-         func_type_map.find(*cbak_func_idx) == func_type_map.end()))
+    // Check that all export functions have a corresponding type
+    for (const auto& [func_name, func_idx] : export_func_idx_map)
     {
-        GUARDLOG(hook::log::FUNC_TYPELESS)
-            << "Malformed transaction. "
-            << "hook or cbak functions did not have a corresponding type in "
-               "WASM binary."
-            << "\n";
-        return {};
+        if (func_type_map.find(func_idx) == func_type_map.end())
+        {
+            GUARDLOG(hook::log::FUNC_TYPELESS)
+                << "Malformed transaction. "
+                << "Export function '" << func_name
+                << "' did not have a corresponding type in WASM binary."
+                << "\n";
+            return {};
+        }
     }
 
+    // For backward compatibility: check that hook and cbak have the same type
     int hook_type_idx = func_type_map[*hook_func_idx];
-
-    // cbak function is optional so if it exists it has a type otherwise it is
-    // skipped in checks
-    if (cbak_func_idx && func_type_map[*cbak_func_idx] != hook_type_idx)
+    if (hook_func_idx && cbak_func_idx &&
+        func_type_map.find(*hook_func_idx) != func_type_map.end() &&
+        func_type_map.find(*cbak_func_idx) != func_type_map.end())
     {
-        GUARDLOG(hook::log::HOOK_CBAK_DIFF_TYPES)
-            << "Malformed transaction. "
-            << "Hook and cbak func must have the same type. int64_t "
-               "(*)(uint32_t).\n";
-        return {};
+        if (func_type_map[*cbak_func_idx] != hook_type_idx)
+        {
+            GUARDLOG(hook::log::HOOK_CBAK_DIFF_TYPES)
+                << "Malformed transaction. "
+                << "Hook and cbak func must have the same type. int64_t "
+                   "(*)(uint32_t).\n";
+            return {};
+        }
     }
-
-    int64_t maxInstrCountHook = 0;
-    int64_t maxInstrCountCbak = 0;
 
     // second pass... where we check all the guard function calls follow the
     // guard rules minimal other validation in this pass because first pass
@@ -1305,10 +1295,11 @@ validateGuards(
                 }
                 else
                 {
-                    // fail
+                    // pass
+                    // // fail
                     // GUARDLOG(hook::log::FUNC_TYPE_INVALID)
-                    //     << "Invalid function type. Not used by any import or "
-                    //        "hook/cbak func. "
+                    //     << "Invalid function type. Not used by any import or
+                    //     hook/cbak func. "
                     //     << "Codesec: " << section_type << " "
                     //     << "Local: " << j << " "
                     //     << "Offset: " << i << "\n";
@@ -1331,11 +1322,11 @@ validateGuards(
                 }
                 else if (param_count != (*first_signature).get().size() - 1)
                 {
-                    // GUARDLOG(hook::log::FUNC_TYPE_INVALID)
-                    //     << "Malformed transaction. "
-                    //     << "Hook API: " << *first_name
-                    //     << " has the wrong number of parameters.\n";
-                    // return {};
+                    GUARDLOG(hook::log::FUNC_TYPE_INVALID)
+                        << "Malformed transaction. "
+                        << "Hook API: " << *first_name
+                        << " has the wrong number of parameters.\n";
+                    return {};
                 }
 
                 for (int k = 0; k < param_count; ++k)
@@ -1399,12 +1390,12 @@ validateGuards(
                 // most compilers out
                 if (result_count != 1)
                 {
-                    // GUARDLOG(hook::log::FUNC_RETURN_COUNT)
-                    //     << "Malformed transaction. "
-                    //     << "Hook declares a function type that returns fewer "
-                    //        "or more than one value. "
-                    //     << "\n";
-                    // return {};
+                    GUARDLOG(hook::log::FUNC_RETURN_COUNT)
+                        << "Malformed transaction. "
+                        << "Hook declares a function type that returns fewer "
+                           "or more than one value. "
+                        << "\n";
+                    return {};
                 }
 
                 // this can only ever be 1 in production, but in testing it may
@@ -1447,10 +1438,8 @@ validateGuards(
                         {
                             GUARDLOG(hook::log::RETURN_HOOK_CBAK)
                                 << "Malformed transaction. "
-                                << (j == hook_type_idx ? "hook" : "cbak")
-                                << " j=" << j << " "
-                                << " function definition must have exactly one "
-                                   "int64_t return type. "
+                                << "hook function definition must have exactly "
+                                   "one int64_t return type. "
                                 << "resultcount=" << result_count
                                 << ", resulttype=" << result_type << ", "
                                 << "paramcount=" << param_count << "\n";
@@ -1516,26 +1505,25 @@ validateGuards(
                     guard_import_number,
                     last_import_number,
                     guardLog,
-                    guardLogAccStr,
-                    rulesVersion);
+                    guardLogAccStr);
 
                 if (!valid)
                     return {};
 
-                if (hook_func_idx && *hook_func_idx == j)
-                    maxInstrCountHook = *valid;
-                else if (cbak_func_idx && *cbak_func_idx == j)
-                    maxInstrCountCbak = *valid;
-                else
+                // Record instruction count for all export functions
+                for (auto const& [func_name, func_idx] : export_func_idx_map)
                 {
-                    if (DEBUG_GUARD)
-                        printf(
-                            "code section: %d not hook_func_idx: %d or "
-                            "cbak_func_idx: %d\n",
-                            j,
-                            *hook_func_idx,
-                            (cbak_func_idx ? *cbak_func_idx : -1));
-                    //   assert(false);
+                    if (func_idx == j)
+                    {
+                        export_func_instr_count_map[func_name] = *valid;
+                        if (DEBUG_GUARD)
+                            printf(
+                                "Function %s (idx: %d) instruction count: "
+                                "%llu\n",
+                                func_name.c_str(),
+                                j,
+                                *valid);
+                    }
                 }
                 i = code_end;
             }
@@ -1545,5 +1533,5 @@ validateGuards(
 
     // execution to here means guards are installed correctly
 
-    return std::pair<uint64_t, uint64_t>{maxInstrCountHook, maxInstrCountCbak};
+    return export_func_instr_count_map;
 }

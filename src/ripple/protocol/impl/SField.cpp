@@ -290,6 +290,7 @@ CONSTRUCT_TYPED_SFIELD(sfHookReturnString,      "HookReturnString",     VL,     
 CONSTRUCT_TYPED_SFIELD(sfHookParameterName,     "HookParameterName",    VL,        24);
 CONSTRUCT_TYPED_SFIELD(sfHookParameterValue,    "HookParameterValue",   VL,        25);
 CONSTRUCT_TYPED_SFIELD(sfBlob,                  "Blob",                 VL,        26);
+CONSTRUCT_TYPED_SFIELD(sfFunctionName,          "FunctionName",         VL,        27);
 
 // account
 CONSTRUCT_TYPED_SFIELD(sfAccount,               "Account",              ACCOUNT,    1);
@@ -350,6 +351,7 @@ CONSTRUCT_UNTYPED_SFIELD(sfImportVLKey,         "ImportVLKey",          OBJECT, 
 CONSTRUCT_UNTYPED_SFIELD(sfHookEmission,        "HookEmission",         OBJECT,    93);
 CONSTRUCT_UNTYPED_SFIELD(sfMintURIToken,        "MintURIToken",         OBJECT,    92); 
 CONSTRUCT_UNTYPED_SFIELD(sfAmountEntry,         "AmountEntry",          OBJECT,    91);
+CONSTRUCT_UNTYPED_SFIELD(sfHookFunction,        "HookFunction",         OBJECT,    90);
 
 // array of objects
 //                                                                            ARRAY/1 is reserved for end of array
@@ -375,6 +377,7 @@ CONSTRUCT_UNTYPED_SFIELD(sfActiveValidators,    "ActiveValidators",     ARRAY,  
 CONSTRUCT_UNTYPED_SFIELD(sfImportVLKeys,        "ImportVLKeys",         ARRAY,     94);
 CONSTRUCT_UNTYPED_SFIELD(sfHookEmissions,       "HookEmissions",        ARRAY,     93);
 CONSTRUCT_UNTYPED_SFIELD(sfAmounts,             "Amounts",              ARRAY,     92);
+CONSTRUCT_UNTYPED_SFIELD(sfHookFunctions,       "HookFunctions",        ARRAY,     91);
 
 // clang-format on
 

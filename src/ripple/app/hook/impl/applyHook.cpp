@@ -1241,8 +1241,16 @@ hook::apply(
 
     HookExecutor executor{hookCtx};
 
+    std::string functionName = isCallback ? "cbak" : "hook";
+
+    if (applyCtx.tx.isFieldPresent(sfFunctionName))
+    {
+        Blob nameBlob = applyCtx.tx.getFieldVL(sfFunctionName);
+        std::string hexStr(nameBlob.begin(), nameBlob.end());
+        functionName = hexStr;
+    }
     executor.executeWasm(
-        wasm.data(), (size_t)wasm.size(), isCallback, wasmParam, j);
+        wasm.data(), (size_t)wasm.size(), functionName, wasmParam, j);
 
     JLOG(j.trace()) << "HookInfo[" << HC_ACC() << "]: "
                     << (hookCtx.result.exitType == hook_api::ExitType::ROLLBACK

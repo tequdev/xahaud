@@ -537,6 +537,7 @@ extern SF_VL const sfHookReturnString;
 extern SF_VL const sfHookParameterName;
 extern SF_VL const sfHookParameterValue;
 extern SF_VL const sfBlob;
+extern SF_VL const sfFunctionName;
 
 // account
 extern SF_ACCOUNT const sfAccount;
@@ -594,6 +595,7 @@ extern SField const sfImportVLKey;
 extern SField const sfHookEmission;
 extern SField const sfMintURIToken;
 extern SField const sfAmountEntry;
+extern SField const sfHookFunction;
 
 // array of objects (common)
 // ARRAY/1 is reserved for end of array
@@ -622,6 +624,7 @@ extern SField const sfActiveValidators;
 extern SField const sfImportVLKeys;
 extern SField const sfHookEmissions;
 extern SField const sfAmounts;
+extern SField const sfHookFunctions;
 
 //------------------------------------------------------------------------------
 

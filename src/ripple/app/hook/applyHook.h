@@ -719,12 +719,13 @@ public:
     executeWasm(
         const void* wasm,
         size_t len,
-        bool callback,
+        std::string functionName,
         uint32_t wasmParam,
         beast::Journal const& j)
     {
 
-        static WasmEdge_String _hookFunctionName = WasmEdge_StringCreateByCString("methodCreate");
+        static WasmEdge_String _hookFunctionName =
+            WasmEdge_StringCreateByCString(functionName.c_str());
 
         // HookExecutor can only execute once
         assert(!spent);

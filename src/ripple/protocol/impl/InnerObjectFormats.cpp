@@ -87,6 +87,7 @@ InnerObjectFormats::InnerObjectFormats()
         {{sfCreateCode, soeREQUIRED},
          {sfHookNamespace, soeREQUIRED},
          {sfHookParameters, soeREQUIRED},
+         {sfHookFunctions, soeOPTIONAL},
          {sfHookOn, soeREQUIRED},
          {sfHookApiVersion, soeREQUIRED},
          {sfFlags, soeREQUIRED},
@@ -99,6 +100,7 @@ InnerObjectFormats::InnerObjectFormats()
          {sfHookGrants, soeOPTIONAL},
          {sfHookNamespace, soeOPTIONAL},
          {sfHookParameters, soeOPTIONAL},
+         {sfHookFunctions, soeOPTIONAL},
          {sfHookOn, soeOPTIONAL},
          {sfHookApiVersion, soeOPTIONAL},
          {sfFlags, soeOPTIONAL}});
@@ -156,6 +158,13 @@ InnerObjectFormats::InnerObjectFormats()
             {sfURI, soeREQUIRED},
             {sfDigest, soeOPTIONAL},
             {sfFlags, soeOPTIONAL},
+        });
+
+    add(sfHookFunction.jsonName.c_str(),
+        sfHookFunction.getCode(),
+        {
+            {sfFunctionName, soeREQUIRED},
+            {sfFee, soeOPTIONAL},
         });
 }
 

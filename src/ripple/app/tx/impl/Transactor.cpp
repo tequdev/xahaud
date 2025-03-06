@@ -1212,6 +1212,13 @@ Transactor::executeHookChain(
         if (!hook::canHook(ctx_.tx.getTxnType(), hookOn))
             continue;  // skip if it can't
 
+        uint16_t hookApiVersion = hookObj.isFieldPresent(sfHookApiVersion)
+            ? hookObj.getFieldU16(sfHookApiVersion)
+            : hookDef->getFieldU16(sfHookApiVersion);
+
+        if (hookApiVersion == 3 && !ctx_.tx.isFieldPresent(sfFunctionName))
+            return tecHOOK_REJECTED;
+
         uint32_t flags =
             (hookObj.isFieldPresent(sfFlags) ? hookObj.getFieldU32(sfFlags)
                                              : hookDef->getFieldU32(sfFlags));

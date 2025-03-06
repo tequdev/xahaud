@@ -43,6 +43,7 @@ TxFormats::TxFormats()
         {sfFirstLedgerSequence, soeOPTIONAL},
         {sfNetworkID, soeOPTIONAL},
         {sfHookParameters, soeOPTIONAL},
+        {sfFunctionName, soeOPTIONAL},
         {sfOperationLimit, soeOPTIONAL},
     };
 

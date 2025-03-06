@@ -227,11 +227,12 @@ LedgerFormats::LedgerFormats()
             {sfHookOn, soeREQUIRED},  
             {sfHookNamespace, soeREQUIRED},
             {sfHookParameters, soeREQUIRED},
+            {sfHookFunctions, soeOPTIONAL},
             {sfHookApiVersion, soeREQUIRED},  
             {sfCreateCode, soeREQUIRED},
             {sfHookSetTxnID, soeREQUIRED},
             {sfReferenceCount, soeREQUIRED},
-            {sfFee, soeREQUIRED},
+            {sfFee, soeOPTIONAL},
             {sfHookCallbackFee, soeOPTIONAL}
         },
         commonFields);

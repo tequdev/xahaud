@@ -41,11 +41,9 @@ namespace ripple {
 
 using HookSetValidation = std::variant<
     bool,          // true = valid
-    std::pair<     // if set implicitly valid, and return instruction counts
-                   // (hsoCREATE only)
-        uint64_t,  // max instruction count for hook
-        uint64_t   // max instruction count for cbak
-        >>;
+    std::map<std::string, uint64_t>  // map of export function name to max
+                                     // instruction count
+>;
 
 struct SetHookCtx
 {

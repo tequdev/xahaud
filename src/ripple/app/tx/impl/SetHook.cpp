@@ -260,6 +260,7 @@ SetHook::validateHookSetEntry(SetHookCtx& ctx, STObject const& hookSetObj)
                 hookSetObj.isFieldPresent(sfHookParameters) ||
                 hookSetObj.isFieldPresent(sfHookOn) ||
                 hookSetObj.isFieldPresent(sfHookApiVersion) ||
+                hookSetObj.isFieldPresent(sfHookFunctions) ||
                 !hookSetObj.isFieldPresent(sfFlags) ||
                 !hookSetObj.isFieldPresent(sfHookNamespace))
             {
@@ -290,6 +291,7 @@ SetHook::validateHookSetEntry(SetHookCtx& ctx, STObject const& hookSetObj)
                 hookSetObj.isFieldPresent(sfHookOn) ||
                 hookSetObj.isFieldPresent(sfHookApiVersion) ||
                 hookSetObj.isFieldPresent(sfHookNamespace) ||
+                hookSetObj.isFieldPresent(sfHookFunctions) ||
                 !hookSetObj.isFieldPresent(sfFlags))
             {
                 JLOG(ctx.j.trace())
@@ -431,7 +433,7 @@ SetHook::validateHookSetEntry(SetHookCtx& ctx, STObject const& hookSetObj)
             }
 
             auto version = hookSetObj.getFieldU16(sfHookApiVersion);
-            if (version != 0)
+            if (version != 0 && version != 3)
             {
                 // we currently only accept api version 0
                 JLOG(ctx.j.trace())
@@ -439,6 +441,19 @@ SetHook::validateHookSetEntry(SetHookCtx& ctx, STObject const& hookSetObj)
                     << "]: Malformed transaction: SetHook "
                        "sfHook->sfHookApiVersion invalid. (Try 0).";
                 return false;
+            }
+            if (version == 3)
+            {
+                if (!hookSetObj.isFieldPresent(sfHookFunctions))
+                {
+                    JLOG(ctx.j.trace())
+                        << "HookSet(" << hook::log::HOOKON_MISSING << ")["
+                        << HS_ACC()
+                        << "]: Malformed transaction: SetHook must include "
+                           "sfHookFunctions when creating a new hook with "
+                           "api version 3.";
+                    return false;
+                }
             }
 
             // validate sfHookOn
@@ -516,6 +531,35 @@ SetHook::validateHookSetEntry(SetHookCtx& ctx, STObject const& hookSetObj)
                 if (!result)
                     return false;
 
+                std::map<std::string, uint64_t> functionNamesMap =
+                    result.value();
+                if (version == 1) {
+                    // Only allow hook() and cbak()
+                    if (functionNamesMap.size() == 1)
+                        if (functionNamesMap.find("hook") != functionNamesMap.end())
+                            return false;
+                    if (functionNamesMap.size() == 2)
+                        if (functionNamesMap.find("hook") != functionNamesMap.end() && functionNamesMap.find("cbak") != functionNamesMap.end())
+                            return false;
+                } else if (version == 3){
+                    std::vector<std::string> functionNames;
+                    STArray functions = hookSetObj.getFieldArray(sfHookFunctions);
+                    for (const auto& function : functions)
+                    {
+                        Blob name = function.getFieldVL(sfFunctionName);
+                        std::string hexStr(name.begin(), name.end());
+                        functionNames.push_back(hexStr);
+                    }
+
+                    if (functionNamesMap.size() != functionNames.size())
+                        return false;
+
+                    for (const auto& [key, value] : functionNamesMap)
+                    {
+                        if (std::find(functionNames.begin(), functionNames.end(), key) == functionNames.end())
+                            return false;
+                    }
+                }
                 JLOG(ctx.j.trace())
                     << "HookSet(" << hook::log::WASM_SMOKE_TEST << ")["
                     << HS_ACC()
@@ -721,7 +765,8 @@ SetHook::preflight(PreflightContext const& ctx)
             if (name != sfCreateCode && name != sfHookHash &&
                 name != sfHookNamespace && name != sfHookParameters &&
                 name != sfHookOn && name != sfHookGrants &&
-                name != sfHookApiVersion && name != sfFlags)
+                name != sfHookApiVersion && name != sfFlags &&
+                name != sfHookFunctions)
             {
                 JLOG(ctx.j.trace())
                     << "HookSet(" << hook::log::HOOK_INVALID_FIELD << ")["
@@ -1535,6 +1580,8 @@ SetHook::setHook()
                     uint64_t maxInstrCountHook = 0;
                     uint64_t maxInstrCountCbak = 0;
 
+                    std::map<std::string, uint64_t> instructionCountMap;
+
                     // create hook definition SLE
                     try
                     {
@@ -1559,8 +1606,12 @@ SetHook::setHook()
                         }
 
                         // otherwise assign instruction counts
-                        std::tie(maxInstrCountHook, maxInstrCountCbak) =
-                            std::get<std::pair<uint64_t, uint64_t>>(valid);
+                        instructionCountMap =
+                            std::get<std::map<std::string, uint64_t>>(valid);
+                        if (instructionCountMap.find("hook") != instructionCountMap.end())
+                            maxInstrCountHook = instructionCountMap.at("hook");
+                        if (instructionCountMap.find("cbak") != instructionCountMap.end())
+                            maxInstrCountCbak = instructionCountMap.at("cbak");
                     }
                     catch (std::exception& e)
                     {
@@ -1598,10 +1649,11 @@ SetHook::setHook()
                     newHookDef->setFieldH256(
                         sfHookSetTxnID, ctx.tx.getTransactionID());
                     newHookDef->setFieldU64(sfReferenceCount, 1);
-                    newHookDef->setFieldAmount(
-                        sfFee,
-                        XRPAmount{
-                            hook::computeExecutionFee(maxInstrCountHook)});
+                    if (maxInstrCountHook > 0)
+                        newHookDef->setFieldAmount(
+                            sfFee,
+                            XRPAmount{
+                                hook::computeExecutionFee(maxInstrCountHook)});
                     if (maxInstrCountCbak > 0)
                         newHookDef->setFieldAmount(
                             sfHookCallbackFee,
@@ -1619,6 +1671,38 @@ SetHook::setHook()
                             hookSetObj->get().getFieldArray(sfHookGrants);
                         if (!grants.empty())
                             newHook.setFieldArray(sfHookGrants, grants);
+                    }
+
+                    if (hookSetObj->get().isFieldPresent(sfHookFunctions))
+                    {
+                        const STArray& origFunctions =
+                            hookSetObj->get().getFieldArray(sfHookFunctions);
+                        STArray newFunctions(sfHookFunctions);
+
+                        for (auto const& function : origFunctions)
+                        {
+                            STObject newFunction = function; // copy
+
+                            auto functionName =
+                                newFunction.getFieldVL(sfFunctionName);
+                            std::string hexStr(
+                                functionName.begin(), functionName.end());
+
+                            if (instructionCountMap.find(hexStr) !=
+                                instructionCountMap.end())
+                            {
+                                auto fee = XRPAmount{hook::computeExecutionFee(
+                                    instructionCountMap.at(hexStr))};
+                                newFunction.setFieldAmount(sfFee, fee);
+                            } else {
+                                return tecINTERNAL;
+                            }
+
+                            newFunctions.push_back(std::move(newFunction));
+                        }
+
+                        newHookDef->setFieldArray(
+                            sfHookFunctions, std::move(newFunctions));
                     }
 
                     slesToInsert.emplace(keylet, newHookDef);

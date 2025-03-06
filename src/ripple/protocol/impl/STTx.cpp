@@ -475,6 +475,11 @@ isMemoOkay(STObject const& st, std::string& reason)
         }
     }
 
+    if (st.isFieldPresent(sfFunctionName))
+    {
+        
+    }
+
     if (!st.isFieldPresent(sfMemos))
         return true;
 

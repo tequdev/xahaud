@@ -19,18 +19,22 @@
 #include <ripple/app/hook/Enum.h>
 #include <ripple/app/ledger/LedgerMaster.h>
 #include <ripple/app/tx/impl/SetHook.h>
+#include <ripple/basics/StringUtilities.h>
+#include <ripple/json/json_reader.h>
+#include <ripple/json/json_writer.h>
 #include <ripple/protocol/TxFlags.h>
 #include <ripple/protocol/jss.h>
-#include <test/app/SetHook_wasm.h>
+#include <iostream>
+#include <test/app/SetHookV3_wasm.h>
 #include <test/jtx.h>
 #include <test/jtx/hook.h>
 #include <unordered_map>
-#include <iostream>
-#include <ripple/json/json_reader.h>
 
 namespace ripple {
 
 namespace test {
+
+using TestHook = std::vector<uint8_t> const&;
 
 class SetHookV3_test : public beast::unit_test::suite
 {
@@ -47,34 +51,6 @@ public:
 // fee unit tests, the rest of the time we want to ignore it.
 #define HSFEE fee(100'000'000)
 #define M(m) memo(m, "", "")
-    std::string
-    loadHook()
-    {
-        std::string name = "/Users/darkmatter/projects/ledger-works/xahaud/src/test/app/wasm/custom.wasm";
-        if (!std::filesystem::exists(name)) {
-            std::cout << "File does not exist: " << name << "\n";
-            return "";
-        }
-
-        std::ifstream hookFile(name, std::ios::binary);
-
-        if (!hookFile)
-        {
-            std::cout << "Failed to open file: " << name << "\n";
-            return "";
-        }
-
-        // Read the file into a vector
-        std::vector<char> buffer((std::istreambuf_iterator<char>(hookFile)), std::istreambuf_iterator<char>());
-        
-        // Check if the buffer is empty
-        if (buffer.empty()) {
-            std::cout << "File is empty or could not be read properly.\n";
-            return "";
-        }
-
-        return strHex(buffer);
-    }
 
     void
     testSimple(FeatureBitset features)
@@ -82,10 +58,12 @@ public:
         testcase("Test simple");
 
         using namespace jtx;
+        using namespace std::string_literals;
 
         // Env env{*this, features};
-        Env env{*this, envconfig(), features, nullptr,
-            beast::severities::kTrace
+        Env env{
+            *this, envconfig(), features, nullptr,
+            // beast::severities::kTrace
         };
 
         auto const alice = Account{"alice"};
@@ -98,26 +76,53 @@ public:
         env(pay(gw, alice, USD(10000)));
         env.close();
 
-        std::string hook = loadHook();
-        std::cout << "Hook: " << hook << "\n";
+        TestHook testv3_wasm = wasmv3[
+            R"[test.hook](
+            #include <stdint.h>
+            extern int32_t _g       (uint32_t id, uint32_t maxiter);
+            extern int64_t accept   (uint32_t read_ptr, uint32_t read_len, int64_t error_code);
+            #define SBUF(x) (uint32_t)x,sizeof(x)
+
+            int64_t hook_accept(uint32_t reserved)
+            {
+                _g(1,1);
+                return accept(SBUF("failed"),0);
+            }
+
+            int64_t hook_accept2(uint32_t reserved)
+            {
+                _g(1,1);
+                return accept(SBUF("success"),0);
+            }
+        )[test.hook]"];
 
         // install the hook on alice
-        env(ripple::test::jtx::hook(alice, {{hso(hook, overrideFlag)}}, 0),
-            M("set simple"),
-            HSFEE);
+        Json::Value jv = hso(testv3_wasm, overrideFlag);
+        jv[jss::HookApiVersion] = 3;
+        {
+            Json::Value function = Json::Value(Json::objectValue);
+            function[jss::FunctionName] = strHex("hook_accept"s);
+            jv[jss::HookFunctions][0u][jss::HookFunction] = function;
+        }
+        {
+            Json::Value function = Json::Value(Json::objectValue);
+            function[jss::FunctionName] = strHex("hook_accept2"s);
+            jv[jss::HookFunctions][1u][jss::HookFunction] = function;
+        }
+
+        env(ripple::test::jtx::hook(alice, {{jv}}, 0), HSFEE);
         env.close();
 
-        // // invoke the hook
-        // Json::Value jv = invoke::invoke(alice);
-        // Json::Value params{Json::arrayValue};
-        // Json::Value pv;
-        // Json::Value piv;
-        // piv[jss::HookParameterName] = "736F6D6566756E63";
-        // piv[jss::HookParameterValue] = "736F6D6566756E63";
-        // pv[jss::HookParameter] = piv;
-        // params[0u] = pv;
-        // jv[jss::HookParameters] = params;
-        env(invoke::invoke(alice), M("test simple"), fee(XRP(1)));
+        // invoke the hook
+        Json::Value iv = invoke::invoke(alice);
+        iv[jss::FunctionName] = strHex("hook_accept"s);
+        env(iv, fee(XRP(1)));
+        env.close();
+
+        Json::Value iv2 = invoke::invoke(alice);
+        iv2[jss::FunctionName] = strHex("hook_accept2"s);
+        env(iv2, fee(XRP(1)));
+        env.close();
     }
 
     void

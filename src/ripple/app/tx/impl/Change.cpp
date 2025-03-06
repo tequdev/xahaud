@@ -583,7 +583,7 @@ Change::activateXahauGenesis()
         for (auto const& [hookOn, wasmBytes, params] : genesis_hooks)
         {
             std::ostringstream loggerStream;
-            auto result = validateGuards(
+            std::optional<std::map<std::string, uint64_t>> result = validateGuards(
                 wasmBytes,  // wasm to verify
                 loggerStream,
                 "rHb9CJAWyB4rj91VRWn96DkukG4bwdtyTh",
@@ -658,11 +658,11 @@ Change::activateXahauGenesis()
                 sfReferenceCount,
                 (hookCount++ == 0 ? l2_entries.size() : 0) + 1);
             hookDef->setFieldAmount(
-                sfFee, XRPAmount{hook::computeExecutionFee(result->first)});
-            if (result->second > 0)
+                sfFee, XRPAmount{hook::computeExecutionFee(result->at("hook"))});
+            if (result->at("cbak") > 0)
                 hookDef->setFieldAmount(
                     sfHookCallbackFee,
-                    XRPAmount{hook::computeExecutionFee(result->second)});
+                    XRPAmount{hook::computeExecutionFee(result->at("cbak"))});
 
             sb.insert(hookDef);
 
