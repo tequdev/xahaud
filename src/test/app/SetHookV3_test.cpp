@@ -36,6 +36,12 @@ namespace test {
 
 using TestHook = std::vector<uint8_t> const&;
 
+#define HASH_WASM(x)                                                           \
+    [[maybe_unused]] uint256 const x##_hash =                                                   \
+        ripple::sha512Half_s(ripple::Slice(x##_wasm.data(), x##_wasm.size())); \
+    [[maybe_unused]] std::string const x##_hash_str = to_string(x##_hash);                      \
+    [[maybe_unused]] Keylet const x##_keylet = keylet::hookDefinition(x##_hash);
+
 class SetHookV3_test : public beast::unit_test::suite
 {
 private:
@@ -96,6 +102,72 @@ public:
             }
         )[test.hook]"];
 
+        // invalid
+        {
+            Json::Value jv = hso(testv3_wasm, overrideFlag);
+            jv[jss::HookApiVersion] = 3;
+
+            // HookApiVersion 3 without HookFunctions
+            env(ripple::test::jtx::hook(alice, {{jv}}, 0),
+                HSFEE,
+                ter(temMALFORMED));
+            env.close();
+            
+            {
+                Json::Value function = Json::Value(Json::objectValue);
+                function[jss::FunctionName] = strHex("hook_accept"s);
+                jv[jss::HookFunctions][0u][jss::HookFunction] = function;
+            }
+            {
+                Json::Value function = Json::Value(Json::objectValue);
+                function[jss::FunctionName] = strHex("hook_accept2"s);
+                jv[jss::HookFunctions][1u][jss::HookFunction] = function;
+            }
+            // HookApiVersion 1 with HookFunctions
+            {
+                jv[jss::HookApiVersion] = 1;
+                env(ripple::test::jtx::hook(alice, {{jv}}, 0), HSFEE, ter(temMALFORMED));
+                env.close();
+                jv[jss::HookApiVersion] = 3;
+            }
+
+            // invalid Hook Index
+            {
+                Json::Value empty;
+                empty[jss::CreateCode] = "";
+                empty[jss::Flags] = hsfOVERRIDE;
+                Json::Value function = Json::Value(Json::objectValue);
+                function[jss::FunctionName] = strHex("hook_accept2"s);
+                jv[jss::HookFunctions][1u][jss::HookFunction] = function;
+                env(ripple::test::jtx::hook(alice, {{empty, jv}}, 0),
+                    HSFEE,
+                    ter(temMALFORMED));
+                env.close();
+            }
+
+            // invalid Hookv3 with Hookv1
+            {
+                Json::Value function = Json::Value(Json::objectValue);
+                function[jss::FunctionName] = strHex("hook_accept2"s);
+                jv[jss::HookFunctions][1u][jss::HookFunction] = function;
+                env(ripple::test::jtx::hook(alice, {{jv, hso(accept_wasm, overrideFlag)}}, 0),
+                    HSFEE,
+                    ter(temMALFORMED));
+                env.close();
+            }
+
+            // invalid FunctionName
+            {
+                Json::Value function = Json::Value(Json::objectValue);
+                function[jss::FunctionName] = strHex("hook_accept3"s);
+                jv[jss::HookFunctions][1u][jss::HookFunction] = function;
+                env(ripple::test::jtx::hook(alice, {{jv}}, 0),
+                    HSFEE,
+                    ter(temMALFORMED));
+                env.close();
+            }
+
+        }
         // install the hook on alice
         Json::Value jv = hso(testv3_wasm, overrideFlag);
         jv[jss::HookApiVersion] = 3;
@@ -138,6 +210,22 @@ public:
         auto const sa = supported_amendments();
         testWithFeatures(sa);
     }
+
+private:
+    TestHook accept_wasm =  // WASM: 0
+        wasmv3[
+            R"[test.hook](
+            #include <stdint.h>
+            extern int32_t _g       (uint32_t id, uint32_t maxiter);
+            extern int64_t accept   (uint32_t read_ptr, uint32_t read_len, int64_t error_code);
+            int64_t hook(uint32_t reserved )
+            {
+                _g(1,1);
+                return accept(0,0,0);
+            }
+        )[test.hook]"];
+
+    HASH_WASM(accept);
 };
 BEAST_DEFINE_TESTSUITE(SetHookV3, app, ripple);
 }  // namespace test

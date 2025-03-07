@@ -533,17 +533,25 @@ SetHook::validateHookSetEntry(SetHookCtx& ctx, STObject const& hookSetObj)
 
                 std::map<std::string, uint64_t> functionNamesMap =
                     result.value();
-                if (version == 1) {
+                if (version == 1)
+                {
                     // Only allow hook() and cbak()
                     if (functionNamesMap.size() == 1)
-                        if (functionNamesMap.find("hook") != functionNamesMap.end())
+                        if (functionNamesMap.find("hook") !=
+                            functionNamesMap.end())
                             return false;
                     if (functionNamesMap.size() == 2)
-                        if (functionNamesMap.find("hook") != functionNamesMap.end() && functionNamesMap.find("cbak") != functionNamesMap.end())
+                        if (functionNamesMap.find("hook") !=
+                                functionNamesMap.end() &&
+                            functionNamesMap.find("cbak") !=
+                                functionNamesMap.end())
                             return false;
-                } else if (version == 3){
+                }
+                else if (version == 3)
+                {
                     std::vector<std::string> functionNames;
-                    STArray functions = hookSetObj.getFieldArray(sfHookFunctions);
+                    STArray functions =
+                        hookSetObj.getFieldArray(sfHookFunctions);
                     for (const auto& function : functions)
                     {
                         Blob name = function.getFieldVL(sfFunctionName);
@@ -556,7 +564,10 @@ SetHook::validateHookSetEntry(SetHookCtx& ctx, STObject const& hookSetObj)
 
                     for (const auto& [key, value] : functionNamesMap)
                     {
-                        if (std::find(functionNames.begin(), functionNames.end(), key) == functionNames.end())
+                        if (std::find(
+                                functionNames.begin(),
+                                functionNames.end(),
+                                key) == functionNames.end())
                             return false;
                     }
                 }
@@ -593,6 +604,37 @@ SetHook::validateHookSetEntry(SetHookCtx& ctx, STObject const& hookSetObj)
             return false;
         }
     }
+}
+
+bool
+SetHook::validateNewHooks(ApplyView& view, STArray const& hookSets)
+{
+    bool hasHookApiVersion3 = false;
+    uint16_t hookSetSize = 0;
+    for (uint16_t hookSetNumber = 0; hookSetNumber < hookSets.size();
+         ++hookSetNumber)
+    {
+        std::optional<std::reference_wrapper<ripple::STObject const>>
+            hookSetObj = std::cref(
+                (hookSets[hookSetNumber]).downcast<ripple::STObject const>());
+
+        std::optional<ripple::Keylet> defKeylet;
+        std::shared_ptr<STLedgerEntry> defSLE;
+        if (!hookSetObj->get().isFieldPresent(sfHookHash))
+            return false;
+
+        defKeylet =
+            keylet::hookDefinition(hookSetObj->get().getFieldH256(sfHookHash));
+        defSLE = ctx_.view().peek(*defKeylet);
+        if (!defSLE)
+            return false;
+        hookSetSize++;
+        if (defSLE->getFieldU16(sfHookApiVersion) == 3)
+            hasHookApiVersion3 = true;
+        if (hasHookApiVersion3 && hookSetSize > 1)
+            return false;
+    }
+    return true;
 }
 
 // Note that if fee calculation causes an overflow then INITIAL_XRP is returned
@@ -731,8 +773,10 @@ SetHook::preflight(PreflightContext const& ctx)
 
     bool allBlank = true;
 
+    int hookSetIndex = -1;
     for (auto const& hookSetObj : hookSets)
     {
+        hookSetIndex++;
         if (hookSetObj.getFName() != sfHook)
         {
             JLOG(ctx.j.trace())
@@ -757,6 +801,20 @@ SetHook::preflight(PreflightContext const& ctx)
             continue;
 
         allBlank = false;
+
+        if (hookSetObj.isFieldPresent(sfHookApiVersion) &&
+            hookSetObj.getFieldU16(sfHookApiVersion) == 3)
+        {
+            if (hookSetIndex > 0)
+            {
+                JLOG(ctx.j.trace())
+                    << "HookSet(" << hook::log::HOOKS_ARRAY_BAD << ")["
+                    << HS_ACC()
+                    << "]: Malformed transaction: SetHook api version 3 is "
+                       "only allowed at the first hook set.";
+                return temMALFORMED;
+            }
+        }
 
         for (auto const& hookSetElement : hookSetObj)
         {
@@ -1608,9 +1666,11 @@ SetHook::setHook()
                         // otherwise assign instruction counts
                         instructionCountMap =
                             std::get<std::map<std::string, uint64_t>>(valid);
-                        if (instructionCountMap.find("hook") != instructionCountMap.end())
+                        if (instructionCountMap.find("hook") !=
+                            instructionCountMap.end())
                             maxInstrCountHook = instructionCountMap.at("hook");
-                        if (instructionCountMap.find("cbak") != instructionCountMap.end())
+                        if (instructionCountMap.find("cbak") !=
+                            instructionCountMap.end())
                             maxInstrCountCbak = instructionCountMap.at("cbak");
                     }
                     catch (std::exception& e)
@@ -1681,7 +1741,7 @@ SetHook::setHook()
 
                         for (auto const& function : origFunctions)
                         {
-                            STObject newFunction = function; // copy
+                            STObject newFunction = function;  // copy
 
                             auto functionName =
                                 newFunction.getFieldVL(sfFunctionName);
@@ -1694,7 +1754,9 @@ SetHook::setHook()
                                 auto fee = XRPAmount{hook::computeExecutionFee(
                                     instructionCountMap.at(hexStr))};
                                 newFunction.setFieldAmount(sfFee, fee);
-                            } else {
+                            }
+                            else
+                            {
                                 return tecINTERNAL;
                             }
 
@@ -1810,6 +1872,9 @@ SetHook::setHook()
             }
         }
     }
+
+    if (!validateNewHooks(view(), newHooks))
+        return tecINTERNAL;
 
     int reserveDelta = 0;
     {

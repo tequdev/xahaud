@@ -107,6 +107,9 @@ private:
         Keylet const& accountKeylet,
         Keylet const& ownerDirKeylet,
         Keylet const& hookKeylet);
+
+    bool
+    validateNewHooks(ApplyView& view, STArray const& hookSets);
 };
 
 }  // namespace ripple
