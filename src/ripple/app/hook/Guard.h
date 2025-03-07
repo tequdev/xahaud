@@ -1505,7 +1505,9 @@ validateGuards(
                     guard_import_number,
                     last_import_number,
                     guardLog,
-                    guardLogAccStr);
+                    guardLogAccStr,
+                    rulesVersion
+                    );
 
                 if (!valid)
                     return {};
