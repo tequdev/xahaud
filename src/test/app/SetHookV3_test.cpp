@@ -154,6 +154,8 @@ public:
                     HSFEE,
                     ter(temMALFORMED));
                 env.close();
+
+                // TOOD: Should error when deploy v3 after deplyed v1 (by 2 txns)
             }
 
             // invalid FunctionName

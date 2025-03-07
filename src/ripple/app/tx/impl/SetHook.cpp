@@ -609,7 +609,8 @@ SetHook::validateHookSetEntry(SetHookCtx& ctx, STObject const& hookSetObj)
 bool
 SetHook::validateNewHooks(ApplyView& view, STArray const& hookSets)
 {
-    bool hasHookApiVersion3 = false;
+    // Check if HookSets contains HookV3 and other Hooks are not held
+    // Already checked in preflight if HookV3 is the first index
     int hookSetSize = -1;
     for (uint16_t hookSetNumber = 0; hookSetNumber < hookSets.size();
          ++hookSetNumber)
@@ -629,9 +630,15 @@ SetHook::validateNewHooks(ApplyView& view, STArray const& hookSets)
         defSLE = ctx_.view().peek(*defKeylet);
         if (!defSLE)
             return false;
-        if (defSLE->getFieldU16(sfHookApiVersion) == 3)
-            hasHookApiVersion3 = true;
-        if (hasHookApiVersion3 && hookSetSize > 1)
+
+        uint16_t hookApiVersion = defSLE->getFieldU16(sfHookApiVersion);
+
+        // Not using HookV3
+        if (hookSetSize == 0 && hookApiVersion != 3)
+            return true;
+
+        // Using HookV3 and holding other Hooks
+        if (hookSetSize > 1)
             return false;
     }
     return true;
