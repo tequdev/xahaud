@@ -610,10 +610,11 @@ bool
 SetHook::validateNewHooks(ApplyView& view, STArray const& hookSets)
 {
     bool hasHookApiVersion3 = false;
-    uint16_t hookSetSize = 0;
+    int hookSetSize = -1;
     for (uint16_t hookSetNumber = 0; hookSetNumber < hookSets.size();
          ++hookSetNumber)
     {
+        hookSetSize++;
         std::optional<std::reference_wrapper<ripple::STObject const>>
             hookSetObj = std::cref(
                 (hookSets[hookSetNumber]).downcast<ripple::STObject const>());
@@ -621,14 +622,13 @@ SetHook::validateNewHooks(ApplyView& view, STArray const& hookSets)
         std::optional<ripple::Keylet> defKeylet;
         std::shared_ptr<STLedgerEntry> defSLE;
         if (!hookSetObj->get().isFieldPresent(sfHookHash))
-            return false;
+            continue;
 
         defKeylet =
             keylet::hookDefinition(hookSetObj->get().getFieldH256(sfHookHash));
         defSLE = ctx_.view().peek(*defKeylet);
         if (!defSLE)
             return false;
-        hookSetSize++;
         if (defSLE->getFieldU16(sfHookApiVersion) == 3)
             hasHookApiVersion3 = true;
         if (hasHookApiVersion3 && hookSetSize > 1)
@@ -1873,9 +1873,6 @@ SetHook::setHook()
         }
     }
 
-    if (!validateNewHooks(view(), newHooks))
-        return tecINTERNAL;
-
     int reserveDelta = 0;
     {
         // compute owner counts before modifying anything on ledger
@@ -2039,6 +2036,8 @@ SetHook::setHook()
             // for clarity if this is a NO-OP
         }
     }
+    if (!validateNewHooks(view(), newHooks))
+        return tecINTERNAL;
 
     if (reserveDelta != 0)
     {
