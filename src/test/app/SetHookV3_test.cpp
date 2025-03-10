@@ -59,6 +59,162 @@ public:
 #define M(m) memo(m, "", "")
 
     void
+    testRPCCall(jtx::Env& env, Json::Value tx, std::string expected)
+    {
+        auto const jtx = env.jt(tx);
+
+        auto const feeDrops = env.current()->fees().base;
+
+        // build tx_blob
+        Json::Value params;
+        params[jss::tx_blob] = strHex(jtx.stx->getSerializer().slice());
+
+        // fee request
+        auto const jrr = env.rpc("json", "fee", to_string(params));
+        // std::cout << "RESULT: " << jrr << "\n";
+
+        // verify base fee & open ledger fee
+        auto const drops = jrr[jss::result][jss::drops];
+        auto const baseFee = drops[jss::base_fee_no_hooks];
+        BEAST_EXPECT(baseFee == to_string(feeDrops));
+        auto const openLedgerFee = drops[jss::open_ledger_fee];
+        BEAST_EXPECT(openLedgerFee == expected);
+
+        // verify hooks fee
+        auto const hooksFee = jrr[jss::result][jss::fee_hooks_feeunits];
+        BEAST_EXPECT(hooksFee == expected);
+    }
+
+    void
+    testInvalid(FeatureBitset features)
+    {
+        testcase("Test invalid");
+        using namespace jtx;
+        using namespace std::string_literals;
+
+        // Env env{*this, features};
+        Env env{
+            *this, envconfig(), features, nullptr,
+            // beast::severities::kTrace
+        };
+
+        auto const alice = Account{"alice"};
+        env.fund(XRP(10000), alice);
+        env.close();
+
+        Json::Value jv = hso(testv3_wasm, overrideFlag);
+        jv[jss::HookApiVersion] = 3;
+
+        // HookApiVersion 3 without HookFunctions
+        env(ripple::test::jtx::hook(alice, {{jv}}, 0),
+            HSFEE,
+            ter(temMALFORMED));
+        env.close();
+
+        {
+            Json::Value function = Json::Value(Json::objectValue);
+            function[jss::FunctionName] = strHex("hook_accept"s);
+            jv[jss::HookFunctions][0u][jss::HookFunction] = function;
+        }
+        {
+            Json::Value function = Json::Value(Json::objectValue);
+            function[jss::FunctionName] = strHex("hook_accept2"s);
+            jv[jss::HookFunctions][1u][jss::HookFunction] = function;
+        }
+        // HookApiVersion 1 with HookFunctions
+        {
+            jv[jss::HookApiVersion] = 1;
+            env(ripple::test::jtx::hook(alice, {{jv}}, 0),
+                HSFEE,
+                ter(temMALFORMED));
+            env.close();
+            jv[jss::HookApiVersion] = 3;
+        }
+
+        // invalid Hook Index
+        {
+            Json::Value empty;
+            empty[jss::CreateCode] = "";
+            empty[jss::Flags] = hsfOVERRIDE;
+            Json::Value function = Json::Value(Json::objectValue);
+            function[jss::FunctionName] = strHex("hook_accept2"s);
+            jv[jss::HookFunctions][1u][jss::HookFunction] = function;
+            env(ripple::test::jtx::hook(alice, {{empty, jv}}, 0),
+                HSFEE,
+                ter(temMALFORMED));
+            env.close();
+        }
+
+        // invalid Hookv3 with Hookv1
+        {
+            Json::Value function = Json::Value(Json::objectValue);
+            function[jss::FunctionName] = strHex("hook_accept2"s);
+            jv[jss::HookFunctions][1u][jss::HookFunction] = function;
+            env(ripple::test::jtx::hook(
+                    alice, {{jv, hso(accept_wasm, overrideFlag)}}, 0),
+                HSFEE,
+                ter(temMALFORMED));
+            env.close();
+
+            // TOOD: Should error when deploy v3 after deplyed v1 (by 2
+            // txns)
+        }
+
+        // invalid FunctionName
+        {
+            Json::Value function = Json::Value(Json::objectValue);
+            function[jss::FunctionName] = strHex("hook_accept3"s);
+            jv[jss::HookFunctions][1u][jss::HookFunction] = function;
+            env(ripple::test::jtx::hook(alice, {{jv}}, 0),
+                HSFEE,
+                ter(temMALFORMED));
+            env.close();
+        }
+    }
+
+    void
+    testFeeRPC(FeatureBitset features)
+    {
+        testcase("Test fee RPC");
+        using namespace jtx;
+        using namespace std::string_literals;
+
+        // Env env{*this, features};
+        Env env{
+            *this, envconfig(), features, nullptr,
+            // beast::severities::kTrace
+        };
+
+        auto const alice = Account{"alice"};
+        env.fund(XRP(10000), alice);
+        env.close();
+
+        // install the hook on alice
+        Json::Value jv = hso(testv3_wasm, overrideFlag);
+        jv[jss::HookApiVersion] = 3;
+        {
+            Json::Value function = Json::Value(Json::objectValue);
+            function[jss::FunctionName] = strHex("hook_accept"s);
+            jv[jss::HookFunctions][0u][jss::HookFunction] = function;
+        }
+        {
+            Json::Value function = Json::Value(Json::objectValue);
+            function[jss::FunctionName] = strHex("hook_accept2"s);
+            jv[jss::HookFunctions][1u][jss::HookFunction] = function;
+        }
+
+        env(ripple::test::jtx::hook(alice, {{jv}}, 0), HSFEE);
+        env.close();
+
+        auto tx = invoke::invoke(alice);
+        tx[jss::FunctionName] = strHex("hook_accept"s);
+        testRPCCall(env, tx, "19");
+
+        tx[jss::FunctionName] = strHex("hook_accept2"s);
+        testRPCCall(env, tx, "19");
+    }
+
+    void
     testSimple(FeatureBitset features)
     {
         testcase("Test simple");
@@ -73,103 +229,9 @@ public:
         };
 
         auto const alice = Account{"alice"};
-        auto const gw = Account{"gateway"};
-        auto const USD = gw["USD"];
-        env.fund(XRP(10000), alice, gw);
-        env.close();
-        env.trust(USD(100000), alice);
-        env.close();
-        env(pay(gw, alice, USD(10000)));
+        env.fund(XRP(10000), alice);
         env.close();
 
-        TestHook testv3_wasm = wasmv3[
-            R"[test.hook](
-            #include <stdint.h>
-            extern int32_t _g       (uint32_t id, uint32_t maxiter);
-            extern int64_t accept   (uint32_t read_ptr, uint32_t read_len, int64_t error_code);
-            #define SBUF(x) (uint32_t)x,sizeof(x)
-
-            int64_t hook_accept(uint32_t reserved)
-            {
-                _g(1,1);
-                return accept(SBUF("failed"),0);
-            }
-
-            int64_t hook_accept2(uint32_t reserved)
-            {
-                _g(1,1);
-                return accept(SBUF("success"),0);
-            }
-        )[test.hook]"];
-
-        // invalid
-        {
-            Json::Value jv = hso(testv3_wasm, overrideFlag);
-            jv[jss::HookApiVersion] = 3;
-
-            // HookApiVersion 3 without HookFunctions
-            env(ripple::test::jtx::hook(alice, {{jv}}, 0),
-                HSFEE,
-                ter(temMALFORMED));
-            env.close();
-            
-            {
-                Json::Value function = Json::Value(Json::objectValue);
-                function[jss::FunctionName] = strHex("hook_accept"s);
-                jv[jss::HookFunctions][0u][jss::HookFunction] = function;
-            }
-            {
-                Json::Value function = Json::Value(Json::objectValue);
-                function[jss::FunctionName] = strHex("hook_accept2"s);
-                jv[jss::HookFunctions][1u][jss::HookFunction] = function;
-            }
-            // HookApiVersion 1 with HookFunctions
-            {
-                jv[jss::HookApiVersion] = 1;
-                env(ripple::test::jtx::hook(alice, {{jv}}, 0), HSFEE, ter(temMALFORMED));
-                env.close();
-                jv[jss::HookApiVersion] = 3;
-            }
-
-            // invalid Hook Index
-            {
-                Json::Value empty;
-                empty[jss::CreateCode] = "";
-                empty[jss::Flags] = hsfOVERRIDE;
-                Json::Value function = Json::Value(Json::objectValue);
-                function[jss::FunctionName] = strHex("hook_accept2"s);
-                jv[jss::HookFunctions][1u][jss::HookFunction] = function;
-                env(ripple::test::jtx::hook(alice, {{empty, jv}}, 0),
-                    HSFEE,
-                    ter(temMALFORMED));
-                env.close();
-            }
-
-            // invalid Hookv3 with Hookv1
-            {
-                Json::Value function = Json::Value(Json::objectValue);
-                function[jss::FunctionName] = strHex("hook_accept2"s);
-                jv[jss::HookFunctions][1u][jss::HookFunction] = function;
-                env(ripple::test::jtx::hook(alice, {{jv, hso(accept_wasm, overrideFlag)}}, 0),
-                    HSFEE,
-                    ter(temMALFORMED));
-                env.close();
-
-                // TOOD: Should error when deploy v3 after deplyed v1 (by 2 txns)
-            }
-
-            // invalid FunctionName
-            {
-                Json::Value function = Json::Value(Json::objectValue);
-                function[jss::FunctionName] = strHex("hook_accept3"s);
-                jv[jss::HookFunctions][1u][jss::HookFunction] = function;
-                env(ripple::test::jtx::hook(alice, {{jv}}, 0),
-                    HSFEE,
-                    ter(temMALFORMED));
-                env.close();
-            }
-
-        }
         // install the hook on alice
         Json::Value jv = hso(testv3_wasm, overrideFlag);
         jv[jss::HookApiVersion] = 3;
@@ -202,6 +264,8 @@ public:
     void
     testWithFeatures(FeatureBitset features)
     {
+        testInvalid(features);
+        testFeeRPC(features);
         testSimple(features);
     }
 
@@ -214,6 +278,27 @@ public:
     }
 
 private:
+    TestHook testv3_wasm = wasmv3[
+        R"[test.hook](
+            #include <stdint.h>
+            extern int32_t _g       (uint32_t id, uint32_t maxiter);
+            extern int64_t accept   (uint32_t read_ptr, uint32_t read_len, int64_t error_code);
+            #define SBUF(x) (uint32_t)x,sizeof(x)
+
+            int64_t hook_accept(uint32_t reserved)
+            {
+                _g(1,1);
+                return accept(SBUF("failed"),0);
+            }
+
+            int64_t hook_accept2(uint32_t reserved)
+            {
+                _g(1,1);
+                return accept(SBUF("success"),0);
+            }
+        )[test.hook]"];
+    HASH_WASM(testv3);
+
     TestHook accept_wasm =  // WASM: 0
         wasmv3[
             R"[test.hook](

@@ -255,7 +255,29 @@ Transactor::calculateHookChainFee(
         if (hook::canHook(tx.getTxnType(), hookOn) &&
             (!collectCallsOnly || (flags & hook::hsfCOLLECT)))
         {
-            XRPAmount const toAdd{hookDef->getFieldAmount(sfFee).xrp().drops()};
+            XRPAmount toAdd{0};
+            if (hookDef->getFieldU16(sfHookApiVersion) == 3)
+            {
+                if (!tx.isFieldPresent(sfFunctionName))
+                    return XRPAmount{INITIAL_XRP.drops()};
+                Blob functionName = tx.getFieldVL(sfFunctionName);
+                STArray functions = hookDef->getFieldArray(sfHookFunctions);
+                for (auto const& function : functions)
+                {
+                    Blob defName = function.getFieldVL(sfFunctionName);
+                    if (defName == functionName)
+                    {
+                        toAdd = function.getFieldAmount(sfFee).xrp().drops();
+                        break;
+                    }
+                }
+                if (toAdd == 0)
+                    return XRPAmount{INITIAL_XRP.drops()};
+            }
+            else
+            {
+                toAdd = hookDef->getFieldAmount(sfFee).xrp().drops();
+            }
 
             // this overflow should never happen, if somehow it does
             // fee is set to the largest possible valid xrp value to force
