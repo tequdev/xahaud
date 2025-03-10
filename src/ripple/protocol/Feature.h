@@ -366,6 +366,7 @@ extern uint256 const featureTouch;
 extern uint256 const fixReduceImport;
 extern uint256 const fixXahauV3;
 extern uint256 const fix20250131;
+extern uint256 const featureHookOnV2;
 
 }  // namespace ripple
 

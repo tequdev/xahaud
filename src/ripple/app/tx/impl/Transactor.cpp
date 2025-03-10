@@ -212,6 +212,7 @@ Transactor::calculateHookChainFee(
     ReadView const& view,
     STTx const& tx,
     Keylet const& hookKeylet,
+    bool isOutgoing,
     bool collectCallsOnly)
 {
     std::shared_ptr<SLE const> hookSLE = view.read(hookKeylet);
@@ -240,11 +241,21 @@ Transactor::calculateHookChainFee(
             continue;
         }
 
+        auto const getHookOnField = [](STObject const& obj,
+                                       std::shared_ptr<SLE const>& def,
+                                       SField const& field) -> uint256 {
+            return obj.isFieldPresent(field)
+                ? obj.getFieldH256(field)
+                : def->isFieldPresent(field) ? def->getFieldH256(field)
+                                            : uint256{0};
+        };
+
         // check if the hook can fire
-        uint256 hookOn =
-            (hookObj.isFieldPresent(sfHookOn)
-                 ? hookObj.getFieldH256(sfHookOn)
-                 : hookDef->getFieldH256(sfHookOn));
+        uint256 hookOn = getHookOnField(
+                             hookObj,
+                             hookDef,
+                             isOutgoing ? sfOutgoingHookOn : sfIncomingHookOn) |
+            getHookOnField(hookObj, hookDef, sfHookOn);
 
         uint32_t flags = 0;
         if (hookObj.isFieldPresent(sfFlags))
@@ -335,7 +346,7 @@ Transactor::calculateBaseFee(ReadView const& view, STTx const& tx)
         }
         else
             hookExecutionFee += calculateHookChainFee(
-                view, tx, keylet::hook(tx.getAccountID(sfAccount)));
+                view, tx, keylet::hook(tx.getAccountID(sfAccount)), true);
 
         // find any additional stakeholders whose hooks will be executed and
         // charged to this transaction
@@ -344,8 +355,8 @@ Transactor::calculateBaseFee(ReadView const& view, STTx const& tx)
 
         for (auto& [tshAcc, canRollback] : tsh)
             if (canRollback)
-                hookExecutionFee +=
-                    calculateHookChainFee(view, tx, keylet::hook(tshAcc));
+                hookExecutionFee += calculateHookChainFee(
+                    view, tx, keylet::hook(tshAcc), false);
     }
 
     XRPAmount accumulator = baseFee;
@@ -1188,6 +1199,7 @@ Transactor::executeHookChain(
     std::vector<hook::HookResult>& results,
     ripple::AccountID const& account,
     bool strong,
+    bool isOutgoing,
     std::shared_ptr<STObject const> const& provisionalMeta)
 {
     std::set<uint256> hookSkips;
@@ -1221,11 +1233,21 @@ Transactor::executeHookChain(
             continue;
         }
 
+        auto const getHookOnField = [](ripple::STObject const& obj,
+                                       std::shared_ptr<SLE> const& def,
+                                       SField const& field) -> uint256 {
+            return obj.isFieldPresent(field)
+                ? obj.getFieldH256(field)
+                : def->isFieldPresent(field) ? def->getFieldH256(field)
+                                            : uint256{0};
+        };
+
         // check if the hook can fire
-        uint256 hookOn =
-            (hookObj.isFieldPresent(sfHookOn)
-                 ? hookObj.getFieldH256(sfHookOn)
-                 : hookDef->getFieldH256(sfHookOn));
+        uint256 hookOn = getHookOnField(
+                             hookObj,
+                             hookDef,
+                             isOutgoing ? sfOutgoingHookOn : sfIncomingHookOn) |
+            getHookOnField(hookObj, hookDef, sfHookOn);
 
         if (!hook::canHook(ctx_.tx.getTxnType(), hookOn))
             continue;  // skip if it can't
@@ -1554,8 +1576,8 @@ Transactor::doTSH(
                 continue;
 
             // compute and deduct fees for the TSH if applicable
-            XRPAmount tshFeeDrops =
-                calculateHookChainFee(view, ctx_.tx, klTshHook, !canRollback);
+            XRPAmount tshFeeDrops = calculateHookChainFee(
+                view, ctx_.tx, klTshHook, false, !canRollback);
 
             // no hooks to execute, skip tsh
             if (tshFeeDrops == 0)
@@ -1613,7 +1635,7 @@ Transactor::doTSH(
 
         // execution to here means we can run the TSH's hook chain
         TER tshResult = executeHookChain(
-            tshHook, stateMap, results, tshAccountID, strong, provisionalMeta);
+            tshHook, stateMap, results, tshAccountID, strong, false, provisionalMeta);
 
         if (canRollback && (!isTesSuccess(tshResult)))
             return tshResult;
@@ -1782,7 +1804,7 @@ Transactor::operator()()
         if (hooksOriginator && hooksOriginator->isFieldPresent(sfHooks) &&
             !ctx_.isEmittedTxn())
             result = executeHookChain(
-                hooksOriginator, stateMap, hookResults, accountID, true, {});
+                hooksOriginator, stateMap, hookResults, accountID, true, true, {});
 
         if (isTesSuccess(result))
         {

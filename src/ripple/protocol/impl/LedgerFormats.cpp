@@ -225,7 +225,9 @@ LedgerFormats::LedgerFormats()
         ltHOOK_DEFINITION,
         {
             {sfHookHash, soeREQUIRED},
-            {sfHookOn, soeREQUIRED},  
+            {sfHookOn, soeOPTIONAL},  
+            {sfIncomingHookOn, soeOPTIONAL},
+            {sfOutgoingHookOn, soeOPTIONAL},
             {sfHookNamespace, soeREQUIRED},
             {sfHookParameters, soeREQUIRED},
             {sfHookApiVersion, soeREQUIRED},  
