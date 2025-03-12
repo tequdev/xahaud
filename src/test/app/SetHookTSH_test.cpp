@@ -22,14 +22,17 @@
 #include <test/jtx.h>
 #include <test/jtx/AMM.h>
 #include <test/jtx/TestHelpers.h>
+
 #include <xrpld/app/misc/HashRouter.h>
 #include <xrpld/app/misc/TxQ.h>
 #include <xrpld/app/tx/apply.h>
+
 #include <xrpl/basics/StringUtilities.h>
 #include <xrpl/hook/Enum.h>
 #include <xrpl/protocol/Feature.h>
 #include <xrpl/protocol/PayChan.h>
 #include <xrpl/protocol/jss.h>
+
 #include <vector>
 
 namespace ripple {
