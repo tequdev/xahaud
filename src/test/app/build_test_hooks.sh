@@ -52,7 +52,7 @@ cat $INPUT_FILE | tr '\n' '\f' |
             echo -n '{ R"[test.hook](' >> $OUTPUT_FILE
             cat <<< "$line" | sed -E 's/.{7}$//g' | tr -d '\n' | tr '\f' '\n' >> $OUTPUT_FILE
             echo ')[test.hook]",' >> $OUTPUT_FILE
-            echo "{" >> >> $OUTPUT_FILE
+            echo "{" >> $OUTPUT_FILE
             WAT=`grep -Eo '\(module' <<< $line | wc -l`
             if [ "$WAT" -eq "0" ]
             then
