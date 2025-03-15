@@ -70,9 +70,9 @@ using JSSMap =
     }
 
 #define HASH_WASM(x)                                                           \
-    [[maybe_unused]] uint256 const x##_hash =                                                   \
+    [[maybe_unused]] uint256 const x##_hash =                                  \
         ripple::sha512Half_s(ripple::Slice(x##_wasm.data(), x##_wasm.size())); \
-    [[maybe_unused]] std::string const x##_hash_str = to_string(x##_hash);                      \
+    [[maybe_unused]] std::string const x##_hash_str = to_string(x##_hash);     \
     [[maybe_unused]] Keylet const x##_keylet = keylet::hookDefinition(x##_hash);
 
 class SetHook_test : public beast::unit_test::suite
@@ -6698,7 +6698,8 @@ public:
             HSFEE);
         env.close();
 
-        auto checkResult = [this](auto const& meta, uint64_t expectedCode) -> void {
+        auto checkResult =
+            [this](auto const& meta, uint64_t expectedCode) -> void {
             BEAST_REQUIRE(meta);
             BEAST_REQUIRE(meta->isFieldPresent(sfHookExecutions));
             auto const hookExecutions = meta->getFieldArray(sfHookExecutions);
