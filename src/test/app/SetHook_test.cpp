@@ -6636,10 +6636,12 @@ public:
         TestHook hook = wasm[R"[test.hook](
             #include <stdint.h>
             extern int32_t _g       (uint32_t id, uint32_t maxiter);
+            #define GUARD(maxiter) _g((1ULL << 31U) + __LINE__, (maxiter)+1)
             extern int64_t accept   (uint32_t read_ptr, uint32_t read_len, int64_t error_code);
             extern int64_t rollback (uint32_t read_ptr, uint32_t read_len, int64_t error_code);
             extern int64_t otxn_type(void);
             extern int64_t otxn_field(uint32_t, uint32_t, uint32_t);
+            extern int64_t otxn_slot(uint32_t);
             extern int64_t slot(uint32_t, uint32_t, uint32_t);
             extern int64_t trace(uint32_t, uint32_t, uint32_t, uint32_t, uint32_t);
             extern int64_t xpop_slot(uint32_t, uint32_t);
@@ -6650,6 +6652,7 @@ public:
             );
             #define ttIMPORT 97
             #define DOESNT_EXIST -5
+            #define NO_FREE_SLOTS -6
             #define INVALID_ARGUMENT -7
             #define ALREADY_SET -8
             #define PREREQUISITE_NOT_MET -9
@@ -6678,6 +6681,11 @@ public:
                 ASSERT(xpop_slot(256, 1) == INVALID_ARGUMENT);
                 ASSERT(xpop_slot(1, 256) == INVALID_ARGUMENT);
                 ASSERT(xpop_slot(1, 1) == INVALID_ARGUMENT);
+
+                for (int i = 1; GUARD(255), i <= 255; ++i) {
+                    otxn_slot(i);
+                }
+                ASSERT(xpop_slot(0, 0) == NO_FREE_SLOTS);
 
                 ASSERT(xpop_slot(1, 11) == ((1 << 16) + 11));
                 
