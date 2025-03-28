@@ -1214,10 +1214,10 @@ public:
             jv.removeMember(jss::HookOn);
             jv[jss::IncomingHookOn] =
                 "00000000000000000000000000000000000000000000000000000000000000"
-                "00";
+                "01";
             jv[jss::OutgoingHookOn] =
                 "00000000000000000000000000000000000000000000000000000000000000"
-                "00";
+                "02";
             // create
             env(ripple::test::jtx::hook(alice, {{jv}}, 0),
                 M("Create: Disabled"),
@@ -1304,14 +1304,29 @@ public:
                 jv.removeMember(key);
                 jv.removeMember(jss::HookOn);
             }
+            // Incoming == Outgoing
+            jv[jss::IncomingHookOn] =
+                "0000000000000000000000000000000000000000000000000000000000"
+                "000123";
+            jv[jss::OutgoingHookOn] =
+                "0000000000000000000000000000000000000000000000000000000000"
+                "000123";
+            env(ripple::test::jtx::hook(alice, {{jv}}, 0),
+                M("Incoming == Outgoing"),
+                ter(temMALFORMED));
+            jv.removeMember(jss::IncomingHookOn);
+            jv.removeMember(jss::OutgoingHookOn);
+
             // HookOn and both Fields
-            for (auto const& key :
-                 {jss::HookOn, jss::IncomingHookOn, jss::OutgoingHookOn})
-            {
-                jv[key] =
-                    "0000000000000000000000000000000000000000000000000000000000"
-                    "000000";
-            }
+            jv[jss::HookOn] =
+                "0000000000000000000000000000000000000000000000000000000000"
+                "000000";
+            jv[jss::IncomingHookOn] =
+                "0000000000000000000000000000000000000000000000000000000000"
+                "000001";
+            jv[jss::OutgoingHookOn] =
+                "0000000000000000000000000000000000000000000000000000000000"
+                "000002";
             env(ripple::test::jtx::hook(alice, {{jv}}, 0),
                 M("HookOn and both Fields"),
                 ter(temMALFORMED));
@@ -1338,7 +1353,7 @@ public:
                 jv[jss::OutgoingHookOn] =
                     "0000000000000000000000000000000000000000000000000000000000"
                     "0000"
-                    "00";
+                    "01";
                 env(ripple::test::jtx::hook(alice, {{jv}}, 0),
                     M("Execution: Install"),
                     HSFEE);

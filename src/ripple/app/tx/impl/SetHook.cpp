@@ -462,31 +462,32 @@ SetHook::validateHookSetEntry(SetHookCtx& ctx, STObject const& hookSetObj)
                            "when creating a new hook.";
                     return false;
                 }
+
+                auto const outgoing = hookSetObj.getFieldH256(sfOutgoingHookOn);
+                auto const incoming = hookSetObj.getFieldH256(sfIncomingHookOn);
+                if (outgoing == incoming)
+                {
+                    JLOG(ctx.j.trace())
+                        << "HookSet(" << hook::log::HOOKON_MISSING << ")["
+                        << HS_ACC()
+                        << "]: Malformed transaction: SetHook outgoing and "
+                           "incoming hookon must be different.";
+                    return false;
+                }
             }
             else
             {
-                if (ctx.rules.enabled(featureHookOnV2))
+                if (hookSetObj.isFieldPresent(sfOutgoingHookOn) ||
+                    hookSetObj.isFieldPresent(sfIncomingHookOn))
                 {
-                    if (hookSetObj.isFieldPresent(sfOutgoingHookOn) ||
-                        hookSetObj.isFieldPresent(sfIncomingHookOn))
-                    {
-                        JLOG(ctx.j.trace())
-                            << "HookSet(" << hook::log::HOOKON_MISSING << ")["
-                            << HS_ACC()
-                            << "]: Malformed transaction: SetHook must "
-                               "include sfOutgoingHookOn and sfIncomingHookOn "
-                               "when "
-                               "creating a new hook without sfHookOn.";
-                        return false;
-                    }
-                }
-                else
-                {
-                    if (hookSetObj.isFieldPresent(sfOutgoingHookOn) ||
-                        hookSetObj.isFieldPresent(sfIncomingHookOn))
-                    {
-                        return false;
-                    }
+                    JLOG(ctx.j.trace())
+                        << "HookSet(" << hook::log::HOOKON_MISSING << ")["
+                        << HS_ACC()
+                        << "]: Malformed transaction: SetHook must "
+                           "include sfOutgoingHookOn and sfIncomingHookOn "
+                           "when "
+                           "creating a new hook without sfHookOn.";
+                    return false;
                 }
             }
 
