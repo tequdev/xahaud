@@ -225,8 +225,8 @@ SetHook::inferOperation(STObject const& hookSetObj)
         !hookSetObj.isFieldPresent(sfHookNamespace) &&
         !hookSetObj.isFieldPresent(sfHookParameters) &&
         !(hookSetObj.isFieldPresent(sfHookOn) ||
-         (hookSetObj.isFieldPresent(sfOutgoingHookOn) &&
-          hookSetObj.isFieldPresent(sfIncomingHookOn))) &&
+          (hookSetObj.isFieldPresent(sfOutgoingHookOn) &&
+           hookSetObj.isFieldPresent(sfIncomingHookOn))) &&
         !hookSetObj.isFieldPresent(sfHookApiVersion) &&
         !hookSetObj.isFieldPresent(sfFlags))
         return hsoNOOP;
@@ -451,14 +451,14 @@ SetHook::validateHookSetEntry(SetHookCtx& ctx, STObject const& hookSetObj)
             if (!hookSetObj.isFieldPresent(sfHookOn))
             {
                 if (!ctx.rules.enabled(featureHookOnV2) ||
-                    (!hookSetObj.isFieldPresent(sfOutgoingHookOn) &&
-                     !hookSetObj.isFieldPresent(sfIncomingHookOn)))
+                    !(hookSetObj.isFieldPresent(sfOutgoingHookOn) &&
+                      hookSetObj.isFieldPresent(sfIncomingHookOn)))
                 {
                     JLOG(ctx.j.trace())
                         << "HookSet(" << hook::log::HOOKON_MISSING << ")["
                         << HS_ACC()
                         << "]: Malformed transaction: SetHook must include "
-                           "sfHookOn or sfOutgoingHookOn or sfIncomingHookOn "
+                           "sfHookOn or sfOutgoingHookOn and sfIncomingHookOn "
                            "when creating a new hook.";
                     return false;
                 }
@@ -1789,15 +1789,45 @@ SetHook::setHook()
 
                 // change which definition we're using to the new target
                 defNamespace = newDefSLE->getFieldH256(sfHookNamespace);
-                defHookOn = newDefSLE->getFieldH256(sfHookOn);
-
                 // set the namespace if it differs from the definition namespace
                 if (newNamespace && *defNamespace != *newNamespace)
                     newHook.setFieldH256(sfHookNamespace, *newNamespace);
 
+                defHookOn = newDefSLE->getFieldH256(sfHookOn);
+                defIncomingHookOn = newDefSLE->getFieldH256(sfIncomingHookOn);
+                defOutgoingHookOn = newDefSLE->getFieldH256(sfOutgoingHookOn);
+
                 // set the hookon field if it differs from definition
-                if (newHookOn && *defHookOn != *newHookOn)
-                    newHook.setFieldH256(sfHookOn, *newHookOn);
+                if (newHookOn)
+                {
+                    auto const diffFromDef = defHookOn != *newHookOn;
+                    auto const hasIncOutgDef =
+                        *defIncomingHookOn != *defOutgoingHookOn ||
+                        *newHookOn != *defIncomingHookOn;
+                    if (diffFromDef || hasIncOutgDef)
+                    {
+                        newHook.setFieldH256(sfHookOn, *newHookOn);
+                    }
+                }
+
+                // set the incoming/outgoing hookon field if it differs from
+                // definition
+                if (newIncomingHookOn || newOutgoingHookOn)
+                {
+                    auto const diffFromDef =
+                        *defIncomingHookOn != *newIncomingHookOn ||
+                        *defOutgoingHookOn != *newOutgoingHookOn;
+                    auto const hasHookOnDef =
+                        *newIncomingHookOn != *defHookOn ||
+                        *newOutgoingHookOn != *defHookOn;
+                    if (diffFromDef || hasHookOnDef)
+                    {
+                        newHook.setFieldH256(
+                            sfIncomingHookOn, *newIncomingHookOn);
+                        newHook.setFieldH256(
+                            sfOutgoingHookOn, *newOutgoingHookOn);
+                    }
+                }
 
                 // parameters
                 TER result = updateHookParameters(

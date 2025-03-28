@@ -81,6 +81,8 @@ JSS(HookApiVersion);      // field
 JSS(HookHash);            // field
 JSS(HookNamespace);       // field
 JSS(HookOn);              // field
+JSS(IncomingHookOn);      // field
+JSS(OutgoingHookOn);      // field
 JSS(Hooks);               // field
 JSS(HookGrants);          // field
 JSS(HookParameters);      // field

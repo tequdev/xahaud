@@ -244,18 +244,20 @@ Transactor::calculateHookChainFee(
         auto const getHookOnField = [](STObject const& obj,
                                        std::shared_ptr<SLE const>& def,
                                        SField const& field) -> uint256 {
-            return obj.isFieldPresent(field)
-                ? obj.getFieldH256(field)
-                : def->isFieldPresent(field) ? def->getFieldH256(field)
-                                            : uint256{0};
+            if (obj.isFieldPresent(field))
+                return obj.getFieldH256(field);
+            if (obj.isFieldPresent(sfHookOn))
+                return obj.getFieldH256(sfHookOn);
+            if (def->isFieldPresent(field))
+                return def->getFieldH256(field);
+            if (def->isFieldPresent(sfHookOn))
+                return def->getFieldH256(sfHookOn);
+            return uint256{0};
         };
 
         // check if the hook can fire
         uint256 hookOn = getHookOnField(
-                             hookObj,
-                             hookDef,
-                             isOutgoing ? sfOutgoingHookOn : sfIncomingHookOn) |
-            getHookOnField(hookObj, hookDef, sfHookOn);
+            hookObj, hookDef, isOutgoing ? sfOutgoingHookOn : sfIncomingHookOn);
 
         uint32_t flags = 0;
         if (hookObj.isFieldPresent(sfFlags))
@@ -1236,18 +1238,20 @@ Transactor::executeHookChain(
         auto const getHookOnField = [](ripple::STObject const& obj,
                                        std::shared_ptr<SLE> const& def,
                                        SField const& field) -> uint256 {
-            return obj.isFieldPresent(field)
-                ? obj.getFieldH256(field)
-                : def->isFieldPresent(field) ? def->getFieldH256(field)
-                                            : uint256{0};
+            if (obj.isFieldPresent(field))
+                return obj.getFieldH256(field);
+            if (obj.isFieldPresent(sfHookOn))
+                return obj.getFieldH256(sfHookOn);
+            if (def->isFieldPresent(field))
+                return def->getFieldH256(field);
+            if (def->isFieldPresent(sfHookOn))
+                return def->getFieldH256(sfHookOn);
+            return uint256{0};
         };
 
         // check if the hook can fire
         uint256 hookOn = getHookOnField(
-                             hookObj,
-                             hookDef,
-                             isOutgoing ? sfOutgoingHookOn : sfIncomingHookOn) |
-            getHookOnField(hookObj, hookDef, sfHookOn);
+            hookObj, hookDef, isOutgoing ? sfOutgoingHookOn : sfIncomingHookOn);
 
         if (!hook::canHook(ctx_.tx.getTxnType(), hookOn))
             continue;  // skip if it can't
@@ -1264,8 +1268,8 @@ Transactor::executeHookChain(
         if (!strong && !(flags & hsfCOLLECT))
             continue;
 
-        // fetch the namespace either from the hook object of, if absent, the
-        // hook def
+        // fetch the namespace either from the hook object of, if absent,
+        // the hook def
         uint256 const& ns =
             (hookObj.isFieldPresent(sfHookNamespace)
                  ? hookObj.getFieldH256(sfHookNamespace)
@@ -1635,7 +1639,13 @@ Transactor::doTSH(
 
         // execution to here means we can run the TSH's hook chain
         TER tshResult = executeHookChain(
-            tshHook, stateMap, results, tshAccountID, strong, false, provisionalMeta);
+            tshHook,
+            stateMap,
+            results,
+            tshAccountID,
+            strong,
+            false,
+            provisionalMeta);
 
         if (canRollback && (!isTesSuccess(tshResult)))
             return tshResult;
@@ -1804,7 +1814,13 @@ Transactor::operator()()
         if (hooksOriginator && hooksOriginator->isFieldPresent(sfHooks) &&
             !ctx_.isEmittedTxn())
             result = executeHookChain(
-                hooksOriginator, stateMap, hookResults, accountID, true, true, {});
+                hooksOriginator,
+                stateMap,
+                hookResults,
+                accountID,
+                true,
+                true,
+                {});
 
         if (isTesSuccess(result))
         {
