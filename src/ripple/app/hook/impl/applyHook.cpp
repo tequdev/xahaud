@@ -1495,6 +1495,7 @@ set_state_cache(
 
     if (stateMap.find(acc) == stateMap.end())
     {
+        // new Account Key
         // if this is the first time this account has been interacted with
         // we will compute how many available reserve positions there are
         auto const& fees = hookCtx.applyCtx.view().fees();
@@ -1551,6 +1552,7 @@ set_state_cache(
 
     if (stateMapAcc.find(ns) == stateMapAcc.end())
     {
+        // new Namespace Key
         if (modified)
         {
             if (!canReserveNew)
@@ -1580,6 +1582,7 @@ set_state_cache(
     auto& stateMapNs = stateMapAcc[ns];
     if (stateMapNs.find(key) == stateMapNs.end())
     {
+        // new State Key
         if (modified)
         {
             if (!canReserveNew)
@@ -1593,11 +1596,12 @@ set_state_cache(
         return 1;
     }
 
+    // existing State Key
     auto const newReserve = hook::computeHookStateReserves(data);
     auto const oldReserve =
         hook::computeHookStateReserves(stateMapNs[key].second);
-    bool const canReserveUpdate =
-        availableForReserves >= hook::computeHookStateReserves(data);
+    bool const canReserveUpdate = newReserve <= oldReserve ||
+        availableForReserves >= newReserve - oldReserve;
 
     if (modified)
     {
@@ -1607,8 +1611,7 @@ set_state_cache(
         if (!stateMapNs[key].first)
             hookCtx.result.changedStateCount++;
 
-        if (view.rules().enabled(featureExtendedHookState) &&
-            newReserve > oldReserve)
+        if (view.rules().enabled(featureExtendedHookState))
             availableForReserves -= newReserve - oldReserve;
 
         stateMap.modified_entry_count++;

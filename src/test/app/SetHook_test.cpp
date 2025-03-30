@@ -9656,11 +9656,18 @@ public:
             BEAST_EXPECT((*env.le("frank"))[sfOwnerCount] == 260);
         }
 
+        auto const hookSizeParam = [&](const std::string& str) {
+            Json::Value params{Json::arrayValue};
+            params[0U][jss::HookParameter][jss::HookParameterName] =
+                strHex(std::string("SIZE"));
+            params[0U][jss::HookParameter][jss::HookParameterValue] = str;
+            return params;
+        };
         // Extended hook state reserve
         {
             bool extHookStateEnabled = features[featureExtendedHookState];
 
-            TestHook hook = wasm[R"[test.hook](
+            TestHook extended_state_hook = wasm[R"[test.hook](
             #include <stdint.h>
             extern int32_t _g       (uint32_t id, uint32_t maxiter);
             extern int64_t accept   (uint32_t read_ptr, uint32_t read_len, int64_t error_code);
@@ -9691,21 +9698,17 @@ public:
             )[test.hook]"];
 
             // install the hook on gary
-            env(ripple::test::jtx::hook(gary, {{hso(hook, overrideFlag)}}, 0),
+            Json::Value jv = hso(extended_state_hook, overrideFlag);
+            jv[jss::HookOn] =
+                "fffffffffffffffffffffffffffffffffffffff7ffffffffffffffffffbfff"
+                "ff";  // only invoke high
+            env(ripple::test::jtx::hook(gary, {{jv}}, 0),
                 M("set state_set 14"),
                 HSFEE);
             env.close();
 
             BEAST_EXPECT((*env.le("gary"))[sfOwnerCount] == 1);
             BEAST_EXPECT(!env.le("gary")->isFieldPresent(sfHookStateCount));
-
-            auto const hookSizeParam = [&](const std::string& str) {
-                Json::Value params{Json::arrayValue};
-                params[0U][jss::HookParameter][jss::HookParameterName] =
-                    strHex(std::string("SIZE"));
-                params[0U][jss::HookParameter][jss::HookParameterValue] = str;
-                return params;
-            };
 
             // create new state
             Json::Value invokeJv1 = invoke::invoke(gary);
@@ -9754,6 +9757,90 @@ public:
                 BEAST_EXPECT(!env.le("gary")->isFieldPresent(sfHookStateCount));
             else
                 BEAST_EXPECT((*env.le("gary"))[sfHookStateCount] == 0);
+        }
+        {
+            bool extHookStateEnabled = features[featureExtendedHookState];
+            // tests for set_state_cache
+            if (extHookStateEnabled)
+            {
+                TestHook extended_state_reserve_hook = wasm[R"[test.hook](
+                    #include <stdint.h>
+                    extern int32_t _g       (uint32_t id, uint32_t maxiter);
+                    extern int64_t accept   (uint32_t read_ptr, uint32_t read_len, int64_t error_code);
+                    extern int64_t rollback (uint32_t read_ptr, uint32_t read_len, int64_t error_code);
+                    extern int64_t state_set (
+                        uint32_t read_ptr,
+                        uint32_t read_len,
+                        uint32_t kread_ptr,
+                        uint32_t kread_len
+                    );
+                    extern int64_t state_foreign_set (
+                        uint32_t read_ptr,
+                        uint32_t read_len,
+                        uint32_t kread_ptr,
+                        uint32_t kread_len,
+                        uint32_t nread_ptr,
+                        uint32_t nread_len,
+                        uint32_t aread_ptr,
+                        uint32_t aread_len
+                    );
+                    extern int64_t otxn_param(uint32_t, uint32_t, uint32_t, uint32_t);
+                    #define RESERVE_INSUFFICIENT -38
+                    #define ASSERT(x)\
+                        if (!(x))\
+                            rollback((uint32_t)#x, sizeof(#x), __LINE__);
+                    #define ASSERT_EQUAL(x, y)\
+                        if (!(x == y))\
+                            rollback((uint32_t)#x, sizeof(#x), x);
+                    int64_t hook(uint32_t reserved)
+                    {
+                        _g(1,1);
+                        {
+                            uint16_t size;
+                            ASSERT(otxn_param(&size, 2, "SIZE", 4) > 0);
+                            // 1. first account for StateMap
+                            ASSERT_EQUAL(state_set(0, size, "1", 1), RESERVE_INSUFFICIENT);
+                            ASSERT(state_set("1" ,1, "1", 1) > 0);
+                            // 2. first namespace for StateMap
+                            ASSERT_EQUAL(state_foreign_set(0, size, "1", 1, "1", 32, 0, 0), RESERVE_INSUFFICIENT);
+                            ASSERT(state_foreign_set("1" ,1, "1", 1, "1", 32, 0, 0) > 0);
+                            // 3. first statekey for StateMap
+                            ASSERT_EQUAL(state_set(0, size, "2", 1), RESERVE_INSUFFICIENT);
+                            ASSERT(state_set("1" ,1, "2", 1) > 0);
+                            // 4. existing statedata
+                            ASSERT_EQUAL(state_set(0, size, "1", 1), RESERVE_INSUFFICIENT);
+                            ASSERT_EQUAL(state_set(0, size-256*3, "1", 1), size-256*3);
+                        }
+                        accept(0,0,0);
+                    }
+                )[test.hook]"];
+
+                // install the hook on gary
+                Json::Value jv = hso(extended_state_reserve_hook, overrideFlag);
+                jv[jss::HookOn] =
+                    "fffffffffffffffffffffffffffffffffffffff7ffffffffffffffffff"
+                    "bfff"
+                    "ff";  // only invoke high
+                env(ripple::test::jtx::hook(gary, {{jv}}, 0), HSFEE);
+                env.close();
+
+                auto const caller = Account{"caller"};
+                env.fund(XRP(10000), caller);
+                env.close();
+                auto const payAmount = env.balance(gary) -
+                    (env.current()->fees().accountReserve(1 + 8)) -
+                    drops(1);  // 8 + Hook
+                // reduce gary's balance
+                env(pay(gary, Account{"master"}, payAmount), fee(XRP(1)));
+                env.close();
+
+                // invoke the hook from alice
+                Json::Value invokeJv5 = invoke::invoke(caller, gary, "");
+                invokeJv5[jss::HookParameters] =
+                    hookSizeParam("0008" /* 2048 */);
+                env(invokeJv5, M("test state_set 15"), fee(XRP(1)));
+                env.close();
+            }
         }
 
         // RH TODO:
