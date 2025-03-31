@@ -69,10 +69,10 @@ using JSSMap =
     }
 
 #define HASH_WASM(x)                                                           \
-    uint256 const x##_hash =                                                   \
+    [[maybe_unused]] uint256 const x##_hash =                                  \
         ripple::sha512Half_s(ripple::Slice(x##_wasm.data(), x##_wasm.size())); \
-    std::string const x##_hash_str = to_string(x##_hash);                      \
-    Keylet const x##_keylet = keylet::hookDefinition(x##_hash);
+    [[maybe_unused]] std::string const x##_hash_str = to_string(x##_hash);     \
+    [[maybe_unused]] Keylet const x##_keylet = keylet::hookDefinition(x##_hash);
 
 class SetHook_test : public beast::unit_test::suite
 {
@@ -1281,8 +1281,7 @@ public:
             if (hasHookEmit)
                 iv[jss::HookEmit] =
                     "0000000000000000000000000000000000000000000000000000000000"
-                    "0000"
-                    "00";
+                    "000000";
             jv[jss::Hooks][0U] = Json::Value{};
             jv[jss::Hooks][0U][jss::Hook] = iv;
 
@@ -1305,8 +1304,7 @@ public:
             if (hasHookEmit)
                 iv[jss::HookEmit] =
                     "0000000000000000000000000000000000000000000000000000000000"
-                    "0000"
-                    "00";
+                    "000000";
             jv[jss::Hooks][0U] = Json::Value{};
             jv[jss::Hooks][0U][jss::Hook] = iv;
 
@@ -1326,8 +1324,7 @@ public:
             if (hasHookEmit)
                 iv[jss::HookEmit] =
                     "0000000000000000000000000000000000000000000000000000000000"
-                    "0000"
-                    "00";
+                    "000000";
             jv[jss::Hooks][0U] = Json::Value{};
             jv[jss::Hooks][0U][jss::Hook] = iv;
 
@@ -1621,7 +1618,9 @@ public:
             {
                 BEAST_REQUIRE(hooks[0].isFieldPresent(sfHookEmit));
                 BEAST_EXPECT(
-                    hooks[0].getFieldH256(sfHookEmit) == UINT256_BIT[0]);
+                    hooks[0].getFieldH256(sfHookEmit) ==
+                    ripple::uint256("000000000000000000000000000000000000000000"
+                                    "0000000000000000000001"));
             }
 
             auto const ns = uint256::fromVoid(
@@ -12087,10 +12086,16 @@ public:
         using namespace jtx;
         Env env{*this, features};
 
+        auto const caller = Account{"caller"};
         auto const alice = Account{"alice"};
         auto const bob = Account{"bob"};
+        auto const charlie = Account{"charlie"};
+        auto const hookacc = Account{"hookacc"};
+        env.fund(XRP(10000), caller);
         env.fund(XRP(10000), alice);
         env.fund(XRP(10000), bob);
+        env.fund(XRP(10000), charlie);
+        env.fund(XRP(10000), hookacc);
         env.close();
 
         TestHook hook = wasm[R"[test.hook](
@@ -12116,10 +12121,11 @@ public:
             #define atDESTINATION 3U
             #define SBUF(x) (uint32_t)x,sizeof(x)
             #define sfAccount ((8U << 16U) + 1U)
+            #define EMISSION_FAILURE -11
             
-            #define ASSERT(x)\
-                if (!(x))\
-                    rollback((uint32_t)#x, sizeof(#x), __LINE__);
+            #define ASSERT_EQUAL(x, y)\
+                if (!(x == y))\
+                    rollback((uint32_t)#x, sizeof(#x), x);
 
             #define PREREQUISITE_NOT_MET -9
             #define ENCODE_DROPS_SIZE 9
@@ -12386,7 +12392,7 @@ public:
                 etxn_reserve(3);
                 
                 int8_t otxn_acc[20];
-                ASSERT(otxn_field(SBUF(otxn_acc), sfAccount) == 20);
+                ASSERT_EQUAL(otxn_field(SBUF(otxn_acc), sfAccount), 20);
                 
                 uint8_t payment_tx[PREPARE_PAYMENT_SIMPLE_SIZE];
                 PREPARE_PAYMENT_SIMPLE(payment_tx, 1000, otxn_acc, 0, 0);
@@ -12400,23 +12406,23 @@ public:
                 uint8_t hash[32];
                 if (hook_pos() == 0) {
                     // default (hookemit not set)
-                    ASSERT(emit(SBUF(hash), SBUF(payment_tx)) == 32);
-                    ASSERT(emit(SBUF(hash), SBUF(account_set_tx)) == 32);
-                    ASSERT(emit(SBUF(hash), SBUF(hook_set_tx)) == 32);
+                    ASSERT_EQUAL(emit(SBUF(hash), SBUF(payment_tx)), 32);
+                    ASSERT_EQUAL(emit(SBUF(hash), SBUF(account_set_tx)), 32);
+                    ASSERT_EQUAL(emit(SBUF(hash), SBUF(hook_set_tx)), 32);
                     accept(0, 0, hook_pos());
                 } 
                 if (hook_pos() == 1) {
                     // hookemit all low
-                    ASSERT(emit(SBUF(hash), SBUF(payment_tx)) == 32);
-                    ASSERT(emit(SBUF(hash), SBUF(account_set_tx)) == 32);
-                    ASSERT(emit(SBUF(hash), SBUF(hook_set_tx)) < 0);
+                    ASSERT_EQUAL(emit(SBUF(hash), SBUF(payment_tx)), 32);
+                    ASSERT_EQUAL(emit(SBUF(hash), SBUF(account_set_tx)), 32);
+                    ASSERT_EQUAL(emit(SBUF(hash), SBUF(hook_set_tx)), EMISSION_FAILURE);
                     accept(0, 0, hook_pos());
                 }
                 if (hook_pos() == 2) {
                     // hookemit all high
-                    ASSERT(emit(SBUF(hash), SBUF(payment_tx)) < 0);
-                    ASSERT(emit(SBUF(hash), SBUF(account_set_tx)) < 0);
-                    ASSERT(emit(SBUF(hash), SBUF(hook_set_tx)) == 32);
+                    ASSERT_EQUAL(emit(SBUF(hash), SBUF(payment_tx)), EMISSION_FAILURE);
+                    ASSERT_EQUAL(emit(SBUF(hash), SBUF(account_set_tx)), EMISSION_FAILURE);
+                    ASSERT_EQUAL(emit(SBUF(hash), SBUF(hook_set_tx)), 32);
                     accept(0, 0, hook_pos());
                 }
             }
@@ -12424,28 +12430,63 @@ public:
 
         bool const hasFeature = env.current()->rules().enabled(featureHookEmit);
 
-        if (!hasFeature)
+        Json::Value jv;
+        jv[jss::CreateCode] = "";
+        jv[jss::Flags] = hsfOVERRIDE;
+
+        auto const deleteHook = [&env](Account const& account) {
+            Json::Value jv;
+            jv[jss::Account] = account.human();
+            jv[jss::TransactionType] = jss::SetHook;
+            jv[jss::Flags] = 0;
+            jv[jss::Hooks] = Json::Value{Json::arrayValue};
+            Json::Value iv;
+            iv[jss::CreateCode] = "";
+            iv[jss::Flags] = hsfOVERRIDE;
+            jv[jss::Hooks][0U][jss::Hook] = iv;
+            jv[jss::Hooks][1U][jss::Hook] = iv;
+            jv[jss::Hooks][2U][jss::Hook] = iv;
+
+            env(jv, M("hook DELETE"), HSFEE);
+            env.close();
+        };
+
+        std::array<Account, 3> accounts{{alice, bob, charlie}};
+        for (int i = 0; i < 2; i++)
         {
-            {
-                Json::Value hookEmitHook = hso(hook, overrideFlag);
-                hookEmitHook[jss::HookEmit] =
-                    "00000000000000000000000000000000000000000000000000"
-                    "00000000000000";
-                env(ripple::test::jtx::hook(alice, {{hookEmitHook}}, 0),
-                    M("set hookemit"),
-                    HSFEE,
-                    ter(temMALFORMED));
-                env.close();
-            }
+            auto const acc = accounts[i];
+            // i=0: Create
+            // i=1: Install
+            // i=2: Update
+
+            if (i == 1)
             {
                 Json::Value h = hso(hook, overrideFlag);
-                env(ripple::test::jtx::hook(alice, {{h}}, 0),
+                env(ripple::test::jtx::hook(hookacc, {{h}}, 0),
+                    M("set hookemit"),
+                    HSFEE);
+                env.close();
+            }
+            else if (i == 2)
+            {
+                Json::Value h = hso(hook, overrideFlag);
+                env(ripple::test::jtx::hook(acc, {{h}}, 0),
+                    M("set hookemit"),
+                    HSFEE);
+                env.close();
+            }
+
+            {
+                Json::Value h = hso(hook, overrideFlag);
+                env(ripple::test::jtx::hook(acc, {{h}}, 0),
                     M("set hookemit"),
                     HSFEE);
                 env.close();
 
                 // invoke the hook
-                env(pay(bob, alice, XRP(1)), M("test hookemit"), fee(XRP(1)));
+                env(pay(caller, acc, XRP(1)),
+                    M("test hookemit 1"),
+                    fee(XRP(1)));
                 env.close();
 
                 auto meta = env.meta();
@@ -12462,70 +12503,80 @@ public:
                 // get the data in the return code of the execution
                 BEAST_EXPECT(
                     hookExecutions[0].getFieldU64(sfHookReturnCode) == 0);
+                if (i == 0 || i == 1)
+                    deleteHook(acc);
             }
-            return;
-        }
+            {
+                // install the hook on acc
+                Json::Value hookEmitHook = hso(hook, overrideFlag);
+                hookEmitHook[jss::HookEmit] =
+                    "00000000000000000000000000000000000000000000000000"
+                    "00000000000000";
+                env(ripple::test::jtx::hook(acc, {{jv, hookEmitHook}}, 0),
+                    M("test hookemit"),
+                    HSFEE,
+                    hasFeature ? ter(tesSUCCESS) : ter(temMALFORMED));
+                env.close();
 
-        Json::Value jv;
-        jv[jss::CreateCode] = "";
-        jv[jss::Flags] = hsfOVERRIDE;
+                if (!hasFeature)
+                    continue;
 
-        {
-            // install the hook on alice
-            Json::Value hookEmitHook = hso(hook, overrideFlag);
-            hookEmitHook[jss::HookEmit] =
-                "00000000000000000000000000000000000000000000000000"
-                "00000000000000";
-            env(ripple::test::jtx::hook(alice, {{jv, hookEmitHook}}, 0),
-                M("set hookemit"),
-                HSFEE);
-            env.close();
+                // invoke the hook
+                env(pay(caller, acc, XRP(1)),
+                    M("test hookemit 2"),
+                    fee(XRP(1)));
+                env.close();
 
-            // invoke the hook
-            env(pay(bob, alice, XRP(1)), M("test hookemit"), fee(XRP(1)));
-            env.close();
+                auto meta = env.meta();
 
-            auto meta = env.meta();
+                // ensure hook execution occured
+                BEAST_REQUIRE(meta);
+                BEAST_REQUIRE(meta->isFieldPresent(sfHookExecutions));
 
-            // ensure hook execution occured
-            BEAST_REQUIRE(meta);
-            BEAST_REQUIRE(meta->isFieldPresent(sfHookExecutions));
+                // ensure there was four hook executions
+                auto const hookExecutions =
+                    meta->getFieldArray(sfHookExecutions);
+                BEAST_REQUIRE(hookExecutions.size() == 1);
 
-            // ensure there was four hook executions
-            auto const hookExecutions = meta->getFieldArray(sfHookExecutions);
-            BEAST_REQUIRE(hookExecutions.size() == 1);
+                // get the data in the return code of the execution
+                BEAST_EXPECT(
+                    hookExecutions[0].getFieldU64(sfHookReturnCode) == 1);
+                if (i == 0 || i == 1)
+                    deleteHook(acc);
+            }
 
-            // get the data in the return code of the execution
-            BEAST_EXPECT(hookExecutions[0].getFieldU64(sfHookReturnCode) == 1);
-        }
+            {
+                // install the hook on acc
+                Json::Value hookEmitHook = hso(hook, overrideFlag);
+                hookEmitHook[jss::HookEmit] =
+                    "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
+                    "FFFFFFFFFFFFFF";
+                env(ripple::test::jtx::hook(acc, {{jv, jv, hookEmitHook}}, 0),
+                    M("test hookemit 3"),
+                    HSFEE);
+                env.close();
 
-        {
-            // install the hook on alice
-            Json::Value hookEmitHook = hso(hook, overrideFlag);
-            hookEmitHook[jss::HookEmit] =
-                "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
-                "FFFFFFFFFFFFFF";
-            env(ripple::test::jtx::hook(alice, {{jv, jv, hookEmitHook}}, 0),
-                M("set hookemit"),
-                HSFEE);
-            env.close();
+                // invoke the hook
+                env(pay(caller, acc, XRP(1)), M("test hookemit"), fee(XRP(1)));
+                env.close();
 
-            // invoke the hook
-            env(pay(bob, alice, XRP(1)), M("test hookemit"), fee(XRP(1)));
-            env.close();
+                auto meta = env.meta();
 
-            auto meta = env.meta();
+                // ensure hook execution occured
+                BEAST_REQUIRE(meta);
+                BEAST_REQUIRE(meta->isFieldPresent(sfHookExecutions));
 
-            // ensure hook execution occured
-            BEAST_REQUIRE(meta);
-            BEAST_REQUIRE(meta->isFieldPresent(sfHookExecutions));
+                // ensure there was four hook executions
+                auto const hookExecutions =
+                    meta->getFieldArray(sfHookExecutions);
+                BEAST_REQUIRE(hookExecutions.size() == 1);
 
-            // ensure there was four hook executions
-            auto const hookExecutions = meta->getFieldArray(sfHookExecutions);
-            BEAST_REQUIRE(hookExecutions.size() == 1);
-
-            // get the data in the return code of the execution
-            BEAST_EXPECT(hookExecutions[0].getFieldU64(sfHookReturnCode) == 2);
+                // get the data in the return code of the execution
+                BEAST_EXPECT(
+                    hookExecutions[0].getFieldU64(sfHookReturnCode) == 2);
+                if (i == 0 || i == 1)
+                    deleteHook(acc);
+            }
         }
     }
 

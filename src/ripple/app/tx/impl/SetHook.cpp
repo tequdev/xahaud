@@ -1706,7 +1706,8 @@ SetHook::setHook()
                 // change which definition we're using to the new target
                 defNamespace = newDefSLE->getFieldH256(sfHookNamespace);
                 defHookOn = newDefSLE->getFieldH256(sfHookOn);
-                defHookEmit = newDefSLE->getFieldH256(sfHookEmit);
+                if (newDefSLE->isFieldPresent(sfHookEmit))
+                    defHookEmit = newDefSLE->getFieldH256(sfHookEmit);
 
                 // set the namespace if it differs from the definition namespace
                 if (newNamespace && *defNamespace != *newNamespace)
