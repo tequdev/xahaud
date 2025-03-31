@@ -12123,9 +12123,9 @@ public:
             #define sfAccount ((8U << 16U) + 1U)
             #define EMISSION_FAILURE -11
             
-            #define ASSERT_EQUAL(x, y)\
-                if (!(x == y))\
-                    rollback((uint32_t)#x, sizeof(#x), x);
+            #define ASSERT(x)\
+                if (!(x))\
+                    rollback((uint32_t)#x, sizeof(#x), __LINE__);
 
             #define PREREQUISITE_NOT_MET -9
             #define ENCODE_DROPS_SIZE 9
@@ -12392,7 +12392,7 @@ public:
                 etxn_reserve(3);
                 
                 int8_t otxn_acc[20];
-                ASSERT_EQUAL(otxn_field(SBUF(otxn_acc), sfAccount), 20);
+                ASSERT(otxn_field(SBUF(otxn_acc), sfAccount) == 20);
                 
                 uint8_t payment_tx[PREPARE_PAYMENT_SIMPLE_SIZE];
                 PREPARE_PAYMENT_SIMPLE(payment_tx, 1000, otxn_acc, 0, 0);
@@ -12402,28 +12402,28 @@ public:
                 
                 uint8_t hook_set_tx[PREPARE_HOOK_SET_SIZE];
                 PREPARE_HOOK_SET(hook_set_tx);
-
+                
                 uint8_t hash[32];
                 if (hook_pos() == 0) {
                     // default (hookemit not set)
-                    ASSERT_EQUAL(emit(SBUF(hash), SBUF(payment_tx)), 32);
-                    ASSERT_EQUAL(emit(SBUF(hash), SBUF(account_set_tx)), 32);
-                    ASSERT_EQUAL(emit(SBUF(hash), SBUF(hook_set_tx)), 32);
-                    accept(0, 0, hook_pos());
+                    ASSERT(emit(SBUF(hash), SBUF(payment_tx)) == 32);
+                    ASSERT(emit(SBUF(hash), SBUF(account_set_tx)) == 32);
+                    ASSERT(emit(SBUF(hash), SBUF(hook_set_tx)) == 32);
+                    return accept(0, 0, hook_pos());
                 } 
                 if (hook_pos() == 1) {
                     // hookemit all low
-                    ASSERT_EQUAL(emit(SBUF(hash), SBUF(payment_tx)), 32);
-                    ASSERT_EQUAL(emit(SBUF(hash), SBUF(account_set_tx)), 32);
-                    ASSERT_EQUAL(emit(SBUF(hash), SBUF(hook_set_tx)), EMISSION_FAILURE);
-                    accept(0, 0, hook_pos());
+                    ASSERT(emit(SBUF(hash), SBUF(payment_tx)) == 32);
+                    ASSERT(emit(SBUF(hash), SBUF(account_set_tx)) == 32);
+                    ASSERT(emit(SBUF(hash), SBUF(hook_set_tx)) == EMISSION_FAILURE);
+                    return accept(0, 0, hook_pos());
                 }
                 if (hook_pos() == 2) {
                     // hookemit all high
-                    ASSERT_EQUAL(emit(SBUF(hash), SBUF(payment_tx)), EMISSION_FAILURE);
-                    ASSERT_EQUAL(emit(SBUF(hash), SBUF(account_set_tx)), EMISSION_FAILURE);
-                    ASSERT_EQUAL(emit(SBUF(hash), SBUF(hook_set_tx)), 32);
-                    accept(0, 0, hook_pos());
+                    ASSERT(emit(SBUF(hash), SBUF(payment_tx)) == EMISSION_FAILURE);
+                    ASSERT(emit(SBUF(hash), SBUF(account_set_tx)) == EMISSION_FAILURE);
+                    ASSERT(emit(SBUF(hash), SBUF(hook_set_tx)) == 32);
+                    return accept(0, 0, hook_pos());
                 }
             }
         )[test.hook]"];
