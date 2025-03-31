@@ -1258,12 +1258,9 @@ SetHook::setHook()
         std::optional<ripple::uint256> newNamespace;
         std::optional<ripple::Keylet> newDirKeylet;
 
-        std::optional<uint256> oldHookOn;
         std::optional<uint256> newHookOn;
         std::optional<uint256> defHookOn;
 
-        std::optional<uint256> oldOutgoingHookOn;
-        std::optional<uint256> oldIncomingHookOn;
         std::optional<uint256> newOutgoingHookOn;
         std::optional<uint256> newIncomingHookOn;
         std::optional<uint256> defOutgoingHookOn;
@@ -1325,11 +1322,6 @@ SetHook::setHook()
             if (oldDefSLE && oldDefSLE->isFieldPresent(sfHookOn))
                 defHookOn = oldDefSLE->getFieldH256(sfHookOn);
 
-            if (oldHook->get().isFieldPresent(sfHookOn))
-                oldHookOn = oldHook->get().getFieldH256(sfHookOn);
-            else if (defHookOn)
-                oldHookOn = *defHookOn;
-
             if (oldDefSLE)
             {
                 if (oldDefSLE->isFieldPresent(sfOutgoingHookOn))
@@ -1339,18 +1331,6 @@ SetHook::setHook()
                     defIncomingHookOn =
                         oldDefSLE->getFieldH256(sfIncomingHookOn);
             }
-
-            if (oldHook->get().isFieldPresent(sfOutgoingHookOn))
-                oldOutgoingHookOn =
-                    oldHook->get().getFieldH256(sfOutgoingHookOn);
-            else if (defOutgoingHookOn)
-                oldOutgoingHookOn = *defOutgoingHookOn;
-
-            if (oldHook->get().isFieldPresent(sfIncomingHookOn))
-                oldIncomingHookOn =
-                    oldHook->get().getFieldH256(sfIncomingHookOn);
-            else if (defIncomingHookOn)
-                oldIncomingHookOn = *defIncomingHookOn;
         }
 
         // in preparation for three way merge populate fields if they are
