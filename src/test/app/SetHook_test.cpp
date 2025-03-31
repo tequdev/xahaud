@@ -12506,6 +12506,46 @@ public:
                 if (i == 0 || i == 1)
                     deleteHook(acc);
             }
+
+            {
+                // same result with no-HookEmit
+                Json::Value h = hso(hook, overrideFlag);
+                h[jss::HookEmit] =
+                    "0000000000000000000000000000000000000000000000000000000000"
+                    "400000";
+                env(ripple::test::jtx::hook(acc, {{h}}, 0),
+                    M("set hookemit"),
+                    HSFEE,
+                    hasFeature ? ter(tesSUCCESS) : ter(temMALFORMED));
+                env.close();
+
+                if (hasFeature)
+                {
+                    // invoke the hook
+                    env(pay(caller, acc, XRP(1)),
+                        M("test hookemit 1"),
+                        fee(XRP(1)));
+                    env.close();
+
+                    auto meta = env.meta();
+
+                    // ensure hook execution occured
+                    BEAST_REQUIRE(meta);
+                    BEAST_REQUIRE(meta->isFieldPresent(sfHookExecutions));
+
+                    // ensure there was four hook executions
+                    auto const hookExecutions =
+                        meta->getFieldArray(sfHookExecutions);
+                    BEAST_REQUIRE(hookExecutions.size() == 1);
+
+                    // get the data in the return code of the execution
+                    BEAST_EXPECT(
+                        hookExecutions[0].getFieldU64(sfHookReturnCode) == 0);
+                    if (i == 0 || i == 1)
+                        deleteHook(acc);
+                }
+            }
+
             {
                 // install the hook on acc
                 Json::Value hookEmitHook = hso(hook, overrideFlag);
