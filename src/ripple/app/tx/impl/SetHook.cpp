@@ -1453,7 +1453,7 @@ SetHook::setHook()
                 // set the hookemit field if it differs from definition
                 if (newHookEmit)
                 {
-                    if (*defHookEmit == *newHookEmit)
+                    if (defHookEmit.has_value() && *defHookEmit == *newHookEmit)
                     {
                         if (newHook.isFieldPresent(sfHookEmit))
                             newHook.makeFieldAbsent(sfHookEmit);
@@ -1718,7 +1718,8 @@ SetHook::setHook()
                     newHook.setFieldH256(sfHookOn, *newHookOn);
 
                 // set the hookemit field if it differs from definition
-                if (newHookEmit && *defHookEmit != *newHookEmit)
+                if (newHookEmit &&
+                    !(defHookEmit.has_value() && *defHookEmit == *newHookEmit))
                     newHook.setFieldH256(sfHookEmit, *newHookEmit);
 
                 // parameters
