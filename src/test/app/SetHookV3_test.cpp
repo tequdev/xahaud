@@ -208,7 +208,7 @@ public:
 
         auto tx = invoke::invoke(alice);
         tx[jss::FunctionName] = strHex("hook_accept"s);
-        testRPCCall(env, tx, "19");
+        testRPCCall(env, tx, "21");
 
         tx[jss::FunctionName] = strHex("hook_accept2"s);
         testRPCCall(env, tx, "19");
@@ -283,11 +283,13 @@ private:
             #include <stdint.h>
             extern int32_t _g       (uint32_t id, uint32_t maxiter);
             extern int64_t accept   (uint32_t read_ptr, uint32_t read_len, int64_t error_code);
+            extern int64_t hook_pos (void);
             #define SBUF(x) (uint32_t)x,sizeof(x)
 
             int64_t hook_accept(uint32_t reserved)
             {
                 _g(1,1);
+                hook_pos();
                 return accept(SBUF("failed"),0);
             }
 
