@@ -726,7 +726,7 @@ SetHook::preflight(PreflightContext const& ctx)
 
         if (!ctx.rules.enabled(featureHookEmit) &&
             hookSetObj.isFieldPresent(sfHookEmit))
-            return temMALFORMED;
+            return temDISABLED;
 
         try
         {

@@ -12516,7 +12516,7 @@ public:
                 env(ripple::test::jtx::hook(acc, {{h}}, 0),
                     M("set hookemit"),
                     HSFEE,
-                    hasFeature ? ter(tesSUCCESS) : ter(temMALFORMED));
+                    hasFeature ? ter(tesSUCCESS) : ter(temDISABLED));
                 env.close();
 
                 if (hasFeature)
@@ -12555,7 +12555,7 @@ public:
                 env(ripple::test::jtx::hook(acc, {{jv, hookEmitHook}}, 0),
                     M("test hookemit"),
                     HSFEE,
-                    hasFeature ? ter(tesSUCCESS) : ter(temMALFORMED));
+                    hasFeature ? ter(tesSUCCESS) : ter(temDISABLED));
                 env.close();
 
                 if (!hasFeature)
