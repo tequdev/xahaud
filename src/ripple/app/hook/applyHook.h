@@ -617,10 +617,6 @@ static auto* tableType = WasmEdge_TableTypeCreate(
 static auto* memType = WasmEdge_MemoryTypeCreate(
     {.HasMax = true, .Shared = false, .Min = 1, .Max = 1});
 static WasmEdge_String memName = WasmEdge_StringCreateByCString("memory");
-static WasmEdge_String cbakFunctionName =
-    WasmEdge_StringCreateByCString("cbak");
-static WasmEdge_String hookFunctionName =
-    WasmEdge_StringCreateByCString("hook");
 
 // see: lib/system/allocator.cpp
 #define WasmEdge_kPageSize 65536ULL
@@ -724,7 +720,7 @@ public:
         beast::Journal const& j)
     {
 
-        static WasmEdge_String _hookFunctionName =
+        WasmEdge_String hookFunctionName =
             WasmEdge_StringCreateByCString(functionName.c_str());
 
         // HookExecutor can only execute once
@@ -765,7 +761,7 @@ public:
             vm.ctx,
             reinterpret_cast<const uint8_t*>(wasm),
             len,
-            _hookFunctionName,
+            hookFunctionName,
             params,
             1,
             returns,

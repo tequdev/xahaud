@@ -118,8 +118,13 @@ public:
         }
         {
             Json::Value function = Json::Value(Json::objectValue);
-            function[jss::FunctionName] = strHex("hook_accept2"s);
+            function[jss::FunctionName] = strHex("hook_rollback"s);
             jv[jss::HookFunctions][1u][jss::HookFunction] = function;
+        }
+        {
+            Json::Value function = Json::Value(Json::objectValue);
+            function[jss::FunctionName] = strHex("hook_accept2"s);
+            jv[jss::HookFunctions][2u][jss::HookFunction] = function;
         }
         // HookApiVersion 1 with HookFunctions
         {
@@ -199,8 +204,13 @@ public:
         }
         {
             Json::Value function = Json::Value(Json::objectValue);
-            function[jss::FunctionName] = strHex("hook_accept2"s);
+            function[jss::FunctionName] = strHex("hook_rollback"s);
             jv[jss::HookFunctions][1u][jss::HookFunction] = function;
+        }
+        {
+            Json::Value function = Json::Value(Json::objectValue);
+            function[jss::FunctionName] = strHex("hook_accept2"s);
+            jv[jss::HookFunctions][2u][jss::HookFunction] = function;
         }
 
         env(ripple::test::jtx::hook(alice, {{jv}}, 0), HSFEE);
@@ -242,8 +252,13 @@ public:
         }
         {
             Json::Value function = Json::Value(Json::objectValue);
-            function[jss::FunctionName] = strHex("hook_accept2"s);
+            function[jss::FunctionName] = strHex("hook_rollback"s);
             jv[jss::HookFunctions][1u][jss::HookFunction] = function;
+        }
+        {
+            Json::Value function = Json::Value(Json::objectValue);
+            function[jss::FunctionName] = strHex("hook_accept2"s);
+            jv[jss::HookFunctions][2u][jss::HookFunction] = function;
         }
 
         env(ripple::test::jtx::hook(alice, {{jv}}, 0), HSFEE);
@@ -256,8 +271,13 @@ public:
         env.close();
 
         Json::Value iv2 = invoke::invoke(alice);
-        iv2[jss::FunctionName] = strHex("hook_accept2"s);
-        env(iv2, fee(XRP(1)));
+        iv2[jss::FunctionName] = strHex("hook_rollback"s);
+        env(iv2, fee(XRP(1)), ter(tecHOOK_REJECTED));
+        env.close();
+
+        Json::Value iv3 = invoke::invoke(alice);
+        iv3[jss::FunctionName] = strHex("hook_accept2"s);
+        env(iv3, fee(XRP(1)));
         env.close();
     }
 
@@ -283,6 +303,7 @@ private:
             #include <stdint.h>
             extern int32_t _g       (uint32_t id, uint32_t maxiter);
             extern int64_t accept   (uint32_t read_ptr, uint32_t read_len, int64_t error_code);
+            extern int64_t rollback (uint32_t read_ptr, uint32_t read_len, int64_t error_code);
             extern int64_t hook_pos (void);
             #define SBUF(x) (uint32_t)x,sizeof(x)
 
@@ -290,13 +311,19 @@ private:
             {
                 _g(1,1);
                 hook_pos();
-                return accept(SBUF("failed"),0);
+                return accept(SBUF("success"),0);
+            }
+            
+            int64_t hook_rollback(uint32_t reserved)
+            {
+                _g(1,1);
+                return rollback(SBUF("rollback"),0);
             }
 
             int64_t hook_accept2(uint32_t reserved)
             {
                 _g(1,1);
-                return accept(SBUF("success"),0);
+                return accept(SBUF("success2"),0);
             }
         )[test.hook]"];
     HASH_WASM(testv3);
