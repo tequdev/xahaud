@@ -555,12 +555,27 @@ SetHook::validateHookSetEntry(SetHookCtx& ctx, STObject const& hookSetObj)
                     for (const auto& function : functions)
                     {
                         Blob name = function.getFieldVL(sfFunctionName);
+                        if (name.size() > hook::maxHookFunctionNameSize())
+                        {
+                            JLOG(ctx.j.trace())
+                                << "HookSet(" << hook::log::WASM_SMOKE_TEST << ")["
+                                << HS_ACC()
+                                << "]: FunctonName size is too long.";
+                            return false;
+                        }
                         std::string hexStr(name.begin(), name.end());
                         functionNames.push_back(hexStr);
                     }
 
                     if (functionNamesMap.size() != functionNames.size())
+                    {
+                        JLOG(ctx.j.trace())
+                            << "HookSet(" << hook::log::WASM_SMOKE_TEST << ")["
+                            << HS_ACC()
+                            << "]: FunctonNames specified in the transaction "
+                               "must match the Wasm functions exactly.";
                         return false;
+                    }
 
                     for (const auto& [key, value] : functionNamesMap)
                     {

@@ -73,6 +73,12 @@ maxNamespaceDelete(void)
     return 256;
 }
 
+inline uint32_t
+maxHookFunctionNameSize(void)
+{
+    return 16;
+}
+
 enum TSHFlags : uint8_t {
     tshNONE = 0b000,
     tshROLLBACK = 0b001,

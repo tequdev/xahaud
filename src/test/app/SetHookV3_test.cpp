@@ -175,6 +175,31 @@ public:
                 ter(temMALFORMED));
             env.close();
         }
+        // FunctionName size is too long
+        {
+            TestHook testLongFunctionName_wasm = wasmv3[
+                R"[test.hook](
+                #include <stdint.h>
+                extern int32_t _g       (uint32_t id, uint32_t maxiter);
+                extern int64_t accept   (uint32_t read_ptr, uint32_t read_len, int64_t error_code);
+                #define SBUF(x) (uint32_t)x,sizeof(x)
+
+                int64_t hook_too_long1234(uint32_t reserved)
+                {
+                    _g(1,1);
+                    return accept(SBUF("success"),0);
+                }
+            )[test.hook]"];
+            Json::Value jv = hso(testLongFunctionName_wasm, overrideFlag);
+            jv[jss::HookApiVersion] = 3;
+            Json::Value function = Json::Value(Json::objectValue);
+            function[jss::FunctionName] = strHex("hook_too_long1234"s);
+            jv[jss::HookFunctions][0u][jss::HookFunction] = function;
+            env(ripple::test::jtx::hook(alice, {{jv}}, 0),
+                HSFEE,
+                ter(temMALFORMED));
+            env.close();
+        }
     }
 
     void
