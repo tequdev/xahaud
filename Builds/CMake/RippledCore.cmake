@@ -99,6 +99,8 @@ target_sources (xrpl_core PRIVATE
   src/ripple/protocol/impl/STArray.cpp
   src/ripple/protocol/impl/STBase.cpp
   src/ripple/protocol/impl/STBlob.cpp
+  src/ripple/protocol/impl/STData.cpp
+  src/ripple/protocol/impl/STDataType.cpp
   src/ripple/protocol/impl/STInteger.cpp
   src/ripple/protocol/impl/STLedgerEntry.cpp
   src/ripple/protocol/impl/STObject.cpp
@@ -232,6 +234,8 @@ install (
     src/ripple/protocol/STBase.h
     src/ripple/protocol/STBitString.h
     src/ripple/protocol/STBlob.h
+    src/ripple/protocol/STData.h
+    src/ripple/protocol/STDataType.h
     src/ripple/protocol/STExchange.h
     src/ripple/protocol/STInteger.h
     src/ripple/protocol/STLedgerEntry.h
@@ -971,6 +975,7 @@ if (tests)
     src/test/protocol/Quality_test.cpp
     src/test/protocol/STAccount_test.cpp
     src/test/protocol/STAmount_test.cpp
+    src/test/protocol/STData_test.cpp
     src/test/protocol/STObject_test.cpp
     src/test/protocol/STTx_test.cpp
     src/test/protocol/STValidation_test.cpp

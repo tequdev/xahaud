@@ -28,6 +28,8 @@
 #include <ripple/protocol/STArray.h>
 #include <ripple/protocol/STBitString.h>
 #include <ripple/protocol/STBlob.h>
+#include <ripple/protocol/STData.h>
+#include <ripple/protocol/STDataType.h>
 #include <ripple/protocol/STInteger.h>
 #include <ripple/protocol/STParsedJSON.h>
 #include <ripple/protocol/STPathSet.h>
@@ -727,6 +729,33 @@ parseLeaf(
                 error = invalid_data(json_name, fieldName);
                 return ret;
             }
+        }
+        case STI_DATA : {
+            try
+            {
+                ret =
+                    detail::make_stvar<STData>(dataFromJson(field, value));
+            }
+            catch (std::exception const&)
+            {
+                error = invalid_data(json_name, fieldName);
+                return ret;
+            }
+
+            break;
+        }
+        case STI_DATATYPE : {
+            try
+            {
+                ret =
+                    detail::make_stvar<STDataType>(dataTypeFromJson(field, value));
+            }
+            catch (std::exception const&)
+            {
+                error = invalid_data(json_name, fieldName);
+                return ret;
+            }
+            break;
         }
         break;
 

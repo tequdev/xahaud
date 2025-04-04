@@ -292,6 +292,7 @@ CONSTRUCT_TYPED_SFIELD(sfHookParameterName,     "HookParameterName",    VL,     
 CONSTRUCT_TYPED_SFIELD(sfHookParameterValue,    "HookParameterValue",   VL,        25);
 CONSTRUCT_TYPED_SFIELD(sfBlob,                  "Blob",                 VL,        26);
 CONSTRUCT_TYPED_SFIELD(sfFunctionName,          "FunctionName",         VL,        27);
+CONSTRUCT_TYPED_SFIELD(sfFunctionParameterName, "FunctionParameterName",VL,        28);
 
 // account
 CONSTRUCT_TYPED_SFIELD(sfAccount,               "Account",              ACCOUNT,    1);
@@ -316,6 +317,12 @@ CONSTRUCT_TYPED_SFIELD(sfAmendments,            "Amendments",           VECTOR25
 CONSTRUCT_TYPED_SFIELD(sfNFTokenOffers,         "NFTokenOffers",        VECTOR256,  4);
 CONSTRUCT_TYPED_SFIELD(sfHookNamespaces,        "HookNamespaces",       VECTOR256,  5);
 CONSTRUCT_TYPED_SFIELD(sfURITokenIDs,           "URITokenIDs",          VECTOR256, 99);
+
+// data
+CONSTRUCT_TYPED_SFIELD(sfFunctionParameterValue, "FunctionParameterValue", DATA,    1);
+
+// data type
+CONSTRUCT_TYPED_SFIELD(sfFunctionParameterType, "FunctionParameterType", DATATYPE, 1);
 
 // path set
 CONSTRUCT_UNTYPED_SFIELD(sfPaths,               "Paths",                PATHSET,    1);
@@ -353,6 +360,7 @@ CONSTRUCT_UNTYPED_SFIELD(sfHookEmission,        "HookEmission",         OBJECT, 
 CONSTRUCT_UNTYPED_SFIELD(sfMintURIToken,        "MintURIToken",         OBJECT,    92); 
 CONSTRUCT_UNTYPED_SFIELD(sfAmountEntry,         "AmountEntry",          OBJECT,    91);
 CONSTRUCT_UNTYPED_SFIELD(sfHookFunction,        "HookFunction",         OBJECT,    90);
+CONSTRUCT_UNTYPED_SFIELD(sfFunctionParameter,   "FunctionParameter",    OBJECT,    89);
 
 // array of objects
 //                                                                            ARRAY/1 is reserved for end of array
@@ -379,6 +387,7 @@ CONSTRUCT_UNTYPED_SFIELD(sfImportVLKeys,        "ImportVLKeys",         ARRAY,  
 CONSTRUCT_UNTYPED_SFIELD(sfHookEmissions,       "HookEmissions",        ARRAY,     93);
 CONSTRUCT_UNTYPED_SFIELD(sfAmounts,             "Amounts",              ARRAY,     92);
 CONSTRUCT_UNTYPED_SFIELD(sfHookFunctions,       "HookFunctions",        ARRAY,     91);
+CONSTRUCT_UNTYPED_SFIELD(sfFunctionParameters,  "FunctionParameters",   ARRAY,     90);
 
 // clang-format on
 

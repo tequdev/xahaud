@@ -44,6 +44,7 @@ TxFormats::TxFormats()
         {sfNetworkID, soeOPTIONAL},
         {sfHookParameters, soeOPTIONAL},
         {sfFunctionName, soeOPTIONAL},
+        {sfFunctionParameters, soeOPTIONAL},
         {sfOperationLimit, soeOPTIONAL},
     };
 

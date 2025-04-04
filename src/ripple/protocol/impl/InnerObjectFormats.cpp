@@ -164,7 +164,16 @@ InnerObjectFormats::InnerObjectFormats()
         sfHookFunction.getCode(),
         {
             {sfFunctionName, soeREQUIRED},
+            {sfFunctionParameters, soeOPTIONAL},
             {sfFee, soeOPTIONAL},
+        });
+
+    add(sfFunctionParameter.jsonName.c_str(),
+        sfFunctionParameter.getCode(),
+        {
+            {sfFunctionParameterName, soeOPTIONAL},
+            {sfFunctionParameterValue, soeOPTIONAL},
+            {sfFunctionParameterType, soeOPTIONAL},
         });
 }
 

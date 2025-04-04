@@ -558,13 +558,51 @@ SetHook::validateHookSetEntry(SetHookCtx& ctx, STObject const& hookSetObj)
                         if (name.size() > hook::maxHookFunctionNameSize())
                         {
                             JLOG(ctx.j.trace())
-                                << "HookSet(" << hook::log::WASM_SMOKE_TEST << ")["
-                                << HS_ACC()
+                                << "HookSet(" << hook::log::WASM_SMOKE_TEST
+                                << ")[" << HS_ACC()
                                 << "]: FunctonName size is too long.";
                             return false;
                         }
                         std::string hexStr(name.begin(), name.end());
                         functionNames.push_back(hexStr);
+
+                        if (function.isFieldPresent(sfFunctionParameters))
+                        {
+                            std::vector<std::string> parameterNames;
+                            STArray parameters =
+                                function.getFieldArray(sfFunctionParameters);
+                            for (const auto& parameter : parameters)
+                            {
+                                if (!parameter.isFieldPresent(
+                                        sfFunctionParameterName))
+                                    return false;
+                                if (!parameter.isFieldPresent(
+                                        sfFunctionParameterType))
+                                    return false;
+                                if (parameter.isFieldPresent(
+                                        sfFunctionParameterValue))
+                                    return false;
+                                Blob parameterName = parameter.getFieldVL(
+                                    sfFunctionParameterName);
+                                if (parameterName.size() == 0 ||
+                                    parameterName.size() >
+                                        hook::
+                                            maxHookFunctionParameterNameSize())
+                                    return false;
+                                // disallow duplicate parameter names
+                                std::string hexStr(
+                                    parameterName.begin(), parameterName.end());
+                                if (std::find(
+                                        parameterNames.begin(),
+                                        parameterNames.end(),
+                                        hexStr) != parameterNames.end())
+                                    return false;
+                                parameterNames.push_back(hexStr);
+                                // validate parameter type
+                                // DataType parameterType =
+                                // parameter.getFieldDataType(sfFunctionParameterType);
+                            }
+                        }
                     }
 
                     if (functionNamesMap.size() != functionNames.size())
@@ -1765,7 +1803,7 @@ SetHook::setHook()
                         {
                             STObject newFunction = function;  // copy
 
-                            auto functionName =
+                            Blob functionName =
                                 newFunction.getFieldVL(sfFunctionName);
                             std::string hexStr(
                                 functionName.begin(), functionName.end());

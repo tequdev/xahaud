@@ -73,6 +73,11 @@ JSS(FeeSettings);        // ledger type.
 JSS(FIELDS);             // out: RPC server_definitions
 JSS(Flags);              // in/out: TransactionSign; field.
 JSS(FunctionName);       // field
+JSS(FunctionParameters); // field
+JSS(FunctionParameter);  // field
+JSS(FunctionParameterName); // field
+JSS(FunctionParameterType); // field
+JSS(FunctionParameterValue); // field
 JSS(incomplete_shards);  // out: OverlayImpl, PeerImp
 JSS(GenesisMint);        // tt
 JSS(GenesisMints);

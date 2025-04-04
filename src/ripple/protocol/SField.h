@@ -48,6 +48,8 @@ class STBitString;
 template <class>
 class STInteger;
 class STVector256;
+class STData;
+class STDataType;
 class Definitions;
 
 enum SerializedTypeID {
@@ -77,6 +79,8 @@ enum SerializedTypeID {
     STI_UINT192 = 21,
     STI_UINT384 = 22,
     STI_UINT512 = 23,
+    STI_DATA = 24,
+    STI_DATATYPE = 25,
 
     // high level types
     // cannot be serialized inside other types
@@ -322,7 +326,8 @@ using SF_ACCOUNT = TypedField<STAccount>;
 using SF_AMOUNT = TypedField<STAmount>;
 using SF_VL = TypedField<STBlob>;
 using SF_VECTOR256 = TypedField<STVector256>;
-
+using SF_DATA = TypedField<STData>;
+using SF_DATATYPE = TypedField<STDataType>;
 //------------------------------------------------------------------------------
 
 extern SField const sfInvalid;
@@ -539,6 +544,7 @@ extern SF_VL const sfHookParameterName;
 extern SF_VL const sfHookParameterValue;
 extern SF_VL const sfBlob;
 extern SF_VL const sfFunctionName;
+extern SF_VL const sfFunctionParameterName;
 
 // account
 extern SF_ACCOUNT const sfAccount;
@@ -566,6 +572,12 @@ extern SF_VECTOR256 const sfAmendments;
 extern SF_VECTOR256 const sfNFTokenOffers;
 extern SF_VECTOR256 const sfHookNamespaces;
 extern SF_VECTOR256 const sfURITokenIDs;
+
+// data
+extern SF_DATA const sfFunctionParameterValue;
+
+// data type
+extern SF_DATATYPE const sfFunctionParameterType;
 
 // inner object
 // OBJECT/1 is reserved for end of object
@@ -611,6 +623,7 @@ extern SField const sfMemos;
 extern SField const sfNFTokens;
 extern SField const sfHooks;
 extern SField const sfGenesisMint;
+extern SField const sfFunctionParameter;
 
 // array of objects (uncommon)
 extern SField const sfMajorities;
@@ -626,6 +639,7 @@ extern SField const sfImportVLKeys;
 extern SField const sfHookEmissions;
 extern SField const sfAmounts;
 extern SField const sfHookFunctions;
+extern SField const sfFunctionParameters;
 
 //------------------------------------------------------------------------------
 

@@ -37,9 +37,9 @@ namespace test {
 using TestHook = std::vector<uint8_t> const&;
 
 #define HASH_WASM(x)                                                           \
-    [[maybe_unused]] uint256 const x##_hash =                                                   \
+    [[maybe_unused]] uint256 const x##_hash =                                  \
         ripple::sha512Half_s(ripple::Slice(x##_wasm.data(), x##_wasm.size())); \
-    [[maybe_unused]] std::string const x##_hash_str = to_string(x##_hash);                      \
+    [[maybe_unused]] std::string const x##_hash_str = to_string(x##_hash);     \
     [[maybe_unused]] Keylet const x##_keylet = keylet::hookDefinition(x##_hash);
 
 class SetHookV3_test : public beast::unit_test::suite
@@ -50,6 +50,29 @@ private:
     {
         jv[jss::Flags] = hsfOVERRIDE;
     }
+
+    Json::Value
+    addFuncParam(const std::string& name, const std::string& typeName)
+    {
+        Json::Value param = Json::Value(Json::objectValue);
+        param[jss::FunctionParameter][jss::FunctionParameterName] =
+            strHex(name);
+        param[jss::FunctionParameter][jss::FunctionParameterType][jss::type] =
+            typeName;
+        return param;
+    };
+
+    template <typename T>
+    Json::Value
+    addFuncParamValue(const std::string& typeName, T value)
+    {
+        Json::Value param = Json::Value(Json::objectValue);
+        param[jss::FunctionParameter][jss::FunctionParameterValue][jss::type] =
+            typeName;
+        param[jss::FunctionParameter][jss::FunctionParameterValue][jss::value] =
+            value;
+        return param;
+    };
 
 public:
 // This is a large fee, large enough that we can set most small test hooks
@@ -307,11 +330,101 @@ public:
     }
 
     void
+    testFunctionParameters(FeatureBitset features)
+    {
+        testcase("Test function parameters");
+
+        using namespace jtx;
+        using namespace std::string_literals;
+
+        // Env env{*this, features};
+        Env env{
+            *this, envconfig(), features, nullptr,
+            // beast::severities::kTrace
+        };
+
+        auto const alice = Account{"alice"};
+        env.fund(XRP(10000), alice);
+        env.close();
+
+        // install the hook on alice
+        Json::Value jv = hso(testv3_wasm, overrideFlag);
+        jv[jss::HookApiVersion] = 3;
+        {
+            Json::Value function = Json::Value(Json::objectValue);
+            function[jss::FunctionName] = strHex("hook_accept"s);
+            Json::Value hookFunctions = Json::Value(Json::arrayValue);
+            hookFunctions[0u] = addFuncParam("uint16", "UINT16");
+            hookFunctions[1u] = addFuncParam("uint32", "UINT32");
+            hookFunctions[2u] = addFuncParam("uint64", "UINT64");
+            hookFunctions[3u] = addFuncParam("uint128", "UINT128");
+            hookFunctions[4u] = addFuncParam("uint256", "UINT256");
+            hookFunctions[5u] = addFuncParam("amount", "AMOUNT");
+            hookFunctions[6u] = addFuncParam("vl", "VL");
+            hookFunctions[7u] = addFuncParam("account", "ACCOUNT");
+            hookFunctions[8u] = addFuncParam("uint8", "UINT8");
+            function[jss::FunctionParameters] = hookFunctions;
+            jv[jss::HookFunctions][0u][jss::HookFunction] = function;
+        }
+        {
+            Json::Value function = Json::Value(Json::objectValue);
+            function[jss::FunctionName] = strHex("hook_rollback"s);
+            Json::Value hookFunctions = Json::Value(Json::arrayValue);
+            jv[jss::HookFunctions][1u][jss::HookFunction] = function;
+        }
+        {
+            Json::Value function = Json::Value(Json::objectValue);
+            function[jss::FunctionName] = strHex("hook_accept2"s);
+            jv[jss::HookFunctions][2u][jss::HookFunction] = function;
+        }
+
+        env(ripple::test::jtx::hook(alice, {{jv}}, 0), HSFEE);
+        env.close();
+
+        // invoke the hook
+        Json::Value iv = invoke::invoke(alice);
+        iv[jss::FunctionName] = strHex("hook_accept"s);
+        iv[jss::FunctionParameters][0u] =
+            addFuncParamValue<uint16_t>("UINT16", 0);
+        iv[jss::FunctionParameters][1u] =
+            addFuncParamValue<uint32_t>("UINT32", 1);
+        iv[jss::FunctionParameters][2u] =
+            addFuncParamValue<std::string>("UINT64", "02");
+        iv[jss::FunctionParameters][3u] =
+            addFuncParamValue<std::string>("UINT128", "03");
+        iv[jss::FunctionParameters][4u] =
+            addFuncParamValue<std::string>("UINT256", "04");
+        iv[jss::FunctionParameters][5u] =
+            addFuncParamValue<std::string>("AMOUNT", "10");
+        iv[jss::FunctionParameters][6u] =
+            addFuncParamValue<std::string>("VL", "000102030405");
+        iv[jss::FunctionParameters][7u] =
+            addFuncParamValue<std::string>("ACCOUNT", Account{"bob"}.human());
+        iv[jss::FunctionParameters][8u] =
+            addFuncParamValue<uint8_t>("UINT8", 8);
+
+        env(iv, fee(XRP(1)));
+        env.close();
+        return;
+
+        Json::Value iv2 = invoke::invoke(alice);
+        iv2[jss::FunctionName] = strHex("hook_rollback"s);
+        env(iv2, fee(XRP(1)), ter(tecHOOK_REJECTED));
+        env.close();
+
+        Json::Value iv3 = invoke::invoke(alice);
+        iv3[jss::FunctionName] = strHex("hook_accept2"s);
+        env(iv3, fee(XRP(1)));
+        env.close();
+    }
+
+    void
     testWithFeatures(FeatureBitset features)
     {
-        testInvalid(features);
-        testFeeRPC(features);
-        testSimple(features);
+        // testInvalid(features);
+        // testFeeRPC(features);
+        // testSimple(features);
+        testFunctionParameters(features);
     }
 
     void

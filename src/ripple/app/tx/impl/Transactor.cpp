@@ -37,6 +37,7 @@
 #include <ripple/protocol/Indexes.h>
 #include <ripple/protocol/Protocol.h>
 #include <ripple/protocol/STAccount.h>
+#include <ripple/protocol/STData.h>
 #include <ripple/protocol/UintTypes.h>
 #include <limits>
 #include <set>
@@ -261,16 +262,55 @@ Transactor::calculateHookChainFee(
                 if (!tx.isFieldPresent(sfFunctionName))
                     return XRPAmount{INITIAL_XRP.drops()};
                 Blob functionName = tx.getFieldVL(sfFunctionName);
-                STArray functions = hookDef->getFieldArray(sfHookFunctions);
+                STArray const& functions =
+                    hookObj.isFieldPresent(sfHookFunctions)
+                    ? hookObj.getFieldArray(sfHookFunctions)
+                    : hookDef->getFieldArray(sfHookFunctions);
                 for (auto const& function : functions)
                 {
-                    Blob defName = function.getFieldVL(sfFunctionName);
-                    if (defName == functionName)
+                    Blob fName = function.getFieldVL(sfFunctionName);
+                    // FunctionName should be exist
+                    if (fName == functionName)
                     {
+                        // Check function parameters
+                        // should exactly match the parameters in the txn and
+                        // hook
+                        bool hasTxFnParam =
+                            tx.isFieldPresent(sfFunctionParameters);
+                        bool hasDefFnParam =
+                            function.isFieldPresent(sfFunctionParameters);
+                        if ((!hasTxFnParam && hasDefFnParam) ||
+                            (hasTxFnParam && !hasDefFnParam))
+                            return XRPAmount{INITIAL_XRP.drops()};
+
+                        if (hasTxFnParam && hasDefFnParam)
+                        {
+                            STArray const& paramsTx =
+                                tx.getFieldArray(sfFunctionParameters);
+                            STArray const& paramsDef =
+                                function.getFieldArray(sfFunctionParameters);
+
+                            if (paramsTx.size() != paramsDef.size())
+                                return XRPAmount{INITIAL_XRP.drops()};
+
+                            for (size_t i = 0; i < paramsTx.size(); i++)
+                            {
+                                STObject const& def = paramsDef[i];
+                                STObject const& tx = paramsTx[i];
+                                auto const& paramTx =
+                                    tx.getFieldData(sfFunctionParameterValue);
+                                auto const& paramDef =
+                                    def.getFieldData(sfFunctionParameterValue);
+                                if (paramTx.getSType() != paramDef.getSType())
+                                    return XRPAmount{INITIAL_XRP.drops()};
+                            }
+                        }
+
                         toAdd = function.getFieldAmount(sfFee).xrp().drops();
                         break;
                     }
                 }
+
                 if (toAdd == 0)
                     return XRPAmount{INITIAL_XRP.drops()};
             }
@@ -1256,8 +1296,29 @@ Transactor::executeHookChain(
             ? hookObj.getFieldU16(sfHookApiVersion)
             : hookDef->getFieldU16(sfHookApiVersion);
 
-        if (hookApiVersion == 3 && !ctx_.tx.isFieldPresent(sfFunctionName))
-            return tecHOOK_REJECTED;
+        if (hookApiVersion == 3)
+        {
+            if (!ctx_.tx.isFieldPresent(sfFunctionName))
+                return tecHOOK_REJECTED;
+            // if (ctx_.tx.isFieldPresent(sfFunctionParameters))
+            // {
+            //     auto const& funcParams =
+            //         ctx_.tx.getFieldArray(sfFunctionParameters);
+            //     for (auto const& funcParam : funcParams)
+            //     {
+            //         if (funcParam.isFieldPresent(sfFunctionParameterName))
+            //         {
+            //         }
+            //     }
+            // }
+        }
+        else
+        {
+            if (ctx_.tx.isFieldPresent(sfFunctionName))
+                return tecHOOK_REJECTED;
+            if (ctx_.tx.isFieldPresent(sfFunctionParameters))
+                return tecHOOK_REJECTED;
+        }
 
         uint32_t flags =
             (hookObj.isFieldPresent(sfFlags) ? hookObj.getFieldU32(sfFlags)

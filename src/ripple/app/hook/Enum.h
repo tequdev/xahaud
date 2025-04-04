@@ -79,6 +79,12 @@ maxHookFunctionNameSize(void)
     return 16;
 }
 
+inline uint32_t
+maxHookFunctionParameterNameSize(void)
+{
+    return 16;
+}
+
 enum TSHFlags : uint8_t {
     tshNONE = 0b000,
     tshROLLBACK = 0b001,

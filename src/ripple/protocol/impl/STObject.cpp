@@ -23,6 +23,8 @@
 #include <ripple/protocol/STArray.h>
 #include <ripple/protocol/STBlob.h>
 #include <ripple/protocol/STObject.h>
+#include <ripple/protocol/STData.h>
+#include <ripple/protocol/STDataType.h>
 
 namespace ripple {
 
@@ -605,6 +607,20 @@ AccountID
 STObject::getAccountID(SField const& field) const
 {
     return getFieldByValue<STAccount>(field);
+}
+
+STData
+STObject::getFieldData(SField const& field) const
+{
+    static STData const empty{field};
+    return getFieldByConstRef<STData>(field, empty);
+}
+
+STDataType
+STObject::getFieldDataType(SField const& field) const
+{
+    static STDataType const empty{field};
+    return getFieldByConstRef<STDataType>(field, empty);
 }
 
 Blob
