@@ -1034,6 +1034,21 @@ hook::canEmit(ripple::TxType txType, ripple::uint256 hookCanEmit)
     return hook::canHook(txType, hookCanEmit);
 }
 
+ripple::uint256
+hook::getHookCanEmit(ripple::STObject const& hookObj, SLE::pointer const& hookDef)
+{
+    // default allows all transaction types
+    uint256 defaultHookCanEmit = UINT256_BIT[ttHOOK_SET];
+
+    uint256 hookCanEmit =
+        (hookObj.isFieldPresent(sfHookCanEmit)
+             ? hookObj.getFieldH256(sfHookCanEmit)
+             : hookDef->isFieldPresent(sfHookCanEmit)
+                 ? hookDef->getFieldH256(sfHookCanEmit)
+                 : defaultHookCanEmit);
+    return hookCanEmit;
+}
+
 // Update HookState ledger objects for the hook... only called after accept()
 // assumes the specified acc has already been checked for authoriation (hook
 // grants)

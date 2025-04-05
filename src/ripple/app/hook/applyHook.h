@@ -431,6 +431,9 @@ canHook(ripple::TxType txType, ripple::uint256 hookOn);
 bool
 canEmit(ripple::TxType txType, ripple::uint256 hookCanEmit);
 
+ripple::uint256
+getHookCanEmit(ripple::STObject const& hookObj, SLE::pointer const& hookDef);
+
 struct HookResult;
 
 HookResult

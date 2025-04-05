@@ -1230,15 +1230,7 @@ Transactor::executeHookChain(
         if (!hook::canHook(ctx_.tx.getTxnType(), hookOn))
             continue;  // skip if it can't
 
-        // default allows all transaction types
-        uint256 defaultHookCanEmit = UINT256_BIT[ttHOOK_SET];
-
-        uint256 hookCanEmit =
-            (hookObj.isFieldPresent(sfHookCanEmit)
-                 ? hookObj.getFieldH256(sfHookCanEmit)
-                 : hookDef->isFieldPresent(sfHookCanEmit)
-                     ? hookDef->getFieldH256(sfHookCanEmit)
-                     : defaultHookCanEmit);
+        uint256 hookCanEmit = hook::getHookCanEmit(hookObj, hookDef);
 
         uint32_t flags =
             (hookObj.isFieldPresent(sfFlags) ? hookObj.getFieldU32(sfFlags)
@@ -1406,15 +1398,7 @@ Transactor::doHookCallback(
         if (hookObj.getFieldH256(sfHookHash) != callbackHookHash)
             continue;
 
-        // default allows all transaction types
-        uint256 defaultHookCanEmit = UINT256_BIT[ttHOOK_SET];
-
-        uint256 hookCanEmit =
-            (hookObj.isFieldPresent(sfHookCanEmit)
-                 ? hookObj.getFieldH256(sfHookCanEmit)
-                 : hookDef->isFieldPresent(sfHookCanEmit)
-                     ? hookDef->getFieldH256(sfHookCanEmit)
-                     : defaultHookCanEmit);
+        uint256 hookCanEmit = hook::getHookCanEmit(hookObj, hookDef);
 
         // fetch the namespace either from the hook object of, if absent, the
         // hook def
@@ -1689,15 +1673,7 @@ Transactor::doAgainAsWeak(
             continue;
         }
 
-        // default allows all transaction types
-        uint256 defaultHookCanEmit = UINT256_BIT[ttHOOK_SET];
-
-        uint256 hookCanEmit =
-            (hookObj.isFieldPresent(sfHookCanEmit)
-                 ? hookObj.getFieldH256(sfHookCanEmit)
-                 : hookDef->isFieldPresent(sfHookCanEmit)
-                     ? hookDef->getFieldH256(sfHookCanEmit)
-                     : defaultHookCanEmit);
+        uint256 hookCanEmit = hook::getHookCanEmit(hookObj, hookDef);
 
         // fetch the namespace either from the hook object of, if absent, the
         // hook def
