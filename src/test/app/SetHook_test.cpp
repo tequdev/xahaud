@@ -680,8 +680,8 @@ public:
             env.close();
         }
 
-        // grants, parameters, hookon, hookcanemit, hookapiversion, hooknamespace
-        // keys must be absent
+        // grants, parameters, hookon, hookcanemit, hookapiversion,
+        // hooknamespace keys must be absent
         for (auto const& [key, value] : JSSMap{
                  {jss::HookGrants, Json::arrayValue},
                  {jss::HookParameters, Json::arrayValue},
@@ -12428,7 +12428,8 @@ public:
             }
         )[test.hook]"];
 
-        bool const hasFeature = env.current()->rules().enabled(featureHookCanEmit);
+        bool const hasFeature =
+            env.current()->rules().enabled(featureHookCanEmit);
 
         Json::Value jv;
         jv[jss::CreateCode] = "";
@@ -12591,13 +12592,16 @@ public:
                 hookCanEmitHook[jss::HookCanEmit] =
                     "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
                     "FFFFFFFFFFFFFF";
-                env(ripple::test::jtx::hook(acc, {{jv, jv, hookCanEmitHook}}, 0),
+                env(ripple::test::jtx::hook(
+                        acc, {{jv, jv, hookCanEmitHook}}, 0),
                     M("test hookcanemit 3"),
                     HSFEE);
                 env.close();
 
                 // invoke the hook
-                env(pay(caller, acc, XRP(1)), M("test hookcanemit 3"), fee(XRP(1)));
+                env(pay(caller, acc, XRP(1)),
+                    M("test hookcanemit 3"),
+                    fee(XRP(1)));
                 env.close();
 
                 auto meta = env.meta();

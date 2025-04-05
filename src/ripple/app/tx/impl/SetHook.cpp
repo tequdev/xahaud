@@ -1420,7 +1420,8 @@ SetHook::setHook()
                         sfHookOn, oldHook->get().getFieldH256(sfHookOn));
                 if (oldHook->get().isFieldPresent(sfHookCanEmit))
                     newHook.setFieldH256(
-                        sfHookCanEmit, oldHook->get().getFieldH256(sfHookCanEmit));
+                        sfHookCanEmit,
+                        oldHook->get().getFieldH256(sfHookCanEmit));
                 if (oldHook->get().isFieldPresent(sfHookNamespace))
                     newHook.setFieldH256(
                         sfHookNamespace,
@@ -1453,7 +1454,8 @@ SetHook::setHook()
                 // set the hookcanemit field if it differs from definition
                 if (newHookCanEmit)
                 {
-                    if (defHookCanEmit.has_value() && *defHookCanEmit == *newHookCanEmit)
+                    if (defHookCanEmit.has_value() &&
+                        *defHookCanEmit == *newHookCanEmit)
                     {
                         if (newHook.isFieldPresent(sfHookCanEmit))
                             newHook.makeFieldAbsent(sfHookCanEmit);
@@ -1612,7 +1614,8 @@ SetHook::setHook()
                     newHookDef->setFieldH256(sfHookHash, *createHookHash);
                     newHookDef->setFieldH256(sfHookOn, *newHookOn);
                     if (newHookCanEmit)
-                        newHookDef->setFieldH256(sfHookCanEmit, *newHookCanEmit);
+                        newHookDef->setFieldH256(
+                            sfHookCanEmit, *newHookCanEmit);
                     newHookDef->setFieldH256(sfHookNamespace, *newNamespace);
                     newHookDef->setFieldArray(
                         sfHookParameters,
@@ -1719,7 +1722,8 @@ SetHook::setHook()
 
                 // set the hookcanemit field if it differs from definition
                 if (newHookCanEmit &&
-                    !(defHookCanEmit.has_value() && *defHookCanEmit == *newHookCanEmit))
+                    !(defHookCanEmit.has_value() &&
+                      *defHookCanEmit == *newHookCanEmit))
                     newHook.setFieldH256(sfHookCanEmit, *newHookCanEmit);
 
                 // parameters
@@ -1770,8 +1774,8 @@ SetHook::setHook()
         // sfHook: 1 reserve PER non-blank entry
         // sfParameters: 1 reserve PER entry
         // sfGrants are: 1 reserve PER entry
-        // sfHookHash, sfHookNamespace, sfHookOn, sfHookCanEmit, sfHookApiVersion,
-        // sfFlags: free
+        // sfHookHash, sfHookNamespace, sfHookOn, sfHookCanEmit,
+        // sfHookApiVersion, sfFlags: free
 
         // sfHookDefinition is not reserved because it is an unowned object,
         // rather the uploader is billed via fee according to the following:

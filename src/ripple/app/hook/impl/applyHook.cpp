@@ -1035,7 +1035,9 @@ hook::canEmit(ripple::TxType txType, ripple::uint256 hookCanEmit)
 }
 
 ripple::uint256
-hook::getHookCanEmit(ripple::STObject const& hookObj, SLE::pointer const& hookDef)
+hook::getHookCanEmit(
+    ripple::STObject const& hookObj,
+    SLE::pointer const& hookDef)
 {
     // default allows all transaction types
     uint256 defaultHookCanEmit = UINT256_BIT[ttHOOK_SET];
