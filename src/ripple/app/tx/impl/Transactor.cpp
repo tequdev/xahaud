@@ -1231,14 +1231,14 @@ Transactor::executeHookChain(
             continue;  // skip if it can't
 
         // default allows all transaction types
-        uint256 defaultHookEmit = UINT256_BIT[ttHOOK_SET];
+        uint256 defaultHookCanEmit = UINT256_BIT[ttHOOK_SET];
 
-        uint256 hookEmit =
-            (hookObj.isFieldPresent(sfHookEmit)
-                 ? hookObj.getFieldH256(sfHookEmit)
-                 : hookDef->isFieldPresent(sfHookEmit)
-                     ? hookDef->getFieldH256(sfHookEmit)
-                     : defaultHookEmit);
+        uint256 hookCanEmit =
+            (hookObj.isFieldPresent(sfHookCanEmit)
+                 ? hookObj.getFieldH256(sfHookCanEmit)
+                 : hookDef->isFieldPresent(sfHookCanEmit)
+                     ? hookDef->getFieldH256(sfHookCanEmit)
+                     : defaultHookCanEmit);
 
         uint32_t flags =
             (hookObj.isFieldPresent(sfFlags) ? hookObj.getFieldU32(sfFlags)
@@ -1275,7 +1275,7 @@ Transactor::executeHookChain(
             results.push_back(hook::apply(
                 hookDef->getFieldH256(sfHookSetTxnID),
                 hookHash,
-                hookEmit,
+                hookCanEmit,
                 ns,
                 hookDef->getFieldVL(sfCreateCode),
                 parameters,
@@ -1407,14 +1407,14 @@ Transactor::doHookCallback(
             continue;
 
         // default allows all transaction types
-        uint256 defaultHookEmit = UINT256_BIT[ttHOOK_SET];
+        uint256 defaultHookCanEmit = UINT256_BIT[ttHOOK_SET];
 
-        uint256 hookEmit =
-            (hookObj.isFieldPresent(sfHookEmit)
-                 ? hookObj.getFieldH256(sfHookEmit)
-                 : hookDef->isFieldPresent(sfHookEmit)
-                     ? hookDef->getFieldH256(sfHookEmit)
-                     : defaultHookEmit);
+        uint256 hookCanEmit =
+            (hookObj.isFieldPresent(sfHookCanEmit)
+                 ? hookObj.getFieldH256(sfHookCanEmit)
+                 : hookDef->isFieldPresent(sfHookCanEmit)
+                     ? hookDef->getFieldH256(sfHookCanEmit)
+                     : defaultHookCanEmit);
 
         // fetch the namespace either from the hook object of, if absent, the
         // hook def
@@ -1441,7 +1441,7 @@ Transactor::doHookCallback(
             hook::HookResult callbackResult = hook::apply(
                 hookDef->getFieldH256(sfHookSetTxnID),
                 callbackHookHash,
-                hookEmit,
+                hookCanEmit,
                 ns,
                 hookDef->getFieldVL(sfCreateCode),
                 parameters,
@@ -1690,14 +1690,14 @@ Transactor::doAgainAsWeak(
         }
 
         // default allows all transaction types
-        uint256 defaultHookEmit = UINT256_BIT[ttHOOK_SET];
+        uint256 defaultHookCanEmit = UINT256_BIT[ttHOOK_SET];
 
-        uint256 hookEmit =
-            (hookObj.isFieldPresent(sfHookEmit)
-                 ? hookObj.getFieldH256(sfHookEmit)
-                 : hookDef->isFieldPresent(sfHookEmit)
-                     ? hookDef->getFieldH256(sfHookEmit)
-                     : defaultHookEmit);
+        uint256 hookCanEmit =
+            (hookObj.isFieldPresent(sfHookCanEmit)
+                 ? hookObj.getFieldH256(sfHookCanEmit)
+                 : hookDef->isFieldPresent(sfHookCanEmit)
+                     ? hookDef->getFieldH256(sfHookCanEmit)
+                     : defaultHookCanEmit);
 
         // fetch the namespace either from the hook object of, if absent, the
         // hook def
@@ -1719,7 +1719,7 @@ Transactor::doAgainAsWeak(
             hook::HookResult aawResult = hook::apply(
                 hookDef->getFieldH256(sfHookSetTxnID),
                 hookHash,
-                hookEmit,
+                hookCanEmit,
                 ns,
                 hookDef->getFieldVL(sfCreateCode),
                 parameters,

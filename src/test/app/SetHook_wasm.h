@@ -24923,21 +24923,21 @@ std::map<std::string, std::vector<uint8_t>> wasm = {
                 
                 uint8_t hash[32];
                 if (hook_pos() == 0) {
-                    // default (hookemit not set)
+                    // default (hookcanemit not set)
                     ASSERT(emit(SBUF(hash), SBUF(payment_tx)) == 32);
                     ASSERT(emit(SBUF(hash), SBUF(account_set_tx)) == 32);
                     ASSERT(emit(SBUF(hash), SBUF(hook_set_tx)) == 32);
                     return accept(0, 0, hook_pos());
                 } 
                 if (hook_pos() == 1) {
-                    // hookemit all low
+                    // hookcanemit all low
                     ASSERT(emit(SBUF(hash), SBUF(payment_tx)) == 32);
                     ASSERT(emit(SBUF(hash), SBUF(account_set_tx)) == 32);
                     ASSERT(emit(SBUF(hash), SBUF(hook_set_tx)) == EMISSION_FAILURE);
                     return accept(0, 0, hook_pos());
                 }
                 if (hook_pos() == 2) {
-                    // hookemit all high
+                    // hookcanemit all high
                     ASSERT(emit(SBUF(hash), SBUF(payment_tx)) == EMISSION_FAILURE);
                     ASSERT(emit(SBUF(hash), SBUF(account_set_tx)) == EMISSION_FAILURE);
                     ASSERT(emit(SBUF(hash), SBUF(hook_set_tx)) == 32);

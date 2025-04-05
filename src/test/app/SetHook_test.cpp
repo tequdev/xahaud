@@ -643,8 +643,8 @@ public:
         using namespace jtx;
         Env env{*this, features};
 
-        bool const hasHookEmit =
-            env.current()->rules().enabled(featureHookEmit);
+        bool const hasHookCanEmit =
+            env.current()->rules().enabled(featureHookCanEmit);
 
         auto const alice = Account{"alice"};
         env.fund(XRP(10000), alice);
@@ -680,7 +680,7 @@ public:
             env.close();
         }
 
-        // grants, parameters, hookon, hookemit, hookapiversion, hooknamespace
+        // grants, parameters, hookon, hookcanemit, hookapiversion, hooknamespace
         // keys must be absent
         for (auto const& [key, value] : JSSMap{
                  {jss::HookGrants, Json::arrayValue},
@@ -688,13 +688,13 @@ public:
                  {jss::HookOn,
                   "000000000000000000000000000000000000000000000000000000000000"
                   "0000"},
-                 {jss::HookEmit,
+                 {jss::HookCanEmit,
                   "000000000000000000000000000000000000000000000000000000000000"
                   "0000"},
                  {jss::HookApiVersion, "0"},
                  {jss::HookNamespace, to_string(uint256{beast::zero})}})
         {
-            if (!hasHookEmit && key == jss::HookEmit)
+            if (!hasHookCanEmit && key == jss::HookCanEmit)
                 continue;
 
             Json::Value iv;
@@ -703,7 +703,7 @@ public:
             jv[jss::Hooks][0U][jss::Hook] = iv;
             env(jv,
                 M("Hook DELETE operation cannot include: grants, params, "
-                  "hookon, hookemit, apiversion, namespace"),
+                  "hookon, hookcanemit, apiversion, namespace"),
                 HSFEE,
                 ter(temMALFORMED));
             env.close();
@@ -840,8 +840,8 @@ public:
         Env env{*this, features};
 
         bool const fixNS = env.current()->rules().enabled(fixNSDelete);
-        bool const hasHookEmit =
-            env.current()->rules().enabled(featureHookEmit);
+        bool const hasHookCanEmit =
+            env.current()->rules().enabled(featureHookCanEmit);
 
         auto const alice = Account{"alice"};
         env.fund(XRP(10000), alice);
@@ -861,13 +861,13 @@ public:
                  {jss::HookOn,
                   "000000000000000000000000000000000000000000000000000000000000"
                   "0000"},
-                 {jss::HookEmit,
+                 {jss::HookCanEmit,
                   "000000000000000000000000000000000000000000000000000000000000"
                   "0000"},
                  {jss::HookApiVersion, "0"},
              })
         {
-            if (!hasHookEmit && key == jss::HookEmit)
+            if (!hasHookCanEmit && key == jss::HookCanEmit)
                 continue;
 
             Json::Value iv;
@@ -877,7 +877,7 @@ public:
             jv[jss::Hooks][0U][jss::Hook] = iv;
             env(jv,
                 M("Hook NSDELETE operation cannot include: grants, params, "
-                  "hookon, hookemit, apiversion"),
+                  "hookon, hookcanemit, apiversion"),
                 HSFEE,
                 ter(temMALFORMED));
             env.close();
@@ -1210,8 +1210,8 @@ public:
         using namespace jtx;
         Env env{*this, features};
 
-        bool const hasHookEmit =
-            env.current()->rules().enabled(featureHookEmit);
+        bool const hasHookCanEmit =
+            env.current()->rules().enabled(featureHookCanEmit);
 
         auto const bob = Account{"bob"};
         env.fund(XRP(10000), bob);
@@ -1256,8 +1256,8 @@ public:
             iv[jss::HookOn] =
                 "00000000000000000000000000000000000000000000000000000000000000"
                 "00";
-            if (hasHookEmit)
-                iv[jss::HookEmit] =
+            if (hasHookCanEmit)
+                iv[jss::HookCanEmit] =
                     "0000000000000000000000000000000000000000000000000000000000"
                     "000000";
             jv[jss::Hooks][0U] = Json::Value{};
@@ -1278,8 +1278,8 @@ public:
             iv[jss::HookOn] =
                 "00000000000000000000000000000000000000000000000000000000000000"
                 "00";
-            if (hasHookEmit)
-                iv[jss::HookEmit] =
+            if (hasHookCanEmit)
+                iv[jss::HookCanEmit] =
                     "0000000000000000000000000000000000000000000000000000000000"
                     "000000";
             jv[jss::Hooks][0U] = Json::Value{};
@@ -1301,8 +1301,8 @@ public:
             iv[jss::HookOn] =
                 "00000000000000000000000000000000000000000000000000000000000000"
                 "00";
-            if (hasHookEmit)
-                iv[jss::HookEmit] =
+            if (hasHookCanEmit)
+                iv[jss::HookCanEmit] =
                     "0000000000000000000000000000000000000000000000000000000000"
                     "000000";
             jv[jss::Hooks][0U] = Json::Value{};
@@ -1321,8 +1321,8 @@ public:
             iv[jss::CreateCode] = strHex(accept_wasm);
             iv[jss::HookNamespace] = to_string(uint256{beast::zero});
             iv[jss::HookApiVersion] = 0U;
-            if (hasHookEmit)
-                iv[jss::HookEmit] =
+            if (hasHookCanEmit)
+                iv[jss::HookCanEmit] =
                     "0000000000000000000000000000000000000000000000000000000000"
                     "000000";
             jv[jss::Hooks][0U] = Json::Value{};
@@ -1471,8 +1471,8 @@ public:
         using namespace jtx;
         Env env{*this, features};
 
-        bool const hasHookEmit =
-            env.current()->rules().enabled(featureHookEmit);
+        bool const hasHookCanEmit =
+            env.current()->rules().enabled(featureHookCanEmit);
 
         auto const alice = Account{"alice"};
         env.fund(XRP(10000), alice);
@@ -1495,8 +1495,8 @@ public:
             iv[jss::HookOn] =
                 "00000000000000000000000000000000000000000000000000000000000000"
                 "00";
-            if (hasHookEmit)
-                iv[jss::HookEmit] =
+            if (hasHookCanEmit)
+                iv[jss::HookCanEmit] =
                     "0000000000000000000000000000000000000000000000000000000000"
                     "000000";
             iv[jss::HookParameters] = Json::Value{Json::arrayValue};
@@ -1580,7 +1580,7 @@ public:
                      {jss::HookOn,
                       "00000000000000000000000000000000000000000000000000000000"
                       "00000001"},
-                     {jss::HookEmit,
+                     {jss::HookCanEmit,
                       "00000000000000000000000000000000000000000000000000000000"
                       "00000001"},
                      {jss::HookNamespace,
@@ -1589,7 +1589,7 @@ public:
                      {jss::HookParameters, params},
                      {jss::HookGrants, grants}})
             {
-                if (!hasHookEmit && key == jss::HookEmit)
+                if (!hasHookCanEmit && key == jss::HookCanEmit)
                     continue;
 
                 Json::Value iv;
@@ -1614,11 +1614,11 @@ public:
             BEAST_REQUIRE(hooks[0].isFieldPresent(sfHookOn));
             BEAST_EXPECT(hooks[0].getFieldH256(sfHookOn) == UINT256_BIT[0]);
 
-            if (hasHookEmit)
+            if (hasHookCanEmit)
             {
-                BEAST_REQUIRE(hooks[0].isFieldPresent(sfHookEmit));
+                BEAST_REQUIRE(hooks[0].isFieldPresent(sfHookCanEmit));
                 BEAST_EXPECT(
-                    hooks[0].getFieldH256(sfHookEmit) ==
+                    hooks[0].getFieldH256(sfHookCanEmit) ==
                     ripple::uint256("000000000000000000000000000000000000000000"
                                     "0000000000000000000001"));
             }
@@ -1654,18 +1654,18 @@ public:
             BEAST_REQUIRE(g[0].getFieldH256(sfHookHash) == accept_hash);
         }
 
-        // reset hookon, hookemit, and namespace to defaults
+        // reset hookon, hookcanemit, and namespace to defaults
         {
             for (auto const& [key, value] : JSSMap{
                      {jss::HookOn,
                       "00000000000000000000000000000000000000000000000000000000"
                       "00000000"},
-                     {jss::HookEmit,
+                     {jss::HookCanEmit,
                       "00000000000000000000000000000000000000000000000000000000"
                       "00000000"},
                      {jss::HookNamespace, to_string(uint256{beast::zero})}})
             {
-                if (key == jss::HookEmit && !hasHookEmit)
+                if (key == jss::HookCanEmit && !hasHookCanEmit)
                     continue;
 
                 Json::Value iv;
@@ -1689,7 +1689,7 @@ public:
             // ensure the two fields are now absent (because they were reset to
             // the defaults on the hook def)
             BEAST_EXPECT(!hooks[0].isFieldPresent(sfHookOn));
-            BEAST_EXPECT(!hooks[0].isFieldPresent(sfHookEmit));
+            BEAST_EXPECT(!hooks[0].isFieldPresent(sfHookCanEmit));
             BEAST_EXPECT(!hooks[0].isFieldPresent(sfHookNamespace));
         }
 
@@ -1909,7 +1909,7 @@ public:
                      {jss::HookOn,
                       "00000000000000000000000000000000000000000000000000000000"
                       "00000001"},
-                     {jss::HookEmit,
+                     {jss::HookCanEmit,
                       "00000000000000000000000000000000000000000000000000000000"
                       "00000001"},
                      {jss::HookNamespace,
@@ -1918,7 +1918,7 @@ public:
                      {jss::HookParameters, params},
                      {jss::HookGrants, grants}})
             {
-                if (key == jss::HookEmit && !hasHookEmit)
+                if (key == jss::HookCanEmit && !hasHookCanEmit)
                     continue;
 
                 Json::Value iv;
@@ -12080,9 +12080,9 @@ public:
     }
 
     void
-    testHookEmit(FeatureBitset features)
+    testHookCanEmit(FeatureBitset features)
     {
-        testcase("test HookEmit");
+        testcase("test HookCanEmit");
         using namespace jtx;
         Env env{*this, features};
 
@@ -12405,21 +12405,21 @@ public:
                 
                 uint8_t hash[32];
                 if (hook_pos() == 0) {
-                    // default (hookemit not set)
+                    // default (hookcanemit not set)
                     ASSERT(emit(SBUF(hash), SBUF(payment_tx)) == 32);
                     ASSERT(emit(SBUF(hash), SBUF(account_set_tx)) == 32);
                     ASSERT(emit(SBUF(hash), SBUF(hook_set_tx)) == 32);
                     return accept(0, 0, hook_pos());
                 } 
                 if (hook_pos() == 1) {
-                    // hookemit all low
+                    // hookcanemit all low
                     ASSERT(emit(SBUF(hash), SBUF(payment_tx)) == 32);
                     ASSERT(emit(SBUF(hash), SBUF(account_set_tx)) == 32);
                     ASSERT(emit(SBUF(hash), SBUF(hook_set_tx)) == EMISSION_FAILURE);
                     return accept(0, 0, hook_pos());
                 }
                 if (hook_pos() == 2) {
-                    // hookemit all high
+                    // hookcanemit all high
                     ASSERT(emit(SBUF(hash), SBUF(payment_tx)) == EMISSION_FAILURE);
                     ASSERT(emit(SBUF(hash), SBUF(account_set_tx)) == EMISSION_FAILURE);
                     ASSERT(emit(SBUF(hash), SBUF(hook_set_tx)) == 32);
@@ -12428,7 +12428,7 @@ public:
             }
         )[test.hook]"];
 
-        bool const hasFeature = env.current()->rules().enabled(featureHookEmit);
+        bool const hasFeature = env.current()->rules().enabled(featureHookCanEmit);
 
         Json::Value jv;
         jv[jss::CreateCode] = "";
@@ -12463,7 +12463,7 @@ public:
             {
                 Json::Value h = hso(hook, overrideFlag);
                 env(ripple::test::jtx::hook(hookacc, {{h}}, 0),
-                    M("set hookemit"),
+                    M("set hookcanemit"),
                     HSFEE);
                 env.close();
             }
@@ -12471,7 +12471,7 @@ public:
             {
                 Json::Value h = hso(hook, overrideFlag);
                 env(ripple::test::jtx::hook(acc, {{h}}, 0),
-                    M("set hookemit"),
+                    M("set hookcanemit"),
                     HSFEE);
                 env.close();
             }
@@ -12479,13 +12479,13 @@ public:
             {
                 Json::Value h = hso(hook, overrideFlag);
                 env(ripple::test::jtx::hook(acc, {{h}}, 0),
-                    M("set hookemit"),
+                    M("set hookcanemit"),
                     HSFEE);
                 env.close();
 
                 // invoke the hook
                 env(pay(caller, acc, XRP(1)),
-                    M("test hookemit 1"),
+                    M("test hookcanemit 1"),
                     fee(XRP(1)));
                 env.close();
 
@@ -12508,13 +12508,13 @@ public:
             }
 
             {
-                // same result with no-HookEmit
+                // same result with no-HookCanEmit
                 Json::Value h = hso(hook, overrideFlag);
-                h[jss::HookEmit] =
+                h[jss::HookCanEmit] =
                     "0000000000000000000000000000000000000000000000000000000000"
                     "400000";
                 env(ripple::test::jtx::hook(acc, {{h}}, 0),
-                    M("set hookemit"),
+                    M("set hookcanemit"),
                     HSFEE,
                     hasFeature ? ter(tesSUCCESS) : ter(temDISABLED));
                 env.close();
@@ -12523,7 +12523,7 @@ public:
                 {
                     // invoke the hook
                     env(pay(caller, acc, XRP(1)),
-                        M("test hookemit 1"),
+                        M("test hookcanemit 1"),
                         fee(XRP(1)));
                     env.close();
 
@@ -12548,12 +12548,12 @@ public:
 
             {
                 // install the hook on acc
-                Json::Value hookEmitHook = hso(hook, overrideFlag);
-                hookEmitHook[jss::HookEmit] =
+                Json::Value hookCanEmitHook = hso(hook, overrideFlag);
+                hookCanEmitHook[jss::HookCanEmit] =
                     "00000000000000000000000000000000000000000000000000"
                     "00000000000000";
-                env(ripple::test::jtx::hook(acc, {{jv, hookEmitHook}}, 0),
-                    M("test hookemit"),
+                env(ripple::test::jtx::hook(acc, {{jv, hookCanEmitHook}}, 0),
+                    M("test hookcanemit"),
                     HSFEE,
                     hasFeature ? ter(tesSUCCESS) : ter(temDISABLED));
                 env.close();
@@ -12563,7 +12563,7 @@ public:
 
                 // invoke the hook
                 env(pay(caller, acc, XRP(1)),
-                    M("test hookemit 2"),
+                    M("test hookcanemit 2"),
                     fee(XRP(1)));
                 env.close();
 
@@ -12587,17 +12587,17 @@ public:
 
             {
                 // install the hook on acc
-                Json::Value hookEmitHook = hso(hook, overrideFlag);
-                hookEmitHook[jss::HookEmit] =
+                Json::Value hookCanEmitHook = hso(hook, overrideFlag);
+                hookCanEmitHook[jss::HookCanEmit] =
                     "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
                     "FFFFFFFFFFFFFF";
-                env(ripple::test::jtx::hook(acc, {{jv, jv, hookEmitHook}}, 0),
-                    M("test hookemit 3"),
+                env(ripple::test::jtx::hook(acc, {{jv, jv, hookCanEmitHook}}, 0),
+                    M("test hookcanemit 3"),
                     HSFEE);
                 env.close();
 
                 // invoke the hook
-                env(pay(caller, acc, XRP(1)), M("test hookemit"), fee(XRP(1)));
+                env(pay(caller, acc, XRP(1)), M("test hookcanemit 3"), fee(XRP(1)));
                 env.close();
 
                 auto meta = env.meta();
@@ -12629,7 +12629,7 @@ public:
         testInferHookSetOperation(features);
         testParams(features);
         testGrants(features);
-        testHookEmit(features);
+        testHookCanEmit(features);
 
         testDelete(features);
         testInstall(features);
@@ -12748,7 +12748,7 @@ public:
             sa - fixXahauV1 - fixXahauV2 - fixNSDelete - fixPageCap);
         testWithFeatures(
             sa - fixXahauV1 - fixXahauV2 - fixNSDelete - fixPageCap -
-            featureHookEmit);
+            featureHookCanEmit);
     }
 
 private:

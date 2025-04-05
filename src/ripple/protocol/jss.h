@@ -78,7 +78,7 @@ JSS(GenesisMints);
 JSS(GovernanceMarks);
 JSS(GovernanceFlags);
 JSS(HookApiVersion);      // field
-JSS(HookEmit);            // field
+JSS(HookCanEmit);         // field
 JSS(HookHash);            // field
 JSS(HookNamespace);       // field
 JSS(HookOn);              // field
