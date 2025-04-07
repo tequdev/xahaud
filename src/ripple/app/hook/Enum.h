@@ -446,5 +446,8 @@ static const std::map<std::string, std::vector<uint8_t>> import_whitelist{
 // featureHooks1
 static const std::map<std::string, std::vector<uint8_t>> import_whitelist_1{
     {"xpop_slot", {0x7EU, 0x7FU, 0x7FU}}};
+// FunctionalHooks
+static const std::map<std::string, std::vector<uint8_t>> import_whitelist_v3{
+    {"otxn_func_param", {0x7EU, 0x7FU, 0x7FU, 0x7FU, 0x7FU}}};
 };  // namespace hook_api
 #endif

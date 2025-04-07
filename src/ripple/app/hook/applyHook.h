@@ -399,6 +399,13 @@ DECLARE_HOOK_FUNCTION(
     uint32_t write_len,
     uint32_t read_ptr,
     uint32_t read_len);
+DECLARE_HOOK_FUNCTION(
+    int64_t,
+    otxn_func_param,
+    uint32_t write_ptr,
+    uint32_t write_len,
+    uint32_t index,
+    uint32_t serialized_type_id);
 
 DECLARE_HOOK_FUNCTION(int64_t, meta_slot, uint32_t slot_no);
 DECLARE_HOOK_FUNCTION(
@@ -835,6 +842,7 @@ public:
         ADD_HOOK_FUNCTION(otxn_type, ctx);
         ADD_HOOK_FUNCTION(otxn_slot, ctx);
         ADD_HOOK_FUNCTION(otxn_param, ctx);
+        ADD_HOOK_FUNCTION(otxn_func_param, ctx);
 
         ADD_HOOK_FUNCTION(hook_account, ctx);
         ADD_HOOK_FUNCTION(hook_hash, ctx);

@@ -347,6 +347,95 @@ public:
         env.fund(XRP(10000), alice);
         env.close();
 
+        TestHook testv3_wasm = wasmv3[
+            R"[test.hook](
+            #include <stdint.h>
+            extern int32_t _g       (uint32_t id, uint32_t maxiter);
+            #define GUARD(maxiter) _g((1ULL << 31U) + __LINE__, (maxiter)+1)
+            extern int64_t accept   (uint32_t read_ptr, uint32_t read_len, int64_t error_code);
+            extern int64_t rollback (uint32_t read_ptr, uint32_t read_len, int64_t error_code);
+            extern int64_t util_accid (uint32_t, uint32_t, uint32_t, uint32_t);
+            extern int64_t otxn_func_param (uint32_t write_ptr, uint32_t write_len, uint32_t index, uint32_t serialized_type_id);
+            #define UINT8 16
+            #define UINT16 1
+            #define UINT32 2
+            #define UINT64 3
+            #define UINT128 4
+            #define UINT256 5
+            #define AMOUNT 6
+            #define VL 7
+            #define ACCOUNT 8
+            #define INVALID_ARGUMENT -7
+            #define DOESNT_EXIST -5
+            #define SBUF(x) (uint32_t)x,sizeof(x)
+            #define SVAR(x) (uint32_t)&x,sizeof(x)
+            #define ASSERT_EQUAL(x, y) if (!(x == y)) rollback((uint32_t)#x,sizeof(#x), x);
+            int64_t hook_accept(uint32_t reserved)
+            {
+                _g(1,1);
+                ASSERT_EQUAL(otxn_func_param(0, 0, 10, UINT16), DOESNT_EXIST);
+                ASSERT_EQUAL(otxn_func_param(0, 2, 0, UINT8), INVALID_ARGUMENT);
+                ASSERT_EQUAL(otxn_func_param(0, 2, 0, 99), INVALID_ARGUMENT);
+                
+                uint16_t data16;
+                ASSERT_EQUAL(otxn_func_param(SVAR(data16), 0, UINT16), 2);
+                ASSERT_EQUAL(data16, 0);
+                
+                uint32_t data32;
+                ASSERT_EQUAL(otxn_func_param(SVAR(data32), 1, UINT32), 4);
+                ASSERT_EQUAL(data32, 1);
+                
+                uint64_t data64;
+                ASSERT_EQUAL(otxn_func_param(SVAR(data64), 2, UINT64), 8);
+                ASSERT_EQUAL(data64, 2);
+                
+                uint8_t data128[16];
+                ASSERT_EQUAL(otxn_func_param(SBUF(data128), 3, UINT128), 16);
+                for (int i = 0; GUARD(15), i < 15; i++)
+                    ASSERT_EQUAL(data128[i], 0);
+                ASSERT_EQUAL(data128[15], 3);
+
+                uint8_t data256[32];
+                ASSERT_EQUAL(otxn_func_param(SBUF(data256), 4, UINT256), 32);
+                for (int i = 0; GUARD(31), i < 31; i++)
+                    ASSERT_EQUAL(data256[i], 0);
+                ASSERT_EQUAL(data256[31], 4);
+
+                ASSERT_EQUAL(otxn_func_param(0, 8, 5, AMOUNT), 8);
+                
+                uint8_t data_vl[6];
+                ASSERT_EQUAL(otxn_func_param(SBUF(data_vl), 6, VL), 6);
+                for (int i = 0; GUARD(6), i < 6; i++)
+                    ASSERT_EQUAL(data_vl[i], i);
+
+                uint8_t data_account[20];
+                uint8_t expected_account[20];
+                const char addr[] = "rPMh7Pi9ct699iZUTWaytJUoHcJ7cgyziK"; // bob
+                ASSERT_EQUAL(util_accid(SBUF(expected_account), SBUF(addr)), 20);
+                ASSERT_EQUAL(otxn_func_param(SBUF(data_account), 7, ACCOUNT), 20);
+                for (int i = 0; GUARD(20), i < 20; i++)
+                    ASSERT_EQUAL(data_account[i], expected_account[i]);
+
+                uint8_t data8;
+                ASSERT_EQUAL(otxn_func_param(SVAR(data8), 8, UINT8), 1);
+                ASSERT_EQUAL(data8, 8);
+
+                return accept(SBUF("success"),0);
+            }
+            
+            int64_t hook_rollback(uint32_t reserved)
+            {
+                _g(1,1);
+                return rollback(SBUF("rollback"),0);
+            }
+
+            int64_t hook_accept2(uint32_t reserved)
+            {
+                _g(1,1);
+                return accept(SBUF("success2"),0);
+            }
+        )[test.hook]"];
+
         // install the hook on alice
         Json::Value jv = hso(testv3_wasm, overrideFlag);
         jv[jss::HookApiVersion] = 3;

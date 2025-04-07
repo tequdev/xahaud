@@ -10,6 +10,7 @@
 #include <ripple/basics/Log.h>
 #include <ripple/basics/Slice.h>
 #include <ripple/protocol/ErrorCodes.h>
+#include <ripple/protocol/STData.h>
 #include <ripple/protocol/TxFlags.h>
 #include <ripple/protocol/st.h>
 #include <ripple/protocol/tokens.h>
@@ -5703,6 +5704,147 @@ DEFINE_HOOK_FUNCTION(
 
     return DOESNT_EXIST;
 
+    HOOK_TEARDOWN();
+}
+
+DEFINE_HOOK_FUNCTION(
+    int64_t,
+    otxn_func_param,
+    uint32_t write_ptr,
+    uint32_t write_len,
+    uint32_t index,
+    uint32_t serialized_type_id)
+{
+    HOOK_SETUP();  // populates memory_ctx, memory, memory_length, applyCtx,
+                   // hookCtx on current stack
+
+    //    TODO: WeakTSH, Callback
+
+    if (NOT_IN_BOUNDS(write_ptr, write_len, memory_length))
+        return OUT_OF_BOUNDS;
+
+    if (!applyCtx.tx.isFieldPresent(sfFunctionParameters))
+        return DOESNT_EXIST;
+
+    auto const& funcParams = applyCtx.tx.getFieldArray(sfFunctionParameters);
+
+    if (funcParams.size() <= index)
+        return DOESNT_EXIST;
+    
+    if (!funcParams[index].isFieldPresent(sfFunctionParameterValue))
+        return INTERNAL_ERROR;
+
+    ripple::STData const& funcParam =
+        funcParams[index].getFieldData(sfFunctionParameterValue);
+
+    switch (serialized_type_id)
+    {
+        case STI_UINT8: {
+            if (write_len != 0 && write_len != 1)
+                return INVALID_ARGUMENT;
+            if (funcParam.getInnerSType() != STI_UINT8)
+                return INVALID_ARGUMENT;
+            uint8_t data = funcParam.getFieldU8();
+            WRITE_WASM_MEMORY_AND_RETURN(
+                write_ptr, write_len, &data, 1, memory, memory_length);
+            break;
+        }
+        case STI_UINT16: {
+            if (write_len != 0 && write_len != 2)
+                return INVALID_ARGUMENT;
+            if (funcParam.getInnerSType() != STI_UINT16)
+                return INVALID_ARGUMENT;
+            uint16_t data = funcParam.getFieldU16();
+            WRITE_WASM_MEMORY_AND_RETURN(
+                write_ptr, write_len, &data, 2, memory, memory_length);
+            break;
+        }
+        case STI_UINT32: {
+            if (write_len != 0 && write_len != 4)
+                return INVALID_ARGUMENT;
+            if (funcParam.getInnerSType() != STI_UINT32)
+                return INVALID_ARGUMENT;
+            uint32_t data = funcParam.getFieldU32();
+            WRITE_WASM_MEMORY_AND_RETURN(
+                write_ptr, write_len, &data, 4, memory, memory_length);
+            break;
+        }
+        case STI_UINT64: {
+            if (write_len != 0 && write_len != 8)
+                return INVALID_ARGUMENT;
+            if (funcParam.getInnerSType() != STI_UINT64)
+                return INVALID_ARGUMENT;
+            uint64_t data = funcParam.getFieldU64();
+            WRITE_WASM_MEMORY_AND_RETURN(
+                write_ptr, write_len, &data, 8, memory, memory_length);
+            break;
+        }
+        case STI_UINT128: {
+            if (write_len != 16)
+                return INVALID_ARGUMENT;
+            if (funcParam.getInnerSType() != STI_UINT128)
+                return INVALID_ARGUMENT;
+            uint128 data = funcParam.getFieldH128();
+            WRITE_WASM_MEMORY_AND_RETURN(
+                write_ptr, write_len, &data, 16, memory, memory_length);
+            break;
+        }
+        case STI_UINT256: {
+            if (write_len != 32)
+                return INVALID_ARGUMENT;
+            if (funcParam.getInnerSType() != STI_UINT256)
+                return INVALID_ARGUMENT;
+            uint256 data = funcParam.getFieldH256();
+            WRITE_WASM_MEMORY_AND_RETURN(
+                write_ptr, write_len, &data, 32, memory, memory_length);
+            break;
+        }
+        case STI_AMOUNT: {
+            if (write_len != 8 && write_len != 48)
+                return INVALID_ARGUMENT;
+            if (funcParam.getInnerSType() != STI_AMOUNT)
+                return INVALID_ARGUMENT;
+            STAmount data = funcParam.getFieldAmount();
+            if (data.native())
+            {
+                if (write_len != 8)
+                    return INVALID_ARGUMENT;
+            }
+            else
+            {
+                if (write_len != 48)
+                    return INVALID_ARGUMENT;
+            }
+            WRITE_WASM_MEMORY_AND_RETURN(
+                write_ptr, write_len, &data, write_len, memory, memory_length);
+            break;
+        }
+        case STI_VL: {
+            if (funcParam.getInnerSType() != STI_VL)
+                return INVALID_ARGUMENT;
+            auto data = funcParam.getFieldVL();
+            WRITE_WASM_MEMORY_AND_RETURN(
+                write_ptr,
+                write_len,
+                data.data(),
+                data.size(),
+                memory,
+                memory_length);
+            break;
+        }
+        case STI_ACCOUNT: {
+            if (write_len != 20)
+                return INVALID_ARGUMENT;
+            if (funcParam.getInnerSType() != STI_ACCOUNT)
+                return INVALID_ARGUMENT;
+            AccountID data = funcParam.getAccountID();
+            WRITE_WASM_MEMORY_AND_RETURN(
+                write_ptr, write_len, &data, 20, memory, memory_length);
+            break;
+        }
+        default:
+            return INVALID_ARGUMENT;
+    }
     HOOK_TEARDOWN();
 }
 

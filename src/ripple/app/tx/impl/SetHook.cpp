@@ -478,6 +478,11 @@ SetHook::validateHookSetEntry(SetHookCtx& ctx, STObject const& hookSetObj)
                 // interface so it can be used in other projects (i.e. tooling).
                 // As such the calling here is a bit convoluted.
 
+                auto rulesVersion =
+                    (ctx.rules.enabled(featureHooksUpdate1) ? 0x0001U : 0U) +
+                    (ctx.rules.enabled(fix20250131) ? 0x0002U : 0U) +
+                    (ctx.rules.enabled(featureFunctionalHooks) ? 0x0004U : 0U);
+
                 std::optional<std::reference_wrapper<std::basic_ostream<char>>>
                     logger;
                 std::ostringstream loggerStream;
@@ -494,8 +499,7 @@ SetHook::validateHookSetEntry(SetHookCtx& ctx, STObject const& hookSetObj)
                     hook,  // wasm to verify
                     logger,
                     hsacc,
-                    (ctx.rules.enabled(featureHooksUpdate1) ? 1 : 0) +
-                        (ctx.rules.enabled(fix20250131) ? 2 : 0));
+                    rulesVersion);
 
                 if (ctx.j.trace())
                 {

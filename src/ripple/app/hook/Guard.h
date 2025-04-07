@@ -834,7 +834,7 @@ validateGuards(
      * might have unforeseen consequences, without also rolling back further
      * changes that are fine.
      */
-    uint64_t rulesVersion = 0)
+    uint64_t rulesVersion = 0x00U)
 {
     // Maps to store export function information and instruction counts
     std::map<std::string, int> export_func_idx_map;
@@ -1029,11 +1029,17 @@ validateGuards(
                     hook_api::import_whitelist.find(import_name) ==
                     hook_api::import_whitelist.end())
                 {
-                    if (rulesVersion > 0 &&
+                    if (rulesVersion & 0x0U &&
                         hook_api::import_whitelist_1.find(import_name) !=
                             hook_api::import_whitelist_1.end())
                     {
                         // PASS, this is a version 1 api
+                    }
+                    else if (rulesVersion & 0x04U &&
+                        hook_api::import_whitelist_v3.find(import_name) !=
+                            hook_api::import_whitelist_v3.end())
+                    {
+                        // PASS, this is a version 3 api
                     }
                     else
                     {
@@ -1259,12 +1265,20 @@ validateGuards(
                 {
                     for (auto const& [import_idx, api_name] : usage->second)
                     {
-                        auto const& api_signature =
-                            hook_api::import_whitelist.find(api_name) !=
-                                hook_api::import_whitelist.end()
-                            ? hook_api::import_whitelist.find(api_name)->second
-                            : hook_api::import_whitelist_1.find(api_name)
-                                  ->second;
+                        auto findInWhitelist = [&](auto const& whitelist) {
+                            auto it = whitelist.find(api_name);
+                            return it != whitelist.end() ? &it->second
+                                                         : nullptr;
+                        };
+
+                        auto const* sig =
+                            findInWhitelist(hook_api::import_whitelist);
+                        if (!sig)
+                            sig = findInWhitelist(hook_api::import_whitelist_1);
+                        if (!sig)
+                            sig = findInWhitelist(hook_api::import_whitelist_v3);
+
+                        auto const& api_signature = *sig;
 
                         if (!first_signature)
                         {
