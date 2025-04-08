@@ -38,6 +38,7 @@
 #include <ripple/protocol/Protocol.h>
 #include <ripple/protocol/STAccount.h>
 #include <ripple/protocol/STData.h>
+#include <ripple/protocol/STDataType.h>
 #include <ripple/protocol/UintTypes.h>
 #include <limits>
 #include <set>
@@ -262,55 +263,18 @@ Transactor::calculateHookChainFee(
                 if (!tx.isFieldPresent(sfFunctionName))
                     return XRPAmount{INITIAL_XRP.drops()};
                 Blob functionName = tx.getFieldVL(sfFunctionName);
-                STArray const& functions =
-                    hookObj.isFieldPresent(sfHookFunctions)
-                    ? hookObj.getFieldArray(sfHookFunctions)
-                    : hookDef->getFieldArray(sfHookFunctions);
-                for (auto const& function : functions)
+                STArray const& functionsDef =
+                    hookDef->getFieldArray(sfHookFunctions);
+                for (auto const& function : functionsDef)
                 {
                     Blob fName = function.getFieldVL(sfFunctionName);
                     // FunctionName should be exist
                     if (fName == functionName)
                     {
-                        // Check function parameters
-                        // should exactly match the parameters in the txn and
-                        // hook
-                        bool hasTxFnParam =
-                            tx.isFieldPresent(sfFunctionParameters);
-                        bool hasDefFnParam =
-                            function.isFieldPresent(sfFunctionParameters);
-                        if ((!hasTxFnParam && hasDefFnParam) ||
-                            (hasTxFnParam && !hasDefFnParam))
-                            return XRPAmount{INITIAL_XRP.drops()};
-
-                        if (hasTxFnParam && hasDefFnParam)
-                        {
-                            STArray const& paramsTx =
-                                tx.getFieldArray(sfFunctionParameters);
-                            STArray const& paramsDef =
-                                function.getFieldArray(sfFunctionParameters);
-
-                            if (paramsTx.size() != paramsDef.size())
-                                return XRPAmount{INITIAL_XRP.drops()};
-
-                            for (size_t i = 0; i < paramsTx.size(); i++)
-                            {
-                                STObject const& def = paramsDef[i];
-                                STObject const& tx = paramsTx[i];
-                                auto const& paramTx =
-                                    tx.getFieldData(sfFunctionParameterValue);
-                                auto const& paramDef =
-                                    def.getFieldData(sfFunctionParameterValue);
-                                if (paramTx.getSType() != paramDef.getSType())
-                                    return XRPAmount{INITIAL_XRP.drops()};
-                            }
-                        }
-
                         toAdd = function.getFieldAmount(sfFee).xrp().drops();
                         break;
                     }
                 }
-
                 if (toAdd == 0)
                     return XRPAmount{INITIAL_XRP.drops()};
             }
@@ -412,20 +376,44 @@ Transactor::calculateBaseFee(ReadView const& view, STTx const& tx)
 
     XRPAmount accumulator = baseFee;
 
-    if (view.rules().enabled(featureHooks) &&
-        view.rules().enabled(fixXahauV1) && tx.isFieldPresent(sfHookParameters))
+    if (view.rules().enabled(featureHooks))
     {
         uint64_t paramBytes = 0;
-        auto const& params = tx.getFieldArray(sfHookParameters);
-        for (auto const& param : params)
+        if (view.rules().enabled(fixXahauV1) &&
+            tx.isFieldPresent(sfHookParameters))
         {
-            paramBytes += (param.isFieldPresent(sfHookParameterName)
-                               ? param.getFieldVL(sfHookParameterName).size()
-                               : 0) +
-                (param.isFieldPresent(sfHookParameterValue)
-                     ? param.getFieldVL(sfHookParameterValue).size()
-                     : 0);
+            auto const& params = tx.getFieldArray(sfHookParameters);
+            for (auto const& param : params)
+            {
+                paramBytes +=
+                    (param.isFieldPresent(sfHookParameterName)
+                         ? param.getFieldVL(sfHookParameterName).size()
+                         : 0) +
+                    (param.isFieldPresent(sfHookParameterValue)
+                         ? param.getFieldVL(sfHookParameterValue).size()
+                         : 0);
+            }
         }
+
+        if (view.rules().enabled(featureFunctionalHooks) &&
+            tx.isFieldPresent(sfFunctionParameters))
+        {
+            auto const& params = tx.getFieldArray(sfFunctionParameters);
+            for (auto const& param : params)
+            {
+                paramBytes +=
+                    (param.isFieldPresent(sfFunctionParameterValue)
+                         ? param.getFieldData(sfFunctionParameterValue).size()
+                         : 0);
+            }
+        }
+        // // Check function parameters
+        // if (tx.isFieldPresent(sfFunctionParameters))
+        // {
+        //     STArray const& paramsTx = tx.getFieldArray(sfFunctionParameters);
+        //     for (auto const& param : paramsTx)
+        //         toAdd += param.getFieldData(sfFunctionParameterValue).size();
+        // }
         accumulator += XRPAmount{static_cast<XRPAmount>(paramBytes)};
     }
 
@@ -1357,6 +1345,7 @@ Transactor::executeHookChain(
                 hookHash,
                 ns,
                 hookDef->getFieldVL(sfCreateCode),
+                std::nullopt,
                 parameters,
                 hookParamOverrides,
                 stateMap,
@@ -1424,6 +1413,128 @@ Transactor::executeHookChain(
     return tesSUCCESS;
 }
 
+TER
+Transactor::doFunctionalHookInitialize(
+    std::shared_ptr<STObject const> const& hookSLE,
+    std::string const& initializationFunctionName)
+{
+    STArray const& hooks = hookSLE->getFieldArray(sfHooks);
+    assert(hooks.size() == 1);
+    STObject const& hookObj = hooks[0];
+    // uint8_t hook_no = 0;
+
+    if (!hookObj.isFieldPresent(sfHookHash))
+        return tecINTERNAL;
+
+    // lookup hook definition
+    uint256 const& hookHash = hookObj.getFieldH256(sfHookHash);
+
+    auto const& hookDef = ctx_.view().peek(keylet::hookDefinition(hookHash));
+    if (!hookDef)
+    {
+        JLOG(j_.warn()) << "HookError[]: Failure: hook def missing (send)";
+        return tecINTERNAL;
+    }
+
+    // check if the hook can fire
+    // uint256 hookOn =
+    //     (hookObj.isFieldPresent(sfHookOn)
+    //          ? hookObj.getFieldH256(sfHookOn)
+    //          : hookDef->getFieldH256(sfHookOn));
+
+    // if (!hook::canHook(ctx_.tx.getTxnType(), hookOn))
+    //     continue;  // skip if it can't
+
+    // fetch the namespace either from the hook object of, if absent, the
+    // hook def
+    uint256 const& ns =
+        (hookObj.isFieldPresent(sfHookNamespace)
+             ? hookObj.getFieldH256(sfHookNamespace)
+             : hookDef->getFieldH256(sfHookNamespace));
+
+    // gather parameters
+    // std::map<std::vector<uint8_t>, std::vector<uint8_t>> parameters;
+    // if (hook::gatherHookParameters(hookDef, hookObj, parameters, j_))
+    // {
+    //     JLOG(j_.warn())
+    //         << "HookError[]: Failure: gatherHookParameters failed)";
+    //     return tecINTERNAL;
+    // }
+
+    hook::HookStateMap stateMap;
+    try
+    {
+        hook::HookResult hookResult = hook::apply(
+            ctx_.tx.getTransactionID(),
+            hookHash,
+            ns,
+            hookDef->getFieldVL(sfCreateCode),
+            initializationFunctionName,
+            {},
+            {},
+            stateMap,
+            ctx_,
+            account_,
+            false,  // hasCallback,
+            false,  // isCallback,
+            true,   // strong,
+            0,      // 0 = strong, 1 = weak
+            0,      // hook_no
+            {});
+
+        if (hookResult.exitType != hook_api::ExitType::ACCEPT)
+        {
+            if (hookResult.exitType == hook_api::ExitType::WASM_ERROR)
+            {
+                JLOG(j_.warn()) << "HookError[" << account_ << "-"
+                                << ctx_.tx.getAccountID(sfAccount)
+                                << "]: Execution failure (graceful) "
+                                << "HookHash: " << hookHash;
+            }
+            if (hookResult.exitType == hook_api::ExitType::UNSET)
+            {
+                JLOG(j_.warn())
+                    << "HookError[" << account_ << "-"
+                    << ctx_.tx.getAccountID(sfAccount)
+                    << "]: Execution failure (no exit type specified) "
+                    << "HookHash: " << hookHash;
+            }
+            return tecHOOK_REJECTED;
+        }
+
+        // hook::finalizeHookState(stateMap, ctx_, ctx_.tx.getTransactionID());
+        hook::finalizeHookResult(hookResult, ctx_, true);
+
+        // gather skips
+        // for (uint256 const& hash : hookResult.hookSkips)
+        //     if (hookSkips.find(hash) == hookSkips.end())
+        //         hookSkips.emplace(hash);
+
+        // // gather overrides
+        // auto const& resultOverrides = hookResult.hookParamOverrides;
+        // for (auto const& [hash, params] : resultOverrides)
+        // {
+        //     if (hookParamOverrides.find(hash) == hookParamOverrides.end())
+        //         hookParamOverrides[hash] = {};
+
+        //     auto& overrides = hookParamOverrides[hash];
+        //     for (auto const& [k, v] : params)
+        //         overrides[k] = v;
+        // }
+    }
+    catch (std::exception& e)
+    {
+        JLOG(j_.warn()) << "HookError[" << account_ << "-"
+                        << ctx_.tx.getAccountID(sfAccount)
+                        << "]: Execution failure (exceptional) "
+                        << "Exception: " << e.what()
+                        << " HookHash: " << hookHash;
+
+        return tecHOOK_REJECTED;
+    }
+
+    return tesSUCCESS;
+}
 void
 Transactor::doHookCallback(
     std::shared_ptr<STObject const> const& provisionalMeta)
@@ -1512,6 +1623,7 @@ Transactor::doHookCallback(
                 callbackHookHash,
                 ns,
                 hookDef->getFieldVL(sfCreateCode),
+                std::nullopt,
                 parameters,
                 {},
                 stateMap,
@@ -1779,6 +1891,7 @@ Transactor::doAgainAsWeak(
                 hookHash,
                 ns,
                 hookDef->getFieldVL(sfCreateCode),
+                std::nullopt,
                 parameters,
                 {},
                 stateMap,

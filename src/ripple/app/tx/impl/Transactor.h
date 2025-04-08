@@ -212,6 +212,11 @@ protected:
         bool strong,
         std::shared_ptr<STObject const> const& provisionalMeta);
 
+    TER
+    doFunctionalHookInitialize(
+        std::shared_ptr<STObject const> const& hookSLE,
+        std::string const& initializationFunctionName);
+
     void
     addWeakTSHFromSandbox(detail::ApplyViewBase const& pv);
 

@@ -445,6 +445,7 @@ apply(
         hookHash, /* hash of the actual hook byte code, used for metadata */
     ripple::uint256 const& hookNamespace,
     ripple::Blob const& wasm,
+    std::optional<std::string> const& fname,
     std::map<
         std::vector<uint8_t>, /* param name  */
         std::vector<uint8_t>  /* param value */

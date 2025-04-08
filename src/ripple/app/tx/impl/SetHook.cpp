@@ -556,6 +556,7 @@ SetHook::validateHookSetEntry(SetHookCtx& ctx, STObject const& hookSetObj)
                     std::vector<std::string> functionNames;
                     STArray functions =
                         hookSetObj.getFieldArray(sfHookFunctions);
+                    bool hasInitializeFlag = false;
                     for (const auto& function : functions)
                     {
                         Blob name = function.getFieldVL(sfFunctionName);
@@ -567,6 +568,40 @@ SetHook::validateHookSetEntry(SetHookCtx& ctx, STObject const& hookSetObj)
                                 << "]: FunctonName size is too long.";
                             return false;
                         }
+                        if (function.isFieldPresent(sfFee))
+                        {
+                            JLOG(ctx.j.trace())
+                                << "HookSet(" << hook::log::WASM_SMOKE_TEST
+                                << ")[" << HS_ACC()
+                                << "]: Invalid Fee.";
+                            return false;
+                        }
+                        if (function.isFieldPresent(sfFlags))
+                        {
+                            const auto flags = function.getFieldU32(sfFlags);
+                            if (flags & ~FunctionalHookFlags::hffINITIALIZE)
+                            {
+                                JLOG(ctx.j.trace())
+                                    << "HookSet(" << hook::log::WASM_SMOKE_TEST
+                                    << ")[" << HS_ACC()
+                                    << "]: Invalid flags.";
+                                return false;
+                            }
+                            if (flags & FunctionalHookFlags::hffINITIALIZE)
+                            {
+                                if (hasInitializeFlag)
+                                {
+                                    JLOG(ctx.j.trace())
+                                        << "HookSet("
+                                        << hook::log::WASM_SMOKE_TEST << ")["
+                                        << HS_ACC()
+                                        << "]: Duplicate initialize flag.";
+                                    return false;
+                                }
+                                hasInitializeFlag = true;
+                            }
+                        }
+
                         std::string hexStr(name.begin(), name.end());
                         functionNames.push_back(hexStr);
 
@@ -1355,6 +1390,9 @@ SetHook::setHook()
 
     int hookSetCount = hookSets.size();
 
+    bool isFunctionalHook = false;
+    std::optional<std::string> initializationFunctionName;
+
     for (hookSetNumber = 0;
          hookSetNumber < std::max(oldHookCount, hookSetCount);
          ++hookSetNumber)
@@ -1757,6 +1795,11 @@ SetHook::setHook()
                             slesToUpdate.emplace(*oldDefKeylet, oldDefSLE);
                     }
 
+                    uint16_t hookApiVersion =
+                        hookSetObj->get().getFieldU16(sfHookApiVersion);
+                    if (hookApiVersion == 3)
+                        isFunctionalHook = true;
+
                     auto newHookDef = std::make_shared<SLE>(keylet);
                     newHookDef->setFieldH256(sfHookHash, *createHookHash);
                     newHookDef->setFieldH256(sfHookOn, *newHookOn);
@@ -1766,9 +1809,7 @@ SetHook::setHook()
                         hookSetObj->get().isFieldPresent(sfHookParameters)
                             ? hookSetObj->get().getFieldArray(sfHookParameters)
                             : STArray{});
-                    newHookDef->setFieldU16(
-                        sfHookApiVersion,
-                        hookSetObj->get().getFieldU16(sfHookApiVersion));
+                    newHookDef->setFieldU16(sfHookApiVersion, hookApiVersion);
                     newHookDef->setFieldVL(sfCreateCode, wasmBytes);
                     newHookDef->setFieldH256(
                         sfHookSetTxnID, ctx.tx.getTransactionID());
@@ -1822,6 +1863,14 @@ SetHook::setHook()
                             else
                             {
                                 return tecINTERNAL;
+                            }
+
+                            if (newFunction.isFieldPresent(sfFlags))
+                            {
+                                uint32_t flags =
+                                    newFunction.getFieldU32(sfFlags);
+                                if (flags & hffINITIALIZE)
+                                    initializationFunctionName = hexStr;
                             }
 
                             newFunctions.push_back(std::move(newFunction));
@@ -2107,6 +2156,15 @@ SetHook::setHook()
     {
         adjustOwnerCount(view(), accountSLE, reserveDelta, j_);
         view().update(accountSLE);
+    }
+
+    // Initialize Functional Hook
+    if (isFunctionalHook && initializationFunctionName)
+    {
+        if (auto result = doFunctionalHookInitialize(
+                newHookSLE, initializationFunctionName.value());
+            !isTesSuccess(result))
+            return result;
     }
 
     return nsDeleteResult;

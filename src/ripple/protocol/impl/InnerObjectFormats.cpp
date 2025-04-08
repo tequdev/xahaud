@@ -165,6 +165,7 @@ InnerObjectFormats::InnerObjectFormats()
         {
             {sfFunctionName, soeREQUIRED},
             {sfFunctionParameters, soeOPTIONAL},
+            {sfFlags, soeOPTIONAL},
             {sfFee, soeOPTIONAL},
         });
 

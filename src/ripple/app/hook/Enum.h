@@ -21,6 +21,10 @@ enum HookSetFlags : uint8_t {
     hsfCOLLECT = 0b00000100U,   // allow collect calls on this hook
 };
 
+enum FunctionalHookFlags : uint8_t {
+    hffINITIALIZE = 0b00000001U,  // initialize hook
+};
+
 enum HookEmissionFlags : uint16_t {
     hefSTRONG = 0x1,
     hefCALLBACK = 0x2,

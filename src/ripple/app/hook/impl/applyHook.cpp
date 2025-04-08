@@ -1182,6 +1182,7 @@ hook::apply(
         hookHash, /* hash of the actual hook byte code, used for metadata */
     ripple::uint256 const& hookNamespace,
     ripple::Blob const& wasm,
+    std::optional<std::string> const& fname,
     std::map<
         std::vector<uint8_t>, /* param name  */
         std::vector<uint8_t>  /* param value */
@@ -1242,7 +1243,7 @@ hook::apply(
 
     HookExecutor executor{hookCtx};
 
-    std::string functionName = isCallback ? "cbak" : "hook";
+    std::string functionName = fname ? fname.value() : (isCallback ? "cbak" : "hook");
 
     if (applyCtx.tx.isFieldPresent(sfFunctionName))
     {

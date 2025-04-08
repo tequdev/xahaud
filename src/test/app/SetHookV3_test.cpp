@@ -36,6 +36,15 @@ namespace test {
 
 using TestHook = std::vector<uint8_t> const&;
 
+// Identical to BEAST_EXPECT except it returns from the function
+// if the condition isn't met (and would otherwise therefore cause a crash)
+#define BEAST_REQUIRE(x)     \
+    {                        \
+        BEAST_EXPECT(!!(x)); \
+        if (!(x))            \
+            return;          \
+    }
+
 #define HASH_WASM(x)                                                           \
     [[maybe_unused]] uint256 const x##_hash =                                  \
         ripple::sha512Half_s(ripple::Slice(x##_wasm.data(), x##_wasm.size())); \
@@ -508,12 +517,115 @@ public:
     }
 
     void
+    testInitialize(FeatureBitset features)
+    {
+        testcase("Test initialize");
+
+        using namespace jtx;
+        using namespace std::string_literals;
+
+        // Env env{*this, features};
+        Env env{
+            *this, envconfig(), features, nullptr,
+            // beast::severities::kInfo
+        };
+
+        auto const alice = Account{"alice"};
+        env.fund(XRP(10000), alice);
+        env.close();
+
+        // invalid HookFunction flag
+        {
+            Json::Value jv = hso(testv3_simple_wasm, overrideFlag);
+            jv[jss::HookApiVersion] = 3;
+            {
+                Json::Value function = Json::Value(Json::objectValue);
+                function[jss::FunctionName] = strHex("hook_accept"s);
+                function[jss::Flags] = 2;
+                jv[jss::HookFunctions][0u][jss::HookFunction] = function;
+            }
+            env(ripple::test::jtx::hook(alice, {{jv}}, 0),
+                HSFEE,
+                ter(temMALFORMED));
+        }
+
+        TestHook testv3_wasm = wasmv3[
+            R"[test.hook](
+            #include <stdint.h>
+            extern int32_t _g       (uint32_t id, uint32_t maxiter);
+            #define GUARD(maxiter) _g((1ULL << 31U) + __LINE__, (maxiter)+1)
+            extern int64_t accept   (uint32_t read_ptr, uint32_t read_len, int64_t error_code);
+            extern int64_t rollback (uint32_t read_ptr, uint32_t read_len, int64_t error_code);
+            extern int64_t state_set(uint32_t,uint32_t,uint32_t, uint32_t);
+            #define SBUF(x) (uint32_t)x,sizeof(x)
+            #define SVAR(x) (uint32_t)&x,sizeof(x)
+            #define ASSERT(x) if (!(x)) rollback((uint32_t)#x,sizeof(#x), __LINE__);
+            int64_t init(uint32_t reserved)
+            {
+                _g(1,1);
+                ASSERT(state_set(SBUF("ABC"),SBUF("DEF")) > 0);
+                return accept(SBUF("success"),0);
+            }
+            int64_t init2(uint32_t reserved)
+            {
+                _g(1,1);
+                return accept(SBUF("success2"),0);
+            }
+        )[test.hook]"];
+
+        // duplicate hffINITIALIZE flag
+        {
+            Json::Value jv = hso(testv3_wasm, overrideFlag);
+            jv[jss::HookApiVersion] = 3;
+            {
+                Json::Value function = Json::Value(Json::objectValue);
+                function[jss::FunctionName] = strHex("init"s);
+                function[jss::Flags] = FunctionalHookFlags::hffINITIALIZE;
+                jv[jss::HookFunctions][0u][jss::HookFunction] = function;
+                function[jss::FunctionName] = strHex("init2"s);
+                function[jss::Flags] = FunctionalHookFlags::hffINITIALIZE;
+                jv[jss::HookFunctions][1u][jss::HookFunction] = function;
+            }
+            env(ripple::test::jtx::hook(alice, {{jv}}, 0),
+                HSFEE,
+                ter(temMALFORMED));
+        }
+
+        // flag on off
+        for (int i = 0; i < 2; i++)
+        {
+            bool init = i == 0;
+            uint32_t flag = init ? FunctionalHookFlags::hffINITIALIZE : 0;
+            // install the hook on alice
+            Json::Value jv = hso(testv3_wasm, overrideFlag);
+            jv[jss::HookApiVersion] = 3;
+            {
+                Json::Value function = Json::Value(Json::objectValue);
+                function[jss::FunctionName] = strHex("init"s);
+                function[jss::Flags] = flag;
+                jv[jss::HookFunctions][0u][jss::HookFunction] = function;
+                function[jss::FunctionName] = strHex("init2"s);
+                function[jss::Flags] = 0;
+                jv[jss::HookFunctions][1u][jss::HookFunction] = function;
+            }
+
+            env(ripple::test::jtx::hook(alice, {{jv}}, 0), HSFEE);
+            env.close();
+
+            auto meta = env.meta();
+            BEAST_REQUIRE(meta);
+            BEAST_REQUIRE(meta->isFieldPresent(sfHookExecutions) == init);
+        }
+    }
+
+    void
     testWithFeatures(FeatureBitset features)
     {
         // testInvalid(features);
         // testFeeRPC(features);
         // testSimple(features);
         testFunctionParameters(features);
+        testInitialize(features);
     }
 
     void
