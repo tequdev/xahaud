@@ -83,6 +83,25 @@ private:
         return param;
     };
 
+    Json::Value
+    addFunc(const std::map<
+            std::string,
+            std::vector<std::pair<std::string, std::string>>>& args)
+    {
+        Json::Value params = Json::Value(Json::arrayValue);
+        int i = 0;
+        for (auto const& [a_name, a_params] : args)
+        {
+            Json::Value param = Json::Value(Json::objectValue);
+            param[jss::HookFunction][jss::FunctionName] = strHex(a_name);
+            for (auto const& [p_name, p_type] : a_params)
+                param[jss::HookFunction][jss::FunctionParameters].append(
+                    addFuncParam(p_name, p_type));
+            params[i++] = param;
+        }
+        return params;
+    }
+
 public:
 // This is a large fee, large enough that we can set most small test hooks
 // without running into fee issues we only want to test fee code specifically in
@@ -131,7 +150,9 @@ public:
         };
 
         auto const alice = Account{"alice"};
+        auto const bob = Account{"bob"};
         env.fund(XRP(10000), alice);
+        env.fund(XRP(10000), bob);
         env.close();
 
         Json::Value jv = hso(testv3_wasm, overrideFlag);
@@ -143,29 +164,16 @@ public:
             ter(temMALFORMED));
         env.close();
 
-        {
-            Json::Value function = Json::Value(Json::objectValue);
-            function[jss::FunctionName] = strHex("hook_accept"s);
-            jv[jss::HookFunctions][0u][jss::HookFunction] = function;
-        }
-        {
-            Json::Value function = Json::Value(Json::objectValue);
-            function[jss::FunctionName] = strHex("hook_rollback"s);
-            jv[jss::HookFunctions][1u][jss::HookFunction] = function;
-        }
-        {
-            Json::Value function = Json::Value(Json::objectValue);
-            function[jss::FunctionName] = strHex("hook_accept2"s);
-            jv[jss::HookFunctions][2u][jss::HookFunction] = function;
-        }
+        jv[jss::HookFunctions] = addFunc(
+            {{"hook_accept", {}}, {"hook_rollback", {}}, {"hook_accept2", {}}});
         // HookApiVersion 1 with HookFunctions
         {
+            Json::Value jv = hso(testv3_wasm, overrideFlag);
             jv[jss::HookApiVersion] = 1;
             env(ripple::test::jtx::hook(alice, {{jv}}, 0),
                 HSFEE,
                 ter(temMALFORMED));
             env.close();
-            jv[jss::HookApiVersion] = 3;
         }
 
         // invalid Hook Index
@@ -173,9 +181,7 @@ public:
             Json::Value empty;
             empty[jss::CreateCode] = "";
             empty[jss::Flags] = hsfOVERRIDE;
-            Json::Value function = Json::Value(Json::objectValue);
-            function[jss::FunctionName] = strHex("hook_accept2"s);
-            jv[jss::HookFunctions][1u][jss::HookFunction] = function;
+            empty[jss::HookFunctions] = addFunc({{}, {"hook_accept2", {}}});
             env(ripple::test::jtx::hook(alice, {{empty, jv}}, 0),
                 HSFEE,
                 ter(temMALFORMED));
@@ -184,9 +190,9 @@ public:
 
         // invalid Hookv3 with Hookv1
         {
-            Json::Value function = Json::Value(Json::objectValue);
-            function[jss::FunctionName] = strHex("hook_accept2"s);
-            jv[jss::HookFunctions][1u][jss::HookFunction] = function;
+            Json::Value jv = hso(testv3_wasm, overrideFlag);
+            jv[jss::HookApiVersion] = 3;
+            jv[jss::HookFunctions] = addFunc({{"hook_accept2", {}}});
             env(ripple::test::jtx::hook(
                     alice, {{jv, hso(accept_wasm, overrideFlag)}}, 0),
                 HSFEE,
@@ -199,14 +205,15 @@ public:
 
         // invalid FunctionName
         {
-            Json::Value function = Json::Value(Json::objectValue);
-            function[jss::FunctionName] = strHex("hook_accept3"s);
-            jv[jss::HookFunctions][1u][jss::HookFunction] = function;
+            Json::Value jv = hso(testv3_wasm, overrideFlag);
+            jv[jss::HookApiVersion] = 3;
+            jv[jss::HookFunctions] = addFunc({{"hook_accept3", {}}});
             env(ripple::test::jtx::hook(alice, {{jv}}, 0),
                 HSFEE,
                 ter(temMALFORMED));
             env.close();
         }
+
         // FunctionName size is too long
         {
             TestHook testLongFunctionName_wasm = wasmv3[
@@ -224,13 +231,50 @@ public:
             )[test.hook]"];
             Json::Value jv = hso(testLongFunctionName_wasm, overrideFlag);
             jv[jss::HookApiVersion] = 3;
-            Json::Value function = Json::Value(Json::objectValue);
-            function[jss::FunctionName] = strHex("hook_too_long1234"s);
-            jv[jss::HookFunctions][0u][jss::HookFunction] = function;
+            jv[jss::HookFunctions] = addFunc({{"hook_too_long1234", {}}});
             env(ripple::test::jtx::hook(alice, {{jv}}, 0),
                 HSFEE,
                 ter(temMALFORMED));
             env.close();
+        }
+
+        // Create to Alice
+        Json::Value jvCreate = hso(testv3_simple_wasm, overrideFlag);
+        jvCreate[jss::HookApiVersion] = 3;
+        jvCreate[jss::HookFunctions] =
+            addFunc({{"hook_accept", {{"account", "ACCOUNT"}}}});
+        env(ripple::test::jtx::hook(alice, {{jvCreate}}, 0), HSFEE);
+        env.close();
+
+        // Install (bob)
+        {
+            Json::Value jvInstall = hso(testv3_simple_wasm, overrideFlag);
+            jvInstall[jss::HookApiVersion] = 3;
+            jvInstall[jss::HookFunctions] = addFunc({{"hook_accept2", {}}});
+            env(ripple::test::jtx::hook(bob, {{jvInstall}}, 0),
+                HSFEE,
+                ter(temMALFORMED));
+
+            jvInstall[jss::HookFunctions] =
+                addFunc({{"hook_accept", {}}, {"hook_accept2", {}}});
+            env(ripple::test::jtx::hook(bob, {{jvInstall}}, 0),
+                HSFEE,
+                ter(temMALFORMED));
+        }
+        // Update (alice)
+        {
+            Json::Value jvUpdate = hso(testv3_simple_wasm, overrideFlag);
+            jvUpdate[jss::HookApiVersion] = 3;
+            jvUpdate[jss::HookFunctions] = addFunc({{"hook_accept2", {}}});
+            env(ripple::test::jtx::hook(alice, {{jvUpdate}}, 0),
+                HSFEE,
+                ter(temMALFORMED));
+
+            jvUpdate[jss::HookFunctions] =
+                addFunc({{"hook_accept", {}}, {"hook_accept2", {}}});
+            env(ripple::test::jtx::hook(alice, {{jvUpdate}}, 0),
+                HSFEE,
+                ter(temMALFORMED));
         }
     }
 
@@ -248,7 +292,9 @@ public:
         };
 
         auto const alice = Account{"alice"};
+        auto const bob = Account{"bob"};
         env.fund(XRP(10000), alice);
+        env.fund(XRP(10000), bob);
         env.close();
 
         // install the hook on alice
@@ -279,6 +325,27 @@ public:
 
         tx[jss::FunctionName] = strHex("hook_accept2"s);
         testRPCCall(env, tx, "19");
+
+        {
+            // Function Parameter Fee
+            Json::Value jv = hso(testv3_wasm, overrideFlag);
+            jv[jss::HookApiVersion] = 3;
+            {
+                jv[jss::HookFunctions] = addFunc(
+                    {{"hook_accept", {{"account", "ACCOUNT"}}},
+                     {"hook_rollback", {}},
+                     {"hook_accept2", {}}});
+            }
+            env(ripple::test::jtx::hook(bob, {{jv}}, 0), HSFEE);
+            env.close();
+
+            auto tx = invoke::invoke(bob);
+            tx[jss::FunctionName] = strHex("hook_accept"s);
+            tx[jss::FunctionParameters][0u] = addFuncParamValue(
+                "ACCOUNT", Account{"bob"}.human());
+            // basefee 21 + 20byte(AccountID)
+            testRPCCall(env, tx, "41");
+        }
     }
 
     void
@@ -621,9 +688,9 @@ public:
     void
     testWithFeatures(FeatureBitset features)
     {
-        // testInvalid(features);
-        // testFeeRPC(features);
-        // testSimple(features);
+        testInvalid(features);
+        testFeeRPC(features);
+        testSimple(features);
         testFunctionParameters(features);
         testInitialize(features);
     }
@@ -637,6 +704,20 @@ public:
     }
 
 private:
+    TestHook testv3_simple_wasm = wasmv3[
+        R"[test.hook](
+            #include <stdint.h>
+            extern int32_t _g       (uint32_t id, uint32_t maxiter);
+            extern int64_t accept   (uint32_t read_ptr, uint32_t read_len, int64_t error_code);
+            #define SBUF(x) (uint32_t)x,sizeof(x)
+            int64_t hook_accept(uint32_t reserved)
+            {
+                _g(1,1);
+                return accept(SBUF("success"),0);
+            }
+        )[test.hook]"];
+    HASH_WASM(testv3_simple);
+
     TestHook testv3_wasm = wasmv3[
         R"[test.hook](
             #include <stdint.h>

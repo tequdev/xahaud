@@ -59,6 +59,9 @@ public:
 
     STData(SerialIter& sit, SField const& name);
 
+    std::size_t
+    size() const;
+
     SerializedTypeID
     getSType() const override;
 

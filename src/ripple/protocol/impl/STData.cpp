@@ -179,6 +179,46 @@ STData::move(std::size_t n, void* buf)
     return emplace(n, buf, std::move(*this));
 }
 
+std::size_t
+STData::size() const
+{
+    switch (static_cast<SerializedTypeID>(inner_type_))
+    {
+        case STI_UINT8: {
+            return sizeof(uint8_t);
+        }
+        case STI_UINT16: {
+            return sizeof(uint16_t);
+        }
+        case STI_UINT32: {
+            return sizeof(uint32_t);
+        }
+        case STI_UINT64: {
+            return sizeof(uint64_t);
+        }
+        case STI_UINT128: {
+            return uint128::size();
+        }
+        case STI_UINT256: {
+            return uint256::size();
+        }
+        case STI_VL: {
+            const STBlob& st_blob = data_.get().downcast<STBlob>();
+            return st_blob.size();
+        }
+        case STI_ACCOUNT: {
+            return uint160::size();
+        }
+        case STI_AMOUNT: {
+            // TODO: STAmount::size()
+            const STAmount& st_amt = data_.get().downcast<STAmount>();
+            return st_amt.native()? 8: 48;
+        }
+        default:
+            Throw<std::runtime_error>("STData: unknown type");
+    }
+}
+
 SerializedTypeID
 STData::getSType() const
 {
