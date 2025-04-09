@@ -572,8 +572,7 @@ SetHook::validateHookSetEntry(SetHookCtx& ctx, STObject const& hookSetObj)
                         {
                             JLOG(ctx.j.trace())
                                 << "HookSet(" << hook::log::WASM_SMOKE_TEST
-                                << ")[" << HS_ACC()
-                                << "]: Invalid Fee.";
+                                << ")[" << HS_ACC() << "]: Invalid Fee.";
                             return false;
                         }
                         if (function.isFieldPresent(sfFlags))
@@ -583,8 +582,7 @@ SetHook::validateHookSetEntry(SetHookCtx& ctx, STObject const& hookSetObj)
                             {
                                 JLOG(ctx.j.trace())
                                     << "HookSet(" << hook::log::WASM_SMOKE_TEST
-                                    << ")[" << HS_ACC()
-                                    << "]: Invalid flags.";
+                                    << ")[" << HS_ACC() << "]: Invalid flags.";
                                 return false;
                             }
                             if (flags & FunctionalHookFlags::hffINITIALIZE)
@@ -1329,6 +1327,62 @@ updateHookParameters(
     return tesSUCCESS;
 }
 
+TER
+updateHookFunctions(
+    SetHookCtx& ctx,
+    ripple::STObject const& hookObj,
+    std::shared_ptr<STLedgerEntry>& oldDefSLE,
+    ripple::STObject& newHook)
+{
+    // TODO: HookFunctions Order
+    if (!hookObj.isFieldPresent(sfHookFunctions))
+        return tesSUCCESS;
+
+    if (!oldDefSLE->isFieldPresent(sfHookFunctions))
+        return tesSUCCESS;
+
+    STArray const& defFunctions = oldDefSLE->getFieldArray(sfHookFunctions);
+    STArray const& txFunctions = hookObj.getFieldArray(sfHookFunctions);
+
+    assert(defFunctions.size() == txFunctions.size());
+
+    STArray newFunctions(sfHookFunctions);
+
+    for (std::size_t i = 0; i < defFunctions.size(); i++)
+    {
+        STObject const& defFunction = defFunctions[i];
+        STObject const& txFunction = txFunctions[i];
+
+        STObject newFunction{sfHookFunction};
+
+        newFunction.setFieldVL(
+            sfFunctionName, defFunction.getFieldVL(sfFunctionName));
+        newFunction.setFieldAmount(sfFee, defFunction.getFieldAmount(sfFee));
+
+        if (defFunction.isFieldPresent(sfFunctionParameters))
+        {
+            auto const& defFunctionParameters =
+                defFunction.getFieldArray(sfFunctionParameters);
+            auto const& txFunctionParameters =
+                txFunction.getFieldArray(sfFunctionParameters);
+            if (defFunctionParameters != txFunctionParameters)
+                newFunction.setFieldArray(
+                    sfFunctionParameters, defFunctionParameters);
+        }
+
+        if (defFunction.isFieldPresent(sfFlags))
+        {
+            auto const& defFlags = defFunction.getFieldU32(sfFlags);
+            auto const& txFlags = txFunction.getFieldU32(sfFlags);
+            if (defFlags != txFlags)
+                newFunction.setFieldU32(sfFlags, defFlags);
+        }
+        newFunctions.push_back(std::move(newFunction));
+    }
+    newHook.setFieldArray(sfHookFunctions, std::move(newFunctions));
+    return tesSUCCESS;
+}
+
 struct KeyletComparator
 {
     bool
@@ -1427,6 +1481,10 @@ SetHook::setHook()
         std::optional<uint256> newHookOn;
         std::optional<uint256> defHookOn;
 
+        std::optional<STArray> oldHookFunctions;
+        std::optional<STArray> newHookFunctions;
+        std::optional<STArray> defHookFunctions;
+
         // when hsoCREATE is invoked it populates this variable in case the hook
         // definition already exists and the operation falls through into a
         // hsoINSTALL operation instead
@@ -1487,6 +1545,15 @@ SetHook::setHook()
                 oldHookOn = oldHook->get().getFieldH256(sfHookOn);
             else if (defHookOn)
                 oldHookOn = *defHookOn;
+
+            if (oldDefSLE)
+                defHookFunctions = oldDefSLE->getFieldArray(sfHookFunctions);
+
+            if (oldHook->get().isFieldPresent(sfHookFunctions))
+                oldHookFunctions =
+                    oldHook->get().getFieldArray(sfHookFunctions);
+            else if (defHookFunctions)
+                oldHookFunctions = *defHookFunctions;
         }
 
         // in preparation for three way merge populate fields if they are
@@ -1502,6 +1569,10 @@ SetHook::setHook()
 
             if (hookSetObj->get().isFieldPresent(sfHookOn))
                 newHookOn = hookSetObj->get().getFieldH256(sfHookOn);
+
+            if (hookSetObj->get().isFieldPresent(sfHookFunctions))
+                newHookFunctions =
+                    hookSetObj->get().getFieldArray(sfHookFunctions);
 
             if (hookSetObj->get().isFieldPresent(sfHookNamespace))
             {
@@ -1639,6 +1710,15 @@ SetHook::setHook()
                     }
                     else
                         newHook.setFieldH256(sfHookOn, *newHookOn);
+                }
+
+                if (newHookFunctions)
+                {
+                    // Update FunctionParemeters, hfFlags
+                    TER result = updateHookFunctions(
+                        ctx, hookSetObj->get(), oldDefSLE, newHook);
+                    if (!isTesSuccess(result))
+                        return result;
                 }
 
                 // parameters
@@ -1934,6 +2014,9 @@ SetHook::setHook()
                 // increment reference count of target HookDefintion
                 incrementReferenceCount(newDefSLE);
 
+                if (newDefSLE->getFieldU16(sfHookApiVersion) == 3)
+                    isFunctionalHook = true;
+
                 // change which definition we're using to the new target
                 defNamespace = newDefSLE->getFieldH256(sfHookNamespace);
                 defHookOn = newDefSLE->getFieldH256(sfHookOn);
@@ -1945,6 +2028,15 @@ SetHook::setHook()
                 // set the hookon field if it differs from definition
                 if (newHookOn && *defHookOn != *newHookOn)
                     newHook.setFieldH256(sfHookOn, *newHookOn);
+
+                // Update FunctionParemeters, hfFlags
+                if (newHookFunctions)
+                {
+                    TER result = updateHookFunctions(
+                        ctx, hookSetObj->get(), newDefSLE, newHook);
+                    if (!isTesSuccess(result))
+                        return result;
+                }
 
                 // parameters
                 TER result = updateHookParameters(
