@@ -205,7 +205,7 @@ validateHookParams(SetHookCtx& ctx, STArray const& hookParams)
 // infer which operation the user is attempting to execute from the present and
 // absent fields
 HookSetOperation
-SetHook::inferOperation(SetHookCtx& ctx, STObject const& hookSetObj)
+SetHook::inferOperation(STObject const& hookSetObj)
 {
     uint64_t wasmByteCount = hookSetObj.isFieldPresent(sfCreateCode)
         ? hookSetObj.getFieldVL(sfCreateCode).size()
@@ -249,7 +249,7 @@ SetHook::validateHookSetEntry(SetHookCtx& ctx, STObject const& hookSetObj)
         ? hookSetObj.getFieldU32(sfFlags)
         : 0;
 
-    switch (inferOperation(ctx, hookSetObj))
+    switch (inferOperation(hookSetObj))
     {
         case hsoNOOP: {
             return true;
@@ -1244,7 +1244,7 @@ SetHook::setHook()
         HookSetOperation op = hsoNOOP;
 
         if (hookSetObj)
-            op = inferOperation(ctx, hookSetObj->get());
+            op = inferOperation(hookSetObj->get());
 
         // these flags are not able to be passed onto the ledger object
         int newFlags = 0;
