@@ -25392,7 +25392,7 @@ std::map<std::string, std::vector<uint8_t>> wasm = {
          0x4EU, 0x5FU, 0x46U, 0x41U, 0x49U, 0x4CU, 0x55U, 0x52U, 0x45U, 0x00U,
      }},
 
-    /* ==== WASM: 84 ==== */
+    /* ==== WASM: 85 ==== */
     {R"[test.hook](
             #include <stdint.h>
             extern int32_t _g       (uint32_t id, uint32_t maxiter);
@@ -25421,7 +25421,7 @@ std::map<std::string, std::vector<uint8_t>> wasm = {
          0x0BU,
      }},
 
-    /* ==== WASM: 85 ==== */
+    /* ==== WASM: 86 ==== */
     {R"[test.hook](
             #include <stdint.h>
             extern int32_t _g       (uint32_t id, uint32_t maxiter);
@@ -25453,7 +25453,7 @@ std::map<std::string, std::vector<uint8_t>> wasm = {
          0x20U, 0x52U, 0x65U, 0x6AU, 0x65U, 0x63U, 0x74U, 0x65U, 0x64U, 0x00U,
      }},
 
-    /* ==== WASM: 86 ==== */
+    /* ==== WASM: 87 ==== */
     {R"[test.hook](
             (module
               (type (;0;) (func (param i32 i32 i64) (result i64)))
@@ -25480,7 +25480,7 @@ std::map<std::string, std::vector<uint8_t>> wasm = {
          0x41U, 0x00U, 0x41U, 0x00U, 0x42U, 0x00U, 0x10U, 0x00U, 0x0BU,
      }},
 
-    /* ==== WASM: 87 ==== */
+    /* ==== WASM: 88 ==== */
     {R"[test.hook](
             (module
               (type (;0;) (func (param i32 i32) (result i32)))
@@ -25533,7 +25533,7 @@ std::map<std::string, std::vector<uint8_t>> wasm = {
          0x00U, 0x1AU, 0x0BU,
      }},
 
-    /* ==== WASM: 88 ==== */
+    /* ==== WASM: 89 ==== */
     {R"[test.hook](
             #include <stdint.h>
             extern int32_t _g       (uint32_t id, uint32_t maxiter);
@@ -32176,7 +32176,7 @@ std::map<std::string, std::vector<uint8_t>> wasm = {
          0x39U, 0x30U, 0x31U, 0x32U, 0x33U, 0x00U,
      }},
 
-    /* ==== WASM: 89 ==== */
+    /* ==== WASM: 90 ==== */
     {R"[test.hook](
             #include <stdint.h>
             extern int32_t _g           (uint32_t id, uint32_t maxiter);
@@ -32222,7 +32222,7 @@ std::map<std::string, std::vector<uint8_t>> wasm = {
          0x0BU, 0x06U, 0x76U, 0x61U, 0x6CU, 0x75U, 0x65U, 0x00U,
      }},
 
-    /* ==== WASM: 90 ==== */
+    /* ==== WASM: 91 ==== */
     {R"[test.hook](
             #include <stdint.h>
             extern int32_t _g       (uint32_t id, uint32_t maxiter);
