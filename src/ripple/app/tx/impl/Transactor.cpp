@@ -1288,17 +1288,53 @@ Transactor::executeHookChain(
         {
             if (!ctx_.tx.isFieldPresent(sfFunctionName))
                 return tecHOOK_REJECTED;
-            // if (ctx_.tx.isFieldPresent(sfFunctionParameters))
-            // {
-            //     auto const& funcParams =
-            //         ctx_.tx.getFieldArray(sfFunctionParameters);
-            //     for (auto const& funcParam : funcParams)
-            //     {
-            //         if (funcParam.isFieldPresent(sfFunctionParameterName))
-            //         {
-            //         }
-            //     }
-            // }
+            Blob const& name = ctx_.tx.getFieldVL(sfFunctionName);
+
+            auto const hookFunctions = hookObj.isFieldPresent(sfHookFunctions)
+                ? hookObj.getFieldArray(sfHookFunctions)
+                : hookDef->getFieldArray(sfHookFunctions);
+
+            std::optional<STObject> functionDef;
+            for (auto const& hookFunction : hookFunctions)
+            {
+                if (hookFunction.getFieldVL(sfFunctionName) == name)
+                    functionDef = hookFunction;
+            }
+            if (!functionDef)
+                return tecHOOK_REJECTED;
+
+            // Validate function parameters
+            //   1. Parameter size
+            //   2. Parameter type & order
+            auto const hasFuncParamsDef =
+                functionDef->isFieldPresent(sfFunctionParameters);
+            auto const hasFuncParams =
+                ctx_.tx.isFieldPresent(sfFunctionParameters);
+
+            if (hasFuncParams != hasFuncParamsDef)
+                return tecHOOK_REJECTED;
+
+            if (hasFuncParams)
+            {
+                STArray const& funcParams =
+                    ctx_.tx.getFieldArray(sfFunctionParameters);
+                STArray const& funcParamsDef =
+                    functionDef->getFieldArray(sfFunctionParameters);
+                if (funcParams.size() != funcParamsDef.size())
+                    return tecHOOK_REJECTED;
+
+                for (std::size_t i = 0; i < funcParams.size(); i++)
+                {
+                    STData const& funcParamData =
+                        funcParams[i].getFieldData(sfFunctionParameterValue);
+                    STDataType const& funcParamDefData =
+                        funcParamsDef[i].getFieldDataType(
+                            sfFunctionParameterType);
+                    if (funcParamData.getInnerSType() !=
+                        funcParamDefData.getInnerSType())
+                        return tecHOOK_REJECTED;
+                }
+            }
         }
         else
         {

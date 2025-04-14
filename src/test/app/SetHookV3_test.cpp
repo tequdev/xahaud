@@ -238,7 +238,7 @@ public:
             env.close();
         }
 
-        // Create to Alice
+        // Prepare: Create to Alice
         Json::Value jvCreate = hso(testv3_simple_wasm, overrideFlag);
         jvCreate[jss::HookApiVersion] = 3;
         jvCreate[jss::HookFunctions] =
@@ -246,7 +246,7 @@ public:
         env(ripple::test::jtx::hook(alice, {{jvCreate}}, 0), HSFEE);
         env.close();
 
-        // Install (bob)
+        // Test Install (bob)
         {
             Json::Value jvInstall = hso(testv3_simple_wasm, overrideFlag);
             jvInstall[jss::HookApiVersion] = 3;
@@ -261,7 +261,7 @@ public:
                 HSFEE,
                 ter(temMALFORMED));
         }
-        // Update (alice)
+        // TestUpdate (alice)
         {
             Json::Value jvUpdate = hso(testv3_simple_wasm, overrideFlag);
             jvUpdate[jss::HookApiVersion] = 3;
@@ -275,6 +275,37 @@ public:
             env(ripple::test::jtx::hook(alice, {{jvUpdate}}, 0),
                 HSFEE,
                 ter(temMALFORMED));
+        }
+        // Test: Execulte
+        {
+            // Invalid Parameter Size
+            {
+                // size == 0
+                Json::Value jv = invoke::invoke(bob);
+                jv[jss::Destination] = alice.human();
+                jv[jss::FunctionName] = strHex("hook_accept"s);
+                env(jv, fee(XRP(1)), ter(tecHOOK_REJECTED));
+            }
+            {
+                // size == 2
+                Json::Value jv = invoke::invoke(bob);
+                jv[jss::Destination] = alice.human();
+                jv[jss::FunctionName] = strHex("hook_accept"s);
+                jv[jss::FunctionParameters][0u] =
+                    addFuncParamValue("ACCOUNT", Account{"bob"}.human());
+                jv[jss::FunctionParameters][1u] =
+                    addFuncParamValue("ACCOUNT", Account{"bob"}.human());
+                env(jv, fee(XRP(1)), ter(tecHOOK_REJECTED));
+            }
+            // Invalid ParemeterType
+            {
+                Json::Value jv = invoke::invoke(bob);
+                jv[jss::Destination] = alice.human();
+                jv[jss::FunctionName] = strHex("hook_accept"s);
+                jv[jss::FunctionParameters][0u] =
+                    addFuncParamValue("VL", "1234567890");
+                env(jv, fee(XRP(1)), ter(tecHOOK_REJECTED));
+            }
         }
     }
 
@@ -341,8 +372,8 @@ public:
 
             auto tx = invoke::invoke(bob);
             tx[jss::FunctionName] = strHex("hook_accept"s);
-            tx[jss::FunctionParameters][0u] = addFuncParamValue(
-                "ACCOUNT", Account{"bob"}.human());
+            tx[jss::FunctionParameters][0u] =
+                addFuncParamValue("ACCOUNT", Account{"bob"}.human());
             // basefee 21 + 20byte(AccountID)
             testRPCCall(env, tx, "41");
         }
