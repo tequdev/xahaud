@@ -728,6 +728,25 @@ SetHook::preflight(PreflightContext const& ctx)
             hookSetObj.isFieldPresent(sfHookCanEmit))
             return temDISABLED;
 
+        for (auto const& hookSetElement : hookSetObj)
+        {
+            auto const& name = hookSetElement.getFName();
+
+            if (name != sfCreateCode && name != sfHookHash &&
+                name != sfHookNamespace && name != sfHookParameters &&
+                name != sfHookOn && name != sfHookGrants &&
+                name != sfHookApiVersion && name != sfFlags &&
+                name != sfHookCanEmit)
+            {
+                JLOG(ctx.j.trace())
+                    << "HookSet(" << hook::log::HOOK_INVALID_FIELD << ")["
+                    << HS_ACC()
+                    << "]: Malformed transaction: SetHook sfHook contains "
+                       "invalid field.";
+                return temMALFORMED;
+            }
+        }
+
         try
         {
             // may throw if leb128 overflow is detected
