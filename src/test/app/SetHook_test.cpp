@@ -2437,10 +2437,7 @@ public:
     {
         testcase("Test float_emit");
         using namespace jtx;
-        Env env{
-            *this, envconfig(), features, nullptr, beast::severities::kWarning
-            //            beast::severities::kTrace
-        };
+        Env env{*this, features};
 
         auto const alice = Account{"alice"};
         auto const bob = Account{"bob"};
