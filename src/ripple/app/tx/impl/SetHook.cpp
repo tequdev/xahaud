@@ -1345,12 +1345,14 @@ SetHook::setHook()
             }
             else if (op == hsoNSDELETE && newDirKeylet)
             {
-                JLOG(ctx.j.trace()) << "Marking a namespace for destruction.... NSDELETE";
+                JLOG(ctx.j.trace())
+                    << "Marking a namespace for destruction.... NSDELETE";
                 namespacesToDestroy.emplace(*newNamespace);
             }
             else if (oldDirKeylet)
             {
-                JLOG(ctx.j.trace()) << "Marking a namespace for destruction.... non-NSDELETE";
+                JLOG(ctx.j.trace())
+                    << "Marking a namespace for destruction.... non-NSDELETE";
                 namespacesToDestroy.emplace(*oldNamespace);
             }
             else
