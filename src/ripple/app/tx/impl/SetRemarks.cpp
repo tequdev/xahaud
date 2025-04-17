@@ -323,12 +323,12 @@ SetRemarks::doApply()
     auto const objID = ctx_.tx[sfObjectID];
     auto sleO = sb.peek(keylet::unchecked(objID));
     if (!sleO)
-        return tecNO_TARGET;
+        return tefINTERNAL;
 
     std::optional<AccountID> issuer = getRemarksIssuer(sleO);
 
     if (!issuer || *issuer != account_)
-        return tecNO_PERMISSION;
+        return tefINTERNAL;
 
     auto const& remarksTxn = ctx_.tx.getFieldArray(sfRemarks);
 
