@@ -374,13 +374,38 @@ struct SetRemarks_test : public beast::unit_test::suite
         testcase("doApply invalid");
         using namespace jtx;
 
+        // setup env
+        Env env{*this, features};
+        auto const alice = Account("alice");
+        auto const bob = Account("bob");
+        auto const noacc = Account("noacc");
+        env.fund(XRP(1000), alice, bob);
+        env.close();
+
         //----------------------------------------------------------------------
         // doApply
 
-        // terNO_ACCOUNT
         // tecNO_TARGET
+        {
+            auto const id = keylet::account(noacc).key;
+            std::vector<remarks::remark> marks = {
+                {"CAFE", "DEADBEEF", 0},
+            };
+            env(remarks::setRemarks(alice, id, marks),
+                fee(XRP(1)),
+                ter(tecNO_TARGET));
+        }
+
         // tecNO_PERMISSION
-        // tecTOO_MANY_REMARKS
+        {
+            auto const id = keylet::account(bob).key;
+            std::vector<remarks::remark> marks = {
+                {"CAFE", "DEADBEEF", 0},
+            };
+            env(remarks::setRemarks(alice, id, marks),
+                fee(XRP(1)),
+                ter(tecNO_PERMISSION));
+        }
     }
 
     void
