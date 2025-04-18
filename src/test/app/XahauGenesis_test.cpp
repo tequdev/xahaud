@@ -5707,7 +5707,7 @@ struct XahauGenesis_test : public beast::unit_test::suite
     }
 };
 
-BEAST_DEFINE_TESTSUITE(XahauGenesis, app, ripple);
+BEAST_DEFINE_TESTSUITE_PRIO(XahauGenesis, app, ripple, 2);
 
 }  // namespace test
 }  // namespace ripple
