@@ -1029,7 +1029,7 @@ validateGuards(
                     hook_api::import_whitelist.find(import_name) ==
                     hook_api::import_whitelist.end())
                 {
-                    if (rulesVersion & 0x0U &&
+                    if (rulesVersion & 0x1U &&
                         hook_api::import_whitelist_1.find(import_name) !=
                             hook_api::import_whitelist_1.end())
                     {
