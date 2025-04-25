@@ -404,12 +404,12 @@ class Catalogue_test : public beast::unit_test::suite
             std::size_t sourceCount = 0;
             std::size_t loadedCount = 0;
 
-            for (auto const& sle : sourceLedger->sles)
+            for ([[maybe_unused]] auto const& sle : sourceLedger->sles)
             {
                 sourceCount++;
             }
 
-            for (auto const& sle : loadedLedger->sles)
+            for ([[maybe_unused]] auto const& sle : loadedLedger->sles)
             {
                 loadedCount++;
             }
