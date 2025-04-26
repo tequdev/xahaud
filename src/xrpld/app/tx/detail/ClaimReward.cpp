@@ -60,6 +60,29 @@ ClaimReward::preflight(PreflightContext const& ctx)
         return temMALFORMED;
     }
 
+    if (ctx.tx.isFieldPresent(sfClaimCurrency))
+    {
+        if (!ctx.rules.enabled(featureIOURewardClaim))
+            return temDISABLED;
+
+        auto const claimCurrency = ctx.tx[sfClaimCurrency];
+        if (claimCurrency.account == beast::zero ||
+            isXRP(claimCurrency.currency))
+            return temMALFORMED;
+
+        if (claimCurrency.account == ctx.tx.getAccountID(sfAccount))
+            return temMALFORMED;
+
+        if (ctx.tx.isFieldPresent(sfIssuer))
+        {
+            static auto const genesisAccountId = calcAccountID(
+                generateKeyPair(
+                    KeyType::secp256k1, generateSeed("masterpassphrase"))
+                    .first);
+            if (ctx.tx.getAccountID(sfIssuer) == genesisAccountId)
+                return temMALFORMED;
+        }
+    }
     return preflight2(ctx);
 }
 
@@ -85,6 +108,13 @@ ClaimReward::preclaim(PreclaimContext const& ctx)
     if (issuer && !ctx.view.exists(keylet::account(*issuer)))
         return tecNO_ISSUER;
 
+    if (ctx.tx.isFieldPresent(sfClaimCurrency))
+    {
+        auto const claimCurrency = ctx.tx[sfClaimCurrency];
+        if (!ctx.view.exists(keylet::line(
+                id, claimCurrency.account, claimCurrency.currency)))
+            return tecNO_LINE;
+    }
     return tesSUCCESS;
 }
 
@@ -98,6 +128,53 @@ ClaimReward::doApply()
     std::optional<uint32_t> flags = ctx_.tx[~sfFlags];
 
     bool isOptOut = flags && *flags == tfOptOut;
+
+    uint32_t lgrCur = view().seq();
+    uint32_t lgrFirst = lgrCur;
+    uint32_t lgrLast = lgrCur;
+    uint64_t accumulator = 0ULL;
+    uint32_t rewardTime = std::chrono::duration_cast<std::chrono::seconds>(
+                              ctx_.app.getLedgerMaster()
+                                  .getValidatedLedger()
+                                  ->info()
+                                  .parentCloseTime.time_since_epoch())
+                              .count();
+
+    if (ctx_.tx.isFieldPresent(sfClaimCurrency))
+    {
+        auto const claimCurrency = ctx_.tx[sfClaimCurrency];
+        auto lineSle = view().peek(keylet::line(
+            account_, claimCurrency.account, claimCurrency.currency));
+        bool const isHigh = account_ > claimCurrency.account;
+        auto const& rewardField = isHigh ? sfHighReward : sfLowReward;
+        auto const& rewardAccumulatorField =
+            lineSle->getFieldAmount(isHigh ? sfHighLimit : sfLowLimit).zeroed();
+        if (!lineSle)
+            return tefINTERNAL;
+
+        if (isOptOut)
+        {
+            if (lineSle->isFieldPresent(rewardField))
+                lineSle->makeFieldAbsent(rewardField);
+        }
+        else
+        {
+            // all actual rewards are handled by the hook on the sfIssuer
+            // the tt just resets the counters
+            if (lineSle->isFieldPresent(rewardField))
+                lineSle->makeFieldAbsent(rewardField);
+            auto& reward = lineSle->peekFieldObject(rewardField);
+            reward.setFieldU32(sfRewardLgrFirst, lgrFirst);
+            reward.setFieldU32(sfRewardLgrLast, lgrLast);
+            reward.setFieldAmount(
+                sfTrustLineRewardAccumulator, rewardAccumulatorField);
+            reward.setFieldU32(sfRewardTime, rewardTime);
+        }
+
+        view().update(lineSle);
+        return tesSUCCESS;
+    }
+
     if (isOptOut)
     {
         if (sle->isFieldPresent(sfRewardLgrFirst))
@@ -113,18 +190,10 @@ ClaimReward::doApply()
     {
         // all actual rewards are handled by the hook on the sfIssuer
         // the tt just resets the counters
-        uint32_t lgrCur = view().seq();
-        sle->setFieldU32(sfRewardLgrFirst, lgrCur);
-        sle->setFieldU32(sfRewardLgrLast, lgrCur);
-        sle->setFieldU64(sfRewardAccumulator, 0ULL);
-        sle->setFieldU32(
-            sfRewardTime,
-            std::chrono::duration_cast<std::chrono::seconds>(
-                ctx_.app.getLedgerMaster()
-                    .getValidatedLedger()
-                    ->info()
-                    .parentCloseTime.time_since_epoch())
-                .count());
+        sle->setFieldU32(sfRewardLgrFirst, lgrFirst);
+        sle->setFieldU32(sfRewardLgrLast, lgrLast);
+        sle->setFieldU64(sfRewardAccumulator, accumulator);
+        sle->setFieldU32(sfRewardTime, rewardTime);
     }
 
     view().update(sle);

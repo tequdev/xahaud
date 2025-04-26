@@ -43,6 +43,13 @@ issuer::operator()(Env& env, JTx& jt) const
     jt.jv[sfIssuer.jsonName] = issuer_.human();
 }
 
+void
+claimCurrency::operator()(Env& env, JTx& jt) const
+{
+    jt.jv[sfClaimCurrency.jsonName] =
+        STIssue{sfClaimCurrency, claimCurrency_}.getJson(JsonOptions::none);
+}
+
 }  // namespace reward
 
 }  // namespace jtx

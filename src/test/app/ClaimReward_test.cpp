@@ -60,6 +60,52 @@ struct ClaimReward_test : public beast::unit_test::suite
     }
 
     bool
+    expectRewardsIOU(
+        jtx::Env const& env,
+        jtx::Account const& acct,
+        jtx::IOU const& iou,
+        std::uint32_t ledgerFirst,
+        std::uint32_t ledgerLast,
+        STAmount accumulator,
+        std::uint32_t time)
+    {
+        auto const sle = env.le(keylet::line(acct, iou.account, iou.currency));
+        BEAST_EXPECT(!!sle);
+        auto const& sfRewardField =
+            std::minmax(acct.id(), iou.account.id()).first == acct.id()
+            ? sfLowReward
+            : sfHighReward;
+
+        if (!sle->isFieldPresent(sfRewardField))
+            return false;
+
+        auto const& reward =
+            static_cast<STObject const&>(sle->peekAtField(sfRewardField));
+
+        if (!reward.isFieldPresent(sfRewardLgrFirst) ||
+            reward.getFieldU32(sfRewardLgrFirst) != ledgerFirst)
+        {
+            return false;
+        }
+        if (!reward.isFieldPresent(sfRewardLgrLast) ||
+            reward.getFieldU32(sfRewardLgrLast) != ledgerLast)
+        {
+            return false;
+        }
+        if (!reward.isFieldPresent(sfTrustLineRewardAccumulator) ||
+            reward.getFieldAmount(sfTrustLineRewardAccumulator) != accumulator)
+        {
+            return false;
+        }
+        if (!reward.isFieldPresent(sfRewardTime) ||
+            reward.getFieldU32(sfRewardTime) != time)
+        {
+            return false;
+        }
+        return true;
+    }
+
+    bool
     expectNoRewards(jtx::Env const& env, jtx::Account const& acct)
     {
         auto const sle = env.le(keylet::account(acct));
@@ -79,6 +125,24 @@ struct ClaimReward_test : public beast::unit_test::suite
         {
             return false;
         }
+        return true;
+    }
+
+    bool
+    expectNoRewardsIOU(
+        jtx::Env const& env,
+        jtx::Account const& acct,
+        jtx::IOU const& iou)
+    {
+        auto const sle = env.le(keylet::line(acct, iou.account, iou.currency));
+        BEAST_EXPECT(!!sle);
+        auto const& sfRewardField =
+            std::minmax(acct.id(), iou.account.id()).first == acct.id()
+            ? sfLowReward
+            : sfHighReward;
+
+        if (sle->isFieldPresent(sfRewardField))
+            return false;
         return true;
     }
 
@@ -220,6 +284,68 @@ struct ClaimReward_test : public beast::unit_test::suite
             env(reward::claim(alice), reward::issuer(alice), ter(temMALFORMED));
             env.close();
         }
+
+        // featureIOURewardClaim
+
+        // temDISABLED
+        // featureIOURewardClaim amendment is disabled
+        {
+            test::jtx::Env env{
+                *this,
+                network::makeNetworkConfig(21337),
+                features - featureIOURewardClaim};
+
+            auto const alice = Account("alice");
+            auto const bob = Account("bob");
+            auto const gw = Account("gw");
+            env.fund(XRP(1000), alice, bob, gw);
+            env.close();
+
+            jtx::IOU const USD = gw["USD"];
+
+            env(reward::claim(alice),
+                reward::issuer(bob),
+                reward::claimCurrency(USD),
+                ter(temDISABLED));
+            env.close();
+        }
+
+        // temMALFORMED
+        // ClaimCurrency.account cannot be the source account.
+        {
+            test::jtx::Env env{*this, network::makeNetworkConfig(21337)};
+
+            auto const alice = Account("alice");
+            auto const bob = Account("bob");
+            env.fund(XRP(1000), alice);
+            env.close();
+
+            jtx::IOU const USD = alice["USD"];
+
+            env(reward::claim(alice),
+                reward::issuer(bob),
+                reward::claimCurrency(USD),
+                ter(temMALFORMED));
+            env.close();
+        }
+
+        // temMALFORMED
+        // Issuer cannot be Genesis account if ClaimCurrency is set.
+        {
+            test::jtx::Env env{*this, network::makeNetworkConfig(21337)};
+
+            auto const alice = Account("alice");
+            auto const gw = Account("gw");
+            env.fund(XRP(1000), alice, gw);
+            env.close();
+
+            jtx::IOU const USD = gw["USD"];
+
+            env(reward::claim(alice),
+                reward::issuer(Account::master),
+                reward::claimCurrency(USD),
+                ter(temMALFORMED));
+        }
     }
 
     void
@@ -300,6 +426,24 @@ struct ClaimReward_test : public beast::unit_test::suite
             env(tx, reward::issuer(issuer), ter(tecNO_ISSUER));
             env.close();
         }
+
+        // tecNO_LINE
+        // trustline does not exist.
+        {
+            test::jtx::Env env{*this, network::makeNetworkConfig(21337)};
+
+            auto const alice = Account("alice");
+            auto const gw = Account("gw");
+            env.fund(XRP(1000), alice, gw);
+            env.close();
+
+            jtx::IOU const USD = gw["USD"];
+
+            env(reward::claim(alice),
+                reward::issuer(gw),
+                reward::claimCurrency(USD),
+                ter(tecNO_LINE));
+        }
     }
 
     void
@@ -312,9 +456,11 @@ struct ClaimReward_test : public beast::unit_test::suite
         test::jtx::Env env{*this, network::makeNetworkConfig(21337)};
 
         auto const alice = Account("alice");
+        auto const bob = Account("bob");
+        auto const gw = Account("gw");
         auto const issuer = Account("issuer");
 
-        env.fund(XRP(1000), alice, issuer);
+        env.fund(XRP(1000), alice, bob, gw, issuer);
         env.close();
 
         // test claim rewards - no opt out
@@ -342,6 +488,50 @@ struct ClaimReward_test : public beast::unit_test::suite
         env.close();
 
         BEAST_EXPECT(expectNoRewards(env, alice) == true);
+
+        // test iou claim rewards
+        {
+            // set trustline
+            env(trust(bob, gw["USD"](10000)));
+            env.close();
+
+            // opt in
+            auto const currentLedger = env.current()->seq();
+            auto const currentTime =
+                std::chrono::duration_cast<std::chrono::seconds>(
+                    env.app()
+                        .getLedgerMaster()
+                        .getValidatedLedger()
+                        ->info()
+                        .parentCloseTime.time_since_epoch())
+                    .count();
+
+            auto tx = reward::claim(bob);
+            env(tx,
+                reward::issuer(issuer),
+                reward::claimCurrency(gw["USD"]),
+                ter(tesSUCCESS));
+            env.close();
+
+            BEAST_EXPECT(
+                expectRewardsIOU(
+                    env,
+                    bob,
+                    gw["USD"],
+                    currentLedger,
+                    currentLedger,
+                    gw["USD"](0),
+                    currentTime) == true);
+
+            // opt out
+            env(reward::claim(bob),
+                reward::claimCurrency(gw["USD"]),
+                txflags(tfOptOut),
+                ter(tesSUCCESS));
+            env.close();
+
+            BEAST_EXPECT(expectNoRewardsIOU(env, bob, gw["USD"]) == true);
+        }
     }
 
     void
@@ -370,6 +560,77 @@ struct ClaimReward_test : public beast::unit_test::suite
     }
 
     void
+    testBalanceChanges(FeatureBitset features)
+    {
+        testcase("balance changes");
+        using namespace jtx;
+        using namespace std::literals::chrono_literals;
+
+        Env env{*this, features};
+        auto const alice = Account("alice");
+        auto const gw = Account("gw");
+
+        auto const issuer = Account("issuer");
+        env.fund(XRP(10003), alice);
+        env.fund(XRP(10000), gw);
+        env(fset(gw, asfDefaultRipple));
+
+        env(trust(alice, gw["USD"](1000000)), fee(XRP(1)));
+        env.close();
+        env(pay(gw, alice, gw["USD"](10000)));
+        env.close();
+
+        auto const currentTime =
+            std::chrono::duration_cast<std::chrono::seconds>(
+                env.app()
+                    .getLedgerMaster()
+                    .getValidatedLedger()
+                    ->info()
+                    .parentCloseTime.time_since_epoch())
+                .count();
+        auto const currentLedger = env.current()->seq();
+
+        env(reward::claim(alice),
+            reward::issuer(gw),
+            reward::claimCurrency(gw["USD"]),
+            fee(XRP(1)));
+        env(reward::claim(alice), reward::issuer(gw), fee(XRP(1)));
+        env.close();
+
+        env(pay(alice, gw, gw["USD"](10)), fee(XRP(10)));
+        env.close();
+
+        BEAST_EXPECT(
+            expectRewards(
+                env,
+                alice,
+                currentLedger,
+                currentLedger + 1,
+                10000,
+                currentTime) == true);
+
+        BEAST_EXPECT(
+            expectRewardsIOU(
+                env,
+                alice,
+                gw["USD"],
+                currentLedger,
+                currentLedger + 1,
+                alice["USD"](10000),
+                currentTime) == true);
+        
+        // IOU Reward Claim
+        // High Account
+        // Low Account
+        
+        // Balance minus -> plus
+        // Balance plus -> minus
+        
+        // small changes for large balance
+        // big changes for small balance
+    }
+
+    void
     testWithFeats(FeatureBitset features)
     {
         testEnabled(features);
@@ -377,6 +638,7 @@ struct ClaimReward_test : public beast::unit_test::suite
         testInvalidPreclaim(features);
         testValidNoHook(features);
         testUsingTickets(features);
+        testBalanceChanges(features);
     }
 
 public:
