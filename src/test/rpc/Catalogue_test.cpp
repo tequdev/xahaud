@@ -401,18 +401,8 @@ class Catalogue_test : public beast::unit_test::suite
                 sourceLedger->info().accepted == loadedLedger->info().accepted);
 
             // Check SLE counts
-            std::size_t sourceCount = 0;
-            std::size_t loadedCount = 0;
-
-            for ([[maybe_unused]] auto const& sle : sourceLedger->sles)
-            {
-                sourceCount++;
-            }
-
-            for ([[maybe_unused]] auto const& sle : loadedLedger->sles)
-            {
-                loadedCount++;
-            }
+            std::size_t sourceCount = std::ranges::distance(sourceLedger->sles);
+            std::size_t loadedCount = std::ranges::distance(loadedLedger->sles);
 
             BEAST_EXPECT(sourceCount == loadedCount);
 
