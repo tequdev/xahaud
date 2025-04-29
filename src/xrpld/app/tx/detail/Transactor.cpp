@@ -2195,9 +2195,6 @@ Transactor::operator()()
                 if (balance.native())
                     continue;
 
-                if (balance == balance.zeroed())
-                    continue;
-
                 SField const* sfRewardFields[] = {&sfLowReward, &sfHighReward};
                 for (auto const* sfRewardFieldPtr : sfRewardFields)
                 {

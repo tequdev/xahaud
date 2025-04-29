@@ -566,68 +566,159 @@ struct ClaimReward_test : public beast::unit_test::suite
         using namespace jtx;
         using namespace std::literals::chrono_literals;
 
-        Env env{*this, features};
-        auto const alice = Account("alice");
-        auto const gw = Account("gw");
-
-        auto const issuer = Account("issuer");
-        env.fund(XRP(10003), alice);
-        env.fund(XRP(10000), gw);
-        env(fset(gw, asfDefaultRipple));
-
-        env(trust(alice, gw["USD"](1000000)), fee(XRP(1)));
-        env.close();
-        env(pay(gw, alice, gw["USD"](10000)));
-        env.close();
-
-        auto const currentTime =
-            std::chrono::duration_cast<std::chrono::seconds>(
-                env.app()
-                    .getLedgerMaster()
-                    .getValidatedLedger()
-                    ->info()
-                    .parentCloseTime.time_since_epoch())
+        auto const getCurrentTime = [&](Env& env) {
+            return std::chrono::duration_cast<std::chrono::seconds>(
+                       env.app()
+                           .getLedgerMaster()
+                           .getValidatedLedger()
+                           ->info()
+                           .parentCloseTime.time_since_epoch())
                 .count();
-        auto const currentLedger = env.current()->seq();
+        };
 
-        env(reward::claim(alice),
-            reward::issuer(gw),
-            reward::claimCurrency(gw["USD"]),
-            fee(XRP(1)));
-        env(reward::claim(alice), reward::issuer(gw), fee(XRP(1)));
-        env.close();
+        // Native Reward Claim
+        {
+            Env env{*this, features};
+            auto const alice = Account("alice");
+            auto const gw = Account("gw");
 
-        env(pay(alice, gw, gw["USD"](10)), fee(XRP(10)));
-        env.close();
+            auto const issuer = Account("issuer");
+            env.fund(XRP(10001), alice, gw, issuer);
+            env.close();
 
-        BEAST_EXPECT(
-            expectRewards(
-                env,
-                alice,
-                currentLedger,
-                currentLedger + 1,
-                10000,
-                currentTime) == true);
+            auto const currentTime = getCurrentTime(env);
+            auto const currentLedger = env.current()->seq();
 
-        BEAST_EXPECT(
-            expectRewardsIOU(
-                env,
-                alice,
-                gw["USD"],
-                currentLedger,
-                currentLedger + 1,
-                alice["USD"](10000),
-                currentTime) == true);
-        
+            env(reward::claim(alice), reward::issuer(gw), fee(XRP(1)));
+            env.close();
+
+            env(fset(alice, 0));
+            env.close();
+
+            BEAST_EXPECT(
+                expectRewards(
+                    env,
+                    alice,
+                    currentLedger,
+                    currentLedger + 1,
+                    10000,  // 10000 XAH * time 1
+                    currentTime) == true);
+        }
+
         // IOU Reward Claim
-        // High Account
-        // Low Account
-        
-        // Balance minus -> plus
-        // Balance plus -> minus
-        
-        // small changes for large balance
-        // big changes for small balance
+        for (bool const fromHighAccount : {true, false})
+        {
+            Env env{*this, features};
+            auto const alice = Account("alice");
+            auto const bob = Account("bob");
+            auto const issuer = Account("issuer");
+
+            auto const user = fromHighAccount ? alice : bob;
+            auto const gw = fromHighAccount ? bob : alice;
+
+            if (fromHighAccount)
+                BEAST_EXPECT(user.id() < gw.id());
+            else
+                BEAST_EXPECT(user.id() > gw.id());
+
+            env.fund(XRP(10000), user, gw, issuer);
+            env(fset(gw, asfDefaultRipple));
+
+            env(trust(user, gw["USD"](1000000)), fee(XRP(1)));
+            env.close();
+            env(pay(gw, user, gw["USD"](10000)));
+            env.close();
+
+            auto currentTime = getCurrentTime(env);
+            auto currentLedger = env.current()->seq();
+
+            env(reward::claim(user),
+                reward::issuer(gw),
+                reward::claimCurrency(gw["USD"]));
+            env.close();
+
+            env(pay(user, gw, gw["USD"](10000)));
+            env.close();
+
+            BEAST_EXPECT(
+                expectRewardsIOU(
+                    env,
+                    user,
+                    gw["USD"],
+                    currentLedger,
+                    currentLedger + 1,
+                    user["USD"](10000),  // 10000 USD * time 1
+                    currentTime) == true);
+
+            env(pay(gw, user, gw["USD"](1)));
+            env.close();
+
+            // check Balance == 0
+            BEAST_EXPECT(
+                expectRewardsIOU(
+                    env,
+                    user,
+                    gw["USD"],
+                    currentLedger,
+                    currentLedger + 2,
+                    user["USD"](10000),  // 10000 USD * time 1 + 0 USD * time 1
+                    currentTime) == true);
+        }
+
+        // Check Balance minus -> plus, plus -> minus
+        for (bool const fromHighAccount : {true, false})
+        {
+            Env env{*this, features};
+            auto const alice = Account("alice");
+            auto const bob = Account("bob");
+            auto const issuer = Account("issuer");
+
+            auto const user = fromHighAccount ? alice : bob;
+            auto const gw = fromHighAccount ? bob : alice;
+
+            if (fromHighAccount)
+                BEAST_EXPECT(user.id() < gw.id());
+            else
+                BEAST_EXPECT(user.id() > gw.id());
+
+            env.fund(XRP(10000), user, gw, issuer);
+            env(fset(gw, asfDefaultRipple));
+            env.close();
+
+            env(trust(user, gw["USD"](1000000)));
+            env.close();
+            env(trust(gw, user["USD"](1000000)));
+            env(pay(gw, user, gw["USD"](10000)));
+            env.close();
+
+            auto currentTime = getCurrentTime(env);
+            auto currentLedger = env.current()->seq();
+
+            env(reward::claim(user),
+                reward::issuer(gw),
+                reward::claimCurrency(gw["USD"]));
+            env.close();
+
+            env(pay(user, gw, gw["USD"](20000)));
+            env.close();
+
+            env(pay(user, gw, gw["USD"](1)));
+            env.close();
+
+            BEAST_EXPECT(
+                expectRewardsIOU(
+                    env,
+                    user,
+                    gw["USD"],
+                    currentLedger,
+                    currentLedger + 2,
+                    user["USD"](10000),  // 10000 USD * time 1 + 0 USD * time 1
+                    currentTime) == true);
+        }
+
+        {
+            // overflow, underflow
+        }
     }
 
     void
