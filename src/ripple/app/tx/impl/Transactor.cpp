@@ -1483,6 +1483,8 @@ Transactor::doFunctionalHookInitialize(
 
     // if (!hook::canHook(ctx_.tx.getTxnType(), hookOn))
     //     continue;  // skip if it can't
+    
+    uint256 hookCanEmit = hook::getHookCanEmit(hookObj, hookDef);
 
     // fetch the namespace either from the hook object of, if absent, the
     // hook def
@@ -1506,6 +1508,7 @@ Transactor::doFunctionalHookInitialize(
         hook::HookResult hookResult = hook::apply(
             ctx_.tx.getTransactionID(),
             hookHash,
+            hookCanEmit,
             ns,
             hookDef->getFieldVL(sfCreateCode),
             initializationFunctionName,
