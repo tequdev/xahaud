@@ -84,6 +84,7 @@ JSS(GenesisMints);
 JSS(GovernanceMarks);
 JSS(GovernanceFlags);
 JSS(HookApiVersion);      // field
+JSS(HookCanEmit);         // field
 JSS(HookFunction);        // field
 JSS(HookFunctions);       // field
 JSS(HookHash);            // field
@@ -129,6 +130,7 @@ JSS(Remit);                    // transaction type.
 JSS(RippleState);              // ledger type.
 JSS(SLE_hit_rate);             // out: GetCounts.
 JSS(SetFee);                   // transaction type.
+JSS(SetRemarks);               // transaction type
 JSS(UNLModify);                // transaction type.
 JSS(UNLReport);                // transaction type.
 JSS(SettleDelay);              // in: TransactionSign
@@ -342,6 +344,8 @@ JSS(finished);
 JSS(fix_txns);  // in: LedgerCleaner
 JSS(file);
 JSS(file_size);
+JSS(file_size_estimated_human);
+JSS(file_size_human);
 JSS(flags);                 // out: AccountOffers,
                             //      NetworkOPs
 JSS(force);                 // in: catalogue
