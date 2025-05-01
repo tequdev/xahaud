@@ -110,7 +110,7 @@ public:
 #define M(m) memo(m, "", "")
 
     void
-    testRPCCall(jtx::Env& env, Json::Value tx, std::string expected)
+    testFeeRPCCall(jtx::Env& env, Json::Value tx, std::string expected)
     {
         auto const jtx = env.jt(tx);
 
@@ -134,6 +134,26 @@ public:
         // verify hooks fee
         auto const hooksFee = jrr[jss::result][jss::fee_hooks_feeunits];
         BEAST_EXPECT(hooksFee == expected);
+    }
+
+    void
+    testQueryRPCCall(
+        jtx::Env& env,
+        jtx::Account const& hookAccount,
+        jtx::Account const& sourceAccount,
+        std::string functionName,
+        Json::Value funcParams,
+        std::string expected)
+    {
+        Json::Value params;
+        params[jss::hook_account] = hookAccount.human();
+        params[jss::source_account] = sourceAccount.human();
+        params[jss::function_name] = functionName;
+        params[jss::function_params] = funcParams;
+
+        // hook_query request
+        auto const jrr = env.rpc("json", "hook_query", to_string(params));
+        std::cout << "RESULT: " << jrr << "\n";
     }
 
     void
@@ -352,10 +372,10 @@ public:
 
         auto tx = invoke::invoke(alice);
         tx[jss::FunctionName] = strHex("hook_accept"s);
-        testRPCCall(env, tx, "21");
+        testFeeRPCCall(env, tx, "21");
 
         tx[jss::FunctionName] = strHex("hook_accept2"s);
-        testRPCCall(env, tx, "19");
+        testFeeRPCCall(env, tx, "19");
 
         {
             // Function Parameter Fee
@@ -375,7 +395,7 @@ public:
             tx[jss::FunctionParameters][0u] =
                 addFuncParamValue("ACCOUNT", Account{"bob"}.human());
             // basefee 21 + 20byte(AccountID)
-            testRPCCall(env, tx, "41");
+            testFeeRPCCall(env, tx, "41");
         }
     }
 
@@ -639,7 +659,7 @@ public:
             {
                 Json::Value function = Json::Value(Json::objectValue);
                 function[jss::FunctionName] = strHex("hook_accept"s);
-                function[jss::Flags] = 2;
+                function[jss::Flags] = 0x1000;
                 jv[jss::HookFunctions][0u][jss::HookFunction] = function;
             }
             env(ripple::test::jtx::hook(alice, {{jv}}, 0),
@@ -717,6 +737,88 @@ public:
     }
 
     void
+    testHookQuery(FeatureBitset features)
+    {
+        testcase("Test hook query");
+
+        using namespace jtx;
+        using namespace std::string_literals;
+
+        // Env env{*this, features};
+        Env env{
+            *this, envconfig(), features, nullptr,
+            // beast::severities::kInfo
+        };
+
+        auto const alice = Account{"alice"};
+        env.fund(XRP(10000), alice);
+        env.close();
+
+        // invalid HookFunction flag
+        {
+            Json::Value jv = hso(testv3_simple_wasm, overrideFlag);
+            jv[jss::HookApiVersion] = 3;
+            {
+                Json::Value function = Json::Value(Json::objectValue);
+                function[jss::FunctionName] = strHex("hook_accept"s);
+                function[jss::Flags] = 0x1000;
+                jv[jss::HookFunctions][0u][jss::HookFunction] = function;
+            }
+            env(ripple::test::jtx::hook(alice, {{jv}}, 0),
+                HSFEE,
+                ter(temMALFORMED));
+        }
+
+        TestHook testv3_wasm = wasmv3[
+            R"[test.hook](
+            #include <stdint.h>
+            extern int32_t _g       (uint32_t id, uint32_t maxiter);
+            #define GUARD(maxiter) _g((1ULL << 31U) + __LINE__, (maxiter)+1)
+            extern int64_t accept   (uint32_t read_ptr, uint32_t read_len, int64_t error_code);
+            extern int64_t rollback (uint32_t read_ptr, uint32_t read_len, int64_t error_code);
+            extern int64_t hook_account(uint32_t,uint32_t);
+            extern int64_t query_result_set(uint32_t,uint32_t,uint32_t,uint32_t,uint32_t);
+            #define STI_ACCOUNT 8
+            #define SBUF(x) (uint32_t)x,sizeof(x)
+            #define SVAR(x) (uint32_t)&x,sizeof(x)
+            #define ASSERT(x) if (!(x)) rollback((uint32_t)#x,sizeof(#x), __LINE__);
+            int64_t query(uint32_t reserved)
+            {
+                _g(1,1);
+                uint8_t account[20];
+                ASSERT(hook_account(SBUF(account)) == 20);
+                ASSERT(query_result_set(SBUF("some_target_account"),SBUF(account),STI_ACCOUNT) > 0);
+                return accept(SBUF("success"),0);
+            }
+            int64_t init(uint32_t reserved)
+            {
+                _g(1,1);
+                return accept(SBUF("success2"),0);
+            }
+        )[test.hook]"];
+
+        // install the hook on alice
+        Json::Value jv = hso(testv3_wasm, overrideFlag);
+        jv[jss::HookApiVersion] = 3;
+        {
+            Json::Value function = Json::Value(Json::objectValue);
+            function[jss::FunctionName] = strHex("init"s);
+            function[jss::Flags] = 0;
+            jv[jss::HookFunctions][0u][jss::HookFunction] = function;
+            function[jss::FunctionName] = strHex("query"s);
+            function[jss::Flags] = FunctionalHookFlags::hffQUERY;
+            jv[jss::HookFunctions][1u][jss::HookFunction] = function;
+        }
+
+        env(ripple::test::jtx::hook(alice, {{jv}}, 0), HSFEE);
+        env.close();
+
+        Json::Value params = Json::objectValue;
+
+        testQueryRPCCall(env, alice, alice, "query", params, "success");
+    }
+
+    void
     testWithFeatures(FeatureBitset features)
     {
         testInvalid(features);
@@ -724,6 +826,7 @@ public:
         testSimple(features);
         testFunctionParameters(features);
         testInitialize(features);
+        testHookQuery(features);
     }
 
     void

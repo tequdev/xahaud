@@ -588,7 +588,9 @@ SetHook::validateHookSetEntry(SetHookCtx& ctx, STObject const& hookSetObj)
                         if (function.isFieldPresent(sfFlags))
                         {
                             const auto flags = function.getFieldU32(sfFlags);
-                            if (flags & ~FunctionalHookFlags::hffINITIALIZE)
+                            if (flags &
+                                ~(FunctionalHookFlags::hffINITIALIZE |
+                                  FunctionalHookFlags::hffQUERY))
                             {
                                 JLOG(ctx.j.trace())
                                     << "HookSet(" << hook::log::WASM_SMOKE_TEST
@@ -712,6 +714,7 @@ SetHook::validateNewHooks(ApplyView& view, STArray const& hookSets)
     // Check if HookSets contains HookV3 and other Hooks are not held
     // Already checked in preflight if HookV3 is the first index
     int hookSetSize = -1;
+    bool hasV3 = false;
     for (uint16_t hookSetNumber = 0; hookSetNumber < hookSets.size();
          ++hookSetNumber)
     {
@@ -732,13 +735,12 @@ SetHook::validateNewHooks(ApplyView& view, STArray const& hookSets)
             return false;
 
         uint16_t hookApiVersion = defSLE->getFieldU16(sfHookApiVersion);
-
-        // Not using HookV3
-        if (hookSetSize == 0 && hookApiVersion != 3)
-            return true;
+        
+        if (hookApiVersion == 3)
+            hasV3 = true;
 
         // Using HookV3 and holding other Hooks
-        if (hookSetSize > 1)
+        if (hasV3 && hookSetSize > 1)
             return false;
     }
     return true;
@@ -935,8 +937,7 @@ SetHook::preflight(PreflightContext const& ctx)
                 name != sfHookNamespace && name != sfHookParameters &&
                 name != sfHookOn && name != sfHookGrants &&
                 name != sfHookApiVersion && name != sfFlags &&
-                name != sfHookCanEmit &&
-                name != sfHookFunctions)
+                name != sfHookCanEmit && name != sfHookFunctions)
             {
                 JLOG(ctx.j.trace())
                     << "HookSet(" << hook::log::HOOK_INVALID_FIELD << ")["

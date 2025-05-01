@@ -356,6 +356,8 @@ JSS(frozen_balances);       // out: GatewayBalances
 JSS(full);                  // in: LedgerClearer, handlers/Ledger
 JSS(full_reply);            // out: PathFind
 JSS(fullbelow_size);        // out: GetCounts
+JSS(function_name);         // in: HookQuery
+JSS(function_params);       // in: HookQuery
 JSS(good);                  // out: RPCVersion
 JSS(hash);                  // out: NetworkOPs, InboundLedger,
 JSS(hash_mismatches);       // out: catalogue
@@ -369,6 +371,7 @@ JSS(highest_sequence);      // out: AccountInfo
 JSS(highest_ticket);        // out: AccountInfo
 JSS(historical_perminute);  // historical_perminute.
 JSS(hook);                  // in: LedgerEntry
+JSS(hook_account);          // in: HookQuery
 JSS(hook_definition);       // in: LedgerEntry
 JSS(hook_state);            // in: LedgerEntry
 JSS(hostid);                // out: NetworkOPs
@@ -591,6 +594,7 @@ JSS(publisher_lists);   // out: ValidatorList
 JSS(quality);           // out: NetworkOPs
 JSS(quality_in);        // out: AccountLines
 JSS(quality_out);       // out: AccountLines
+JSS(query_results);     // out: HookQuery
 JSS(queue);             // in: AccountInfo
 JSS(queue_data);        // out: AccountInfo
 JSS(queued);            // out: SubmitTransaction

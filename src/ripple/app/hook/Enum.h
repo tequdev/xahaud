@@ -23,6 +23,7 @@ enum HookSetFlags : uint8_t {
 
 enum FunctionalHookFlags : uint8_t {
     hffINITIALIZE = 0b00000001U,  // initialize hook
+    hffQUERY = 0b00000010U,       // query hook
 };
 
 enum HookEmissionFlags : uint16_t {
@@ -348,7 +349,8 @@ enum hook_return_code : int64_t {
     MEM_OVERLAP = -43,   // one or more specified buffers are the same memory
     TOO_MANY_STATE_MODIFICATIONS = -44,  // more than 5000 modified state
                                          // entires in the combined hook chains
-    TOO_MANY_NAMESPACES = -45
+    TOO_MANY_NAMESPACES = -45,
+    NOT_SUPPORTED = -46,
 };
 
 enum ExitType : uint8_t {
@@ -452,6 +454,7 @@ static const std::map<std::string, std::vector<uint8_t>> import_whitelist_1{
     {"xpop_slot", {0x7EU, 0x7FU, 0x7FU}}};
 // FunctionalHooks
 static const std::map<std::string, std::vector<uint8_t>> import_whitelist_v3{
-    {"otxn_func_param", {0x7EU, 0x7FU, 0x7FU, 0x7FU, 0x7FU}}};
+    {"otxn_func_param", {0x7EU, 0x7FU, 0x7FU, 0x7FU, 0x7FU}},
+    {"query_result_set", {0x7EU, 0x7FU, 0x7FU, 0x7FU, 0x7FU, 0x7FU}}};
 };  // namespace hook_api
 #endif

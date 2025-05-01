@@ -1285,12 +1285,15 @@ Transactor::executeHookChain(
         uint16_t hookApiVersion = hookObj.isFieldPresent(sfHookApiVersion)
             ? hookObj.getFieldU16(sfHookApiVersion)
             : hookDef->getFieldU16(sfHookApiVersion);
+            
+        std::optional<Blob> functionName;
+        std::vector<hook::FunctionParameterValueMap> fparameters;
 
         if (hookApiVersion == 3)
         {
             if (!ctx_.tx.isFieldPresent(sfFunctionName))
                 return tecHOOK_REJECTED;
-            Blob const& name = ctx_.tx.getFieldVL(sfFunctionName);
+            functionName = ctx_.tx.getFieldVL(sfFunctionName);
 
             auto const hookFunctions = hookObj.isFieldPresent(sfHookFunctions)
                 ? hookObj.getFieldArray(sfHookFunctions)
@@ -1299,7 +1302,7 @@ Transactor::executeHookChain(
             std::optional<STObject> functionDef;
             for (auto const& hookFunction : hookFunctions)
             {
-                if (hookFunction.getFieldVL(sfFunctionName) == name)
+                if (hookFunction.getFieldVL(sfFunctionName) == functionName)
                     functionDef = hookFunction;
             }
             if (!functionDef)
@@ -1335,6 +1338,10 @@ Transactor::executeHookChain(
                     if (funcParamData.getInnerSType() !=
                         funcParamDefData.getInnerSType())
                         return tecHOOK_REJECTED;
+
+                    fparameters.emplace_back(
+                        funcParams[i].getFieldVL(sfFunctionParameterName),
+                        funcParams[i].getFieldData(sfFunctionParameterValue));
                 }
             }
         }
@@ -1378,13 +1385,18 @@ Transactor::executeHookChain(
 
         try
         {
+            std::optional<std::string> functionNameHex;
+            if (functionName)
+                functionNameHex = strHex(functionName.value());
+
             results.push_back(hook::apply(
                 hookDef->getFieldH256(sfHookSetTxnID),
                 hookHash,
                 hookCanEmit,
                 ns,
                 hookDef->getFieldVL(sfCreateCode),
-                std::nullopt,
+                functionNameHex,
+                fparameters,
                 parameters,
                 hookParamOverrides,
                 stateMap,
@@ -1393,6 +1405,7 @@ Transactor::executeHookChain(
                 hasCallback,
                 false,
                 strong,
+                hook::HookApplyType::Apply,
                 (strong ? 0 : 1UL),  // 0 = strong, 1 = weak
                 hook_no - 1,
                 provisionalMeta));
@@ -1483,7 +1496,7 @@ Transactor::doFunctionalHookInitialize(
 
     // if (!hook::canHook(ctx_.tx.getTxnType(), hookOn))
     //     continue;  // skip if it can't
-    
+
     uint256 hookCanEmit = hook::getHookCanEmit(hookObj, hookDef);
 
     // fetch the namespace either from the hook object of, if absent, the
@@ -1514,12 +1527,14 @@ Transactor::doFunctionalHookInitialize(
             initializationFunctionName,
             {},
             {},
+            {},
             stateMap,
             ctx_,
             account_,
             false,  // hasCallback,
             false,  // isCallback,
             true,   // strong,
+            hook::HookApplyType::Apply,
             0,      // 0 = strong, 1 = weak
             0,      // hook_no
             {});
@@ -1577,6 +1592,81 @@ Transactor::doFunctionalHookInitialize(
 
     return tesSUCCESS;
 }
+
+std::optional<std::map<std::string, STData>>
+Transactor::doFunctionalHookQuery(
+    Application& app,
+    ReadView const& view,
+    AccountID const& hookAccount,
+    STObject const& hookObj,
+    std::string const& functionName,
+    std::vector<hook::FunctionParameterValueMap> const& parameters)
+{
+    if (!hookObj.isFieldPresent(sfHookHash))
+        return std::nullopt;
+
+    // lookup hook definition
+    uint256 const& hookHash = hookObj.getFieldH256(sfHookHash);
+
+    auto const hookDef = view.read(keylet::hookDefinition(hookHash));
+    if (!hookDef)
+        return std::nullopt;
+
+    uint256 hookCanEmit =
+        hook::getHookCanEmit(hookObj, std::const_pointer_cast<SLE>(hookDef));
+
+    // fetch the namespace either from the hook object of, if absent, the
+    // hook def
+    uint256 const& ns =
+        (hookObj.isFieldPresent(sfHookNamespace)
+             ? hookObj.getFieldH256(sfHookNamespace)
+             : hookDef->getFieldH256(sfHookNamespace));
+
+    STTx tx = STTx{ttACCOUNT_SET, [](STObject&) {}};
+    
+    auto ov = OpenView{&view};
+
+    hook::HookStateMap stateMap;
+    try
+    {
+        ApplyContext ac{
+            app,
+            ov,
+            tx,
+            tesSUCCESS,
+            view.fees().base,
+            tapNONE};
+
+        hook::HookResult hookResult = hook::apply(
+            tx.getTransactionID(),
+            hookHash,
+            hookCanEmit,
+            ns,
+            hookDef->getFieldVL(sfCreateCode),
+            functionName,
+            parameters,
+            {},
+            {},
+            stateMap,
+            ac,
+            hookAccount,
+            false,  // hasCallback,
+            false,  // isCallback,
+            true,   // strong,
+            hook::HookApplyType::Query,
+            0,  // 0 = strong, 1 = weak
+            0,  // hook_no
+            {});
+        if (hookResult.exitType != hook_api::ExitType::ACCEPT)
+            return std::nullopt;
+        return hookResult.hookQueryResults;
+    }
+    catch (std::exception& e)
+    {
+        return std::nullopt;
+    }
+}
+
 void
 Transactor::doHookCallback(
     std::shared_ptr<STObject const> const& provisionalMeta)
@@ -1669,6 +1759,7 @@ Transactor::doHookCallback(
                 ns,
                 hookDef->getFieldVL(sfCreateCode),
                 std::nullopt,
+                {},
                 parameters,
                 {},
                 stateMap,
@@ -1677,6 +1768,7 @@ Transactor::doHookCallback(
                 true,
                 true,
                 false,
+                hook::HookApplyType::Apply,
                 safe_cast<TxType>(ctx_.tx.getFieldU16(sfTransactionType)) ==
                         ttEMIT_FAILURE
                     ? 1UL
@@ -1940,6 +2032,7 @@ Transactor::doAgainAsWeak(
                 ns,
                 hookDef->getFieldVL(sfCreateCode),
                 std::nullopt,
+                {},
                 parameters,
                 {},
                 stateMap,
@@ -1948,6 +2041,7 @@ Transactor::doAgainAsWeak(
                 hookDef->isFieldPresent(sfHookCallbackFee),
                 false,
                 false,
+                hook::HookApplyType::Apply,
                 2UL,  // param 2 = aaw
                 hook_no - 1,
                 provisionalMeta);

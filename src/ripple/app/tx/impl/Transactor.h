@@ -181,6 +181,15 @@ public:
         Keylet const& hookKeylet,
         bool collectCallsOnly = false);
 
+    static std::optional<std::map<std::string, STData>>
+    doFunctionalHookQuery(
+        Application& app,
+        ReadView const& view,
+        AccountID const& account,
+        STObject const& hookObj,
+        std::string const& functionName,
+        std::vector<hook::FunctionParameterValueMap> const& parameters);
+
 protected:
     void
     doHookCallback(std::shared_ptr<STObject const> const& provisionalMeta);

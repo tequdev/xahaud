@@ -11,6 +11,7 @@
 #include <ripple/basics/Slice.h>
 #include <ripple/protocol/ErrorCodes.h>
 #include <ripple/protocol/STData.h>
+#include <ripple/protocol/STDataType.h>
 #include <ripple/protocol/TxFlags.h>
 #include <ripple/protocol/st.h>
 #include <ripple/protocol/tokens.h>
@@ -1052,6 +1053,32 @@ hook::getHookCanEmit(
     return hookCanEmit;
 }
 
+std::vector<hook::FunctionParameterValueMap>
+hook::getFunctionParameterValueMap(ripple::STArray const& functionParameters)
+{
+    std::vector<hook::FunctionParameterValueMap> param_map;
+    for (auto const& param : functionParameters)
+    {
+        const auto& name = param.getFieldVL(sfFunctionParameterName);
+        const auto& value = param.getFieldData(sfFunctionParameterValue);
+        param_map.emplace_back(name, value);
+    }
+    return param_map;
+}
+
+std::vector<hook::FunctionParameterTypeMap>
+hook::getFunctionParameterTypeMap(ripple::STArray const& functionParameters)
+{
+    std::vector<hook::FunctionParameterTypeMap> param_map;
+    for (auto const& param : functionParameters)
+    {
+        const auto& name = param.getFieldVL(sfFunctionParameterName);
+        const auto& type = param.getFieldDataType(sfFunctionParameterType);
+        param_map.emplace_back(name, type);
+    }
+    return param_map;
+}
+
 // Update HookState ledger objects for the hook... only called after accept()
 // assumes the specified acc has already been checked for authoriation (hook
 // grants)
@@ -1207,6 +1234,7 @@ hook::apply(
     ripple::uint256 const& hookNamespace,
     ripple::Blob const& wasm,
     std::optional<std::string> const& fname,
+    std::vector<hook::FunctionParameterValueMap> const& fparameters,
     std::map<
         std::vector<uint8_t>, /* param name  */
         std::vector<uint8_t>  /* param value */
@@ -1222,6 +1250,7 @@ hook::apply(
     bool hasCallback,
     bool isCallback,
     bool isStrong,
+    HookApplyType hookApplyType,
     uint32_t wasmParam,
     uint8_t hookChainPosition,
     std::shared_ptr<STObject const> const& provisionalMeta)
@@ -1241,6 +1270,7 @@ hook::apply(
              .hookNamespace = hookNamespace,
              .stateMap = stateMap,
              .changedStateCount = 0,
+             .fparameters = fparameters,
              .hookParamOverrides = hookParamOverrides,
              .hookParams = hookParams,
              .hookSkips = {},
@@ -1253,6 +1283,7 @@ hook::apply(
              .hasCallback = hasCallback,
              .isCallback = isCallback,
              .isStrong = isStrong,
+             .hookApplyType = hookApplyType,
              .wasmParam = wasmParam,
              .hookChainPosition = hookChainPosition,
              .foreignStateSetDisabled = false,
@@ -1268,7 +1299,8 @@ hook::apply(
 
     HookExecutor executor{hookCtx};
 
-    std::string functionName = fname ? fname.value() : (isCallback ? "cbak" : "hook");
+    std::string functionName =
+        fname ? fname.value() : (isCallback ? "cbak" : "hook");
 
     if (applyCtx.tx.isFieldPresent(sfFunctionName))
     {
@@ -5759,19 +5791,12 @@ DEFINE_HOOK_FUNCTION(
     if (NOT_IN_BOUNDS(write_ptr, write_len, memory_length))
         return OUT_OF_BOUNDS;
 
-    if (!applyCtx.tx.isFieldPresent(sfFunctionParameters))
-        return DOESNT_EXIST;
-
-    auto const& funcParams = applyCtx.tx.getFieldArray(sfFunctionParameters);
+    auto const& funcParams = hookCtx.result.fparameters;
 
     if (funcParams.size() <= index)
         return DOESNT_EXIST;
-    
-    if (!funcParams[index].isFieldPresent(sfFunctionParameterValue))
-        return INTERNAL_ERROR;
 
-    ripple::STData const& funcParam =
-        funcParams[index].getFieldData(sfFunctionParameterValue);
+    ripple::STData const& funcParam = funcParams[index].value;
 
     switch (serialized_type_id)
     {
@@ -6201,6 +6226,120 @@ DEFINE_HOOK_FUNCTION(
 
     HOOK_TEARDOWN();
 }
+
+DEFINE_HOOK_FUNCTION(
+    int64_t,
+    query_result_set,
+    uint32_t kread_ptr,
+    uint32_t kread_len,
+    uint32_t dread_ptr,
+    uint32_t dread_len,
+    uint32_t serialized_type_id)
+{
+    HOOK_SETUP();
+
+    if (NOT_IN_BOUNDS(kread_ptr, kread_len, memory_length) ||
+        NOT_IN_BOUNDS(dread_ptr, dread_len, memory_length))
+        return OUT_OF_BOUNDS;
+
+    // TODO: validate utf8
+    // auto const key = strHex(
+        // ripple::Blob{memory + kread_ptr, memory + kread_ptr + kread_len});
+
+    std::string key((const char*)(memory + kread_ptr), (size_t)kread_len);
+    ripple::STData data{sfHookParameterValue};
+
+    switch (serialized_type_id)
+    {
+        case STI_UINT8: {
+            if (dread_len != 1)
+                return INVALID_ARGUMENT;
+
+            data.setFieldU8(*reinterpret_cast<uint8_t*>(memory + dread_ptr));
+            hookCtx.result.hookQueryResults.insert_or_assign(key, data);
+            break;
+        }
+        case STI_UINT16: {
+            if (dread_len != 2)
+                return INVALID_ARGUMENT;
+
+            data.setFieldU16(*reinterpret_cast<uint16_t*>(memory + dread_ptr));
+            hookCtx.result.hookQueryResults.insert_or_assign(key, data);
+            break;
+        }
+        case STI_UINT32: {
+            if (dread_len != 4)
+                return INVALID_ARGUMENT;
+
+            data.setFieldU32(*reinterpret_cast<uint32_t*>(memory + dread_ptr));
+            hookCtx.result.hookQueryResults.insert_or_assign(key, data);
+            break;
+        }
+        case STI_UINT64: {
+            if (dread_len != 8)
+                return INVALID_ARGUMENT;
+
+            data.setFieldU64(*reinterpret_cast<uint64_t*>(memory + dread_ptr));
+            hookCtx.result.hookQueryResults.insert_or_assign(key, data);
+            break;
+        }
+        case STI_UINT128: {
+            if (dread_len != 16)
+                return INVALID_ARGUMENT;
+
+            ripple::uint128 hash =
+                ripple::uint128::fromVoid(memory + dread_ptr);
+            data.setFieldH128(hash);
+            hookCtx.result.hookQueryResults.insert_or_assign(key, data);
+            break;
+        }
+        case STI_UINT256: {
+            if (dread_len != 32)
+                return INVALID_ARGUMENT;
+
+            ripple::uint256 hash =
+                ripple::uint256::fromVoid(memory + dread_ptr);
+            data.setFieldH256(hash);
+            hookCtx.result.hookQueryResults.insert_or_assign(key, data);
+            break;
+        }
+        case STI_AMOUNT: {
+            if (dread_len != 32)
+                return INVALID_ARGUMENT;
+
+            data.setFieldAmount(
+                *reinterpret_cast<STAmount*>(memory + dread_ptr));
+            hookCtx.result.hookQueryResults.insert_or_assign(key, data);
+            break;
+        }
+        case STI_VL: {
+            if (dread_len != 32)
+                return INVALID_ARGUMENT;
+
+            data.setFieldVL(ripple::Blob{
+                memory + dread_ptr, memory + dread_ptr + dread_len});
+            hookCtx.result.hookQueryResults.insert_or_assign(key, data);
+            break;
+        }
+        case STI_ACCOUNT: {
+            if (dread_len != 20)
+                return INVALID_ARGUMENT;
+
+            auto account = AccountID::fromVoid(memory + dread_ptr);
+            data.setAccountID(account);
+            hookCtx.result.hookQueryResults.insert_or_assign(key, data);
+            break;
+        }
+        default: {
+            return INVALID_ARGUMENT;
+        }
+    }
+
+    return dread_len;
+
+    HOOK_TEARDOWN();
+}
+
 /*
 
 DEFINE_HOOK_FUNCTION(

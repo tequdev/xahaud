@@ -8,6 +8,8 @@
 #include <ripple/basics/Blob.h>
 #include <ripple/beast/utility/Journal.h>
 #include <ripple/protocol/SField.h>
+#include <ripple/protocol/STData.h>
+#include <ripple/protocol/STDataType.h>
 #include <ripple/protocol/TER.h>
 #include <ripple/protocol/digest.h>
 #include <any>
@@ -20,6 +22,13 @@
 namespace hook {
 struct HookContext;
 struct HookResult;
+struct FunctionParameterValueMap;
+
+enum HookApplyType {
+    Apply,
+    Query,
+};
+
 bool
 isEmittedTxn(ripple::STTx const& tx);
 
@@ -413,6 +422,14 @@ DECLARE_HOOK_FUNCTION(
     xpop_slot,
     uint32_t slot_no_tx,
     uint32_t slot_no_meta);
+DECLARE_HOOK_FUNCTION(
+    int64_t,
+    query_result_set,
+    uint32_t kread_ptr,
+    uint32_t kread_len,
+    uint32_t dread_ptr,
+    uint32_t dread_len,
+    uint32_t serialized_type_id);
 
 /*
     DECLARE_HOOK_FUNCTION(int64_t,  str_find,           uint32_t hread_ptr,
@@ -441,6 +458,15 @@ canEmit(ripple::TxType txType, ripple::uint256 hookCanEmit);
 ripple::uint256
 getHookCanEmit(ripple::STObject const& hookObj, SLE::pointer const& hookDef);
 
+struct FunctionParameterValueMap;
+struct FunctionParameterTypeMap;
+
+std::vector<FunctionParameterValueMap>
+getFunctionParameterValueMap(ripple::STArray const& functionParameters);
+
+std::vector<FunctionParameterTypeMap>
+getFunctionParameterTypeMap(ripple::STArray const& functionParameters);
+
 struct HookResult;
 
 HookResult
@@ -453,6 +479,7 @@ apply(
     ripple::uint256 const& hookNamespace,
     ripple::Blob const& wasm,
     std::optional<std::string> const& fname,
+    std::vector<hook::FunctionParameterValueMap> const& fparameters,
     std::map<
         std::vector<uint8_t>, /* param name  */
         std::vector<uint8_t>  /* param value */
@@ -468,6 +495,7 @@ apply(
     bool hasCallback,
     bool isCallback,
     bool isStrongTSH,
+    HookApplyType hookApplyType,
     uint32_t wasmParam,
     uint8_t hookChainPosition,
     // result of apply() if this is weak exec
@@ -482,6 +510,18 @@ int64_t
 computeExecutionFee(uint64_t instructionCount);
 int64_t
 computeCreationFee(uint64_t byteCount);
+
+struct FunctionParameterValueMap
+{
+    ripple::Blob const name;
+    ripple::STData const value;
+};
+
+struct FunctionParameterTypeMap
+{
+    ripple::Blob const name;
+    ripple::STDataType const type;
+};
 
 struct HookResult
 {
@@ -499,6 +539,8 @@ struct HookResult
         emittedTxn{};  // etx stored here until accept/rollback
     HookStateMap& stateMap;
     uint16_t changedStateCount = 0;
+    std::vector<hook::FunctionParameterValueMap> fparameters;
+    std::map<std::string, STData> hookQueryResults = {};
     std::map<
         ripple::uint256,  // hook hash
         std::map<
@@ -517,6 +559,7 @@ struct HookResult
     bool isCallback =
         false;  // true iff this hook execution is a callback in action
     bool isStrong = false;
+    HookApplyType hookApplyType = HookApplyType::Apply;
     uint32_t wasmParam = 0;
     uint32_t overrideCount = 0;
     uint8_t hookChainPosition = 0;
@@ -735,7 +778,6 @@ public:
         uint32_t wasmParam,
         beast::Journal const& j)
     {
-
         WasmEdge_String hookFunctionName =
             WasmEdge_StringCreateByCString(functionName.c_str());
 
@@ -889,6 +931,8 @@ public:
 
         ADD_HOOK_FUNCTION(meta_slot, ctx);
         ADD_HOOK_FUNCTION(xpop_slot, ctx);
+
+        ADD_HOOK_FUNCTION(query_result_set, ctx);
 
         /*
         ADD_HOOK_FUNCTION(str_find, ctx);

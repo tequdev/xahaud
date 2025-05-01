@@ -94,6 +94,7 @@ Handler const handlerArray[]{
     {"feature", byRef(&doFeature), Role::ADMIN, NO_CONDITION},
     {"fee", byRef(&doFee), Role::USER, NEEDS_CURRENT_LEDGER},
     {"fetch_info", byRef(&doFetchInfo), Role::ADMIN, NO_CONDITION},
+    {"hook_query", byRef(&doHookQuery), Role::USER, NO_CONDITION},
     {"ledger_accept",
      byRef(&doLedgerAccept),
      Role::ADMIN,
