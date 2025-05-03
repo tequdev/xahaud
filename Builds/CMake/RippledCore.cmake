@@ -980,6 +980,7 @@ if (tests)
     src/test/protocol/STAccount_test.cpp
     src/test/protocol/STAmount_test.cpp
     src/test/protocol/STData_test.cpp
+    src/test/protocol/STDataType_test.cpp
     src/test/protocol/STObject_test.cpp
     src/test/protocol/STTx_test.cpp
     src/test/protocol/STValidation_test.cpp

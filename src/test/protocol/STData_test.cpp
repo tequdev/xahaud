@@ -25,17 +25,6 @@
 #include <arpa/inet.h>  // For htonl/ntohl (needed for serialization simulation)
 
 namespace ripple {
-
-// Helper function to create a Buffer from hex string
-Buffer
-buffer_from_hex(std::string const& hex)
-{
-    auto bytes = strUnHex(hex);
-    if (!bytes)
-        throw std::runtime_error("Invalid hex string for buffer");
-    return Buffer(bytes->data(), bytes->size());
-}
-
 struct STData_test : public beast::unit_test::suite
 {
     void
@@ -159,8 +148,23 @@ struct STData_test : public beast::unit_test::suite
                 "000001");
         }
         {
-            // TODO: STI_VL
-        } {
+            // STI_VL
+            Serializer s;
+            Blob blob = strUnHex("DEADBEEF").value();
+
+            STData s1(sf);
+            s1.setFieldVL(blob);
+            BEAST_EXPECT(s1.getFieldVL() == blob);
+            s1.add(s);
+            BEAST_EXPECT(strHex(s) == "000704DEADBEEF");
+            s.erase();
+
+            STData s2(sf, blob);
+            BEAST_EXPECT(s2.getFieldVL() == blob);
+            s2.add(s);
+            BEAST_EXPECT(strHex(s) == "000704DEADBEEF");
+        }
+        {
             // STI_ACCOUNT
             Serializer s;
             AccountID account = AccountID(1);
@@ -181,188 +185,53 @@ struct STData_test : public beast::unit_test::suite
                 strHex(s) == "0008140000000000000000000000000000000000000002");
         }
         {
-            // TODO: STI_AMOUNT
+            // STI_AMOUNT (Native)
+            Serializer s;
+            STAmount amount = STAmount(1);
+
+            STData s1(sf);
+            s1.setFieldAmount(amount);
+            BEAST_EXPECT(s1.getFieldAmount() == amount);
+            s1.add(s);
+            BEAST_EXPECT(
+                strHex(s) == "00064000000000000001");
+            s.erase();
+
+            STAmount amount2 = STAmount(2);
+            STData s2(sf, amount2);
+            BEAST_EXPECT(s2.getFieldAmount() == amount2);
+            s2.add(s);
+            BEAST_EXPECT(strHex(s) == "00064000000000000002");
         }
+        {
+            // STI_AMOUNT (IOU)
+            Serializer s;
+            IOUAmount iouamount1 = IOUAmount(1000);
+            Issue const usd(
+                Currency(0x5553440000000000),
+                parseBase58<AccountID>("rG1QQv2nh2gr7RCZ1P8YYcBUKCCN633jCn").value());
+            STAmount amount = STAmount(iouamount1, usd);
 
-        // read templated object
-        // SOTemplate const sotOuter{
-        //     {sf1Outer, soeREQUIRED},
-        //     {sf2Outer, soeOPTIONAL},
-        //     {sf3Outer, soeDEFAULT},
-        //     {sf4, soeOPTIONAL},
-        //     {sf5, soeDEFAULT},
-        // };
+            STData s1(sf);
+            s1.setFieldAmount(amount);
+            BEAST_EXPECT(s1.getFieldAmount() == amount);
+            s1.add(s);
+            BEAST_EXPECT(
+                strHex(s) ==
+                "0006D5438D7EA4C680000000000000000000000000005553440000000000AE"
+                "123A8556F3CF91154711376AFB0F894F832B3D");
+            s.erase();
 
-        // {
-        //     auto const st = [&]() {
-        //         STObject s(sotOuter, sfGeneric);
-        //         s.setFieldU32(sf1Outer, 1);
-        //         s.setFieldU32(sf2Outer, 2);
-        //         return s;
-        //     }();
-
-        //     BEAST_EXPECT(st[sf1Outer] == 1);
-        //     BEAST_EXPECT(st[sf2Outer] == 2);
-        //     BEAST_EXPECT(st[sf3Outer] == 0);
-        //     BEAST_EXPECT(*st[~sf1Outer] == 1);
-        //     BEAST_EXPECT(*st[~sf2Outer] == 2);
-        //     BEAST_EXPECT(*st[~sf3Outer] == 0);
-        //     BEAST_EXPECT(!!st[~sf1Outer]);
-        //     BEAST_EXPECT(!!st[~sf2Outer]);
-        //     BEAST_EXPECT(!!st[~sf3Outer]);
-        // }
-
-        // // write free object
-
-        // {
-        //     STObject st(sfGeneric);
-        //     unexcept([&]() { st[sf1Outer]; });
-        //     except([&]() { return st[sf1Outer] == 0; });
-        //     BEAST_EXPECT(st[~sf1Outer] == std::nullopt);
-        //     BEAST_EXPECT(st[~sf1Outer] == std::optional<std::uint32_t>{});
-        //     BEAST_EXPECT(st[~sf1Outer] != std::optional<std::uint32_t>(1));
-        //     BEAST_EXPECT(!st[~sf1Outer]);
-        //     st[sf1Outer] = 2;
-        //     BEAST_EXPECT(st[sf1Outer] == 2);
-        //     BEAST_EXPECT(st[~sf1Outer] != std::nullopt);
-        //     BEAST_EXPECT(st[~sf1Outer] == std::optional<std::uint32_t>(2));
-        //     BEAST_EXPECT(!!st[~sf1Outer]);
-        //     st[sf1Outer] = 1;
-        //     BEAST_EXPECT(st[sf1Outer] == 1);
-        //     BEAST_EXPECT(!!st[sf1Outer]);
-        //     BEAST_EXPECT(!!st[~sf1Outer]);
-        //     st[sf1Outer] = 0;
-        //     BEAST_EXPECT(!st[sf1Outer]);
-        //     BEAST_EXPECT(!!st[~sf1Outer]);
-        //     st[~sf1Outer] = std::nullopt;
-        //     BEAST_EXPECT(!st[~sf1Outer]);
-        //     BEAST_EXPECT(st[~sf1Outer] == std::nullopt);
-        //     BEAST_EXPECT(st[~sf1Outer] == std::optional<std::uint32_t>{});
-        //     st[~sf1Outer] = std::nullopt;
-        //     BEAST_EXPECT(!st[~sf1Outer]);
-        //     except([&]() { return st[sf1Outer] == 0; });
-        //     except([&]() { return *st[~sf1Outer]; });
-        //     st[sf1Outer] = 1;
-        //     BEAST_EXPECT(st[sf1Outer] == 1);
-        //     BEAST_EXPECT(!!st[sf1Outer]);
-        //     BEAST_EXPECT(!!st[~sf1Outer]);
-        //     st[sf1Outer] = 3;
-        //     st[sf2Outer] = st[sf1Outer];
-        //     BEAST_EXPECT(st[sf1Outer] == 3);
-        //     BEAST_EXPECT(st[sf2Outer] == 3);
-        //     BEAST_EXPECT(st[sf2Outer] == st[sf1Outer]);
-        //     st[sf1Outer] = 4;
-        //     st[sf2Outer] = st[sf1Outer];
-        //     BEAST_EXPECT(st[sf1Outer] == 4);
-        //     BEAST_EXPECT(st[sf2Outer] == 4);
-        //     BEAST_EXPECT(st[sf2Outer] == st[sf1Outer]);
-        // }
-
-        // // Write templated object
-
-        // {
-        //     STObject st(sotOuter, sfGeneric);
-        //     BEAST_EXPECT(!!st[~sf1Outer]);
-        //     BEAST_EXPECT(st[~sf1Outer] != std::nullopt);
-        //     BEAST_EXPECT(st[sf1Outer] == 0);
-        //     BEAST_EXPECT(*st[~sf1Outer] == 0);
-        //     BEAST_EXPECT(!st[~sf2Outer]);
-        //     BEAST_EXPECT(st[~sf2Outer] == std::nullopt);
-        //     except([&]() { return st[sf2Outer] == 0; });
-        //     BEAST_EXPECT(!!st[~sf3Outer]);
-        //     BEAST_EXPECT(st[~sf3Outer] != std::nullopt);
-        //     BEAST_EXPECT(st[sf3Outer] == 0);
-        //     except([&]() { st[~sf1Outer] = std::nullopt; });
-        //     st[sf1Outer] = 1;
-        //     BEAST_EXPECT(st[sf1Outer] == 1);
-        //     BEAST_EXPECT(*st[~sf1Outer] == 1);
-        //     BEAST_EXPECT(!!st[~sf1Outer]);
-        //     st[sf1Outer] = 0;
-        //     BEAST_EXPECT(st[sf1Outer] == 0);
-        //     BEAST_EXPECT(*st[~sf1Outer] == 0);
-        //     BEAST_EXPECT(!!st[~sf1Outer]);
-        //     st[sf2Outer] = 2;
-        //     BEAST_EXPECT(st[sf2Outer] == 2);
-        //     BEAST_EXPECT(*st[~sf2Outer] == 2);
-        //     BEAST_EXPECT(!!st[~sf2Outer]);
-        //     st[~sf2Outer] = std::nullopt;
-        //     except([&]() { return *st[~sf2Outer]; });
-        //     BEAST_EXPECT(!st[~sf2Outer]);
-        //     st[sf3Outer] = 3;
-        //     BEAST_EXPECT(st[sf3Outer] == 3);
-        //     BEAST_EXPECT(*st[~sf3Outer] == 3);
-        //     BEAST_EXPECT(!!st[~sf3Outer]);
-        //     st[sf3Outer] = 2;
-        //     BEAST_EXPECT(st[sf3Outer] == 2);
-        //     BEAST_EXPECT(*st[~sf3Outer] == 2);
-        //     BEAST_EXPECT(!!st[~sf3Outer]);
-        //     st[sf3Outer] = 0;
-        //     BEAST_EXPECT(st[sf3Outer] == 0);
-        //     BEAST_EXPECT(*st[~sf3Outer] == 0);
-        //     BEAST_EXPECT(!!st[~sf3Outer]);
-        //     except([&]() { st[~sf3Outer] = std::nullopt; });
-        //     BEAST_EXPECT(st[sf3Outer] == 0);
-        //     BEAST_EXPECT(*st[~sf3Outer] == 0);
-        //     BEAST_EXPECT(!!st[~sf3Outer]);
-        // }
-
-        // // coercion operator to std::optional
-
-        // {
-        //     STObject st(sfGeneric);
-        //     auto const v = ~st[~sf1Outer];
-        //     static_assert(
-        //         std::is_same<
-        //             std::decay_t<decltype(v)>,
-        //             std::optional<std::uint32_t>>::value,
-        //         "");
-        // }
-
-        // // UDT scalar fields
-
-        // {
-        //     STObject st(sfGeneric);
-        //     st[sfAmount] = STAmount{};
-        //     st[sfAccount] = AccountID{};
-        //     st[sfDigest] = uint256{};
-        //     [&](STAmount) {}(st[sfAmount]);
-        //     [&](AccountID) {}(st[sfAccount]);
-        //     [&](uint256) {}(st[sfDigest]);
-        // }
-
-        // // STBlob and slice
-
-        // {
-        //     {
-        //         STObject st(sfGeneric);
-        //         Buffer b(1);
-        //         BEAST_EXPECT(!b.empty());
-        //         st[sf4] = std::move(b);
-        //         BEAST_EXPECT(b.empty());
-        //         BEAST_EXPECT(Slice(st[sf4]).size() == 1);
-        //         st[~sf4] = std::nullopt;
-        //         BEAST_EXPECT(!~st[~sf4]);
-        //         b = Buffer{2};
-        //         st[sf4] = Slice(b);
-        //         BEAST_EXPECT(b.size() == 2);
-        //         BEAST_EXPECT(Slice(st[sf4]).size() == 2);
-        //         st[sf5] = st[sf4];
-        //         BEAST_EXPECT(Slice(st[sf4]).size() == 2);
-        //         BEAST_EXPECT(Slice(st[sf5]).size() == 2);
-        //     }
-        //     {
-        //         STObject st(sotOuter, sfGeneric);
-        //         BEAST_EXPECT(st[sf5] == Slice{});
-        //         BEAST_EXPECT(!!st[~sf5]);
-        //         BEAST_EXPECT(!!~st[~sf5]);
-        //         Buffer b(1);
-        //         st[sf5] = std::move(b);
-        //         BEAST_EXPECT(b.empty());
-        //         BEAST_EXPECT(Slice(st[sf5]).size() == 1);
-        //         st[~sf4] = std::nullopt;
-        //         BEAST_EXPECT(!~st[~sf4]);
-        //     }
-        // }
+            IOUAmount iouamount2 = IOUAmount(2000);
+            STAmount amount2 = STAmount(iouamount2, usd);
+            STData s2(sf, amount2);
+            BEAST_EXPECT(s2.getFieldAmount() == amount2);
+            s2.add(s);
+            BEAST_EXPECT(
+                strHex(s) ==
+                "0006D5471AFD498D00000000000000000000000000005553440000000000AE"
+                "123A8556F3CF91154711376AFB0F894F832B3D");
+        }
     }
 
     void
