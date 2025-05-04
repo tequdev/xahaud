@@ -1351,11 +1351,6 @@ SetHook::setHook()
                         oldDefSLE->getFieldH256(sfIncomingHookOn);
             }
 
-            if (oldHook->get().isFieldPresent(sfHookOn))
-                oldHookOn = oldHook->get().getFieldH256(sfHookOn);
-            else if (defHookOn)
-                oldHookOn = *defHookOn;
-
             if (oldDefSLE && oldDefSLE->isFieldPresent(sfHookCanEmit))
                 defHookCanEmit = oldDefSLE->getFieldH256(sfHookCanEmit);
 
