@@ -699,8 +699,7 @@ public:
                   "000000000000000000000000000000000000000000000000000000000000"
                   "0000"},
                  {jss::HookApiVersion, "0"},
-                 {jss::HookNamespace, to_string(uint256{beast::zero})}
-    })
+                 {jss::HookNamespace, to_string(uint256{beast::zero})}})
         {
             if (!hasHookCanEmit && key == jss::HookCanEmit)
                 continue;
