@@ -1256,6 +1256,8 @@ Transactor::executeHookChain(
         if (!hook::canHook(ctx_.tx.getTxnType(), hookOn))
             continue;  // skip if it can't
 
+        uint256 hookCanEmit = hook::getHookCanEmit(hookObj, hookDef);
+
         uint32_t flags =
             (hookObj.isFieldPresent(sfFlags) ? hookObj.getFieldU32(sfFlags)
                                              : hookDef->getFieldU32(sfFlags));
@@ -1291,6 +1293,7 @@ Transactor::executeHookChain(
             results.push_back(hook::apply(
                 hookDef->getFieldH256(sfHookSetTxnID),
                 hookHash,
+                hookCanEmit,
                 ns,
                 hookDef->getFieldVL(sfCreateCode),
                 parameters,
@@ -1421,6 +1424,8 @@ Transactor::doHookCallback(
         if (hookObj.getFieldH256(sfHookHash) != callbackHookHash)
             continue;
 
+        uint256 hookCanEmit = hook::getHookCanEmit(hookObj, hookDef);
+
         // fetch the namespace either from the hook object of, if absent, the
         // hook def
         uint256 const& ns =
@@ -1446,6 +1451,7 @@ Transactor::doHookCallback(
             hook::HookResult callbackResult = hook::apply(
                 hookDef->getFieldH256(sfHookSetTxnID),
                 callbackHookHash,
+                hookCanEmit,
                 ns,
                 hookDef->getFieldVL(sfCreateCode),
                 parameters,
@@ -1699,6 +1705,8 @@ Transactor::doAgainAsWeak(
             continue;
         }
 
+        uint256 hookCanEmit = hook::getHookCanEmit(hookObj, hookDef);
+
         // fetch the namespace either from the hook object of, if absent, the
         // hook def
         uint256 const& ns =
@@ -1719,6 +1727,7 @@ Transactor::doAgainAsWeak(
             hook::HookResult aawResult = hook::apply(
                 hookDef->getFieldH256(sfHookSetTxnID),
                 hookHash,
+                hookCanEmit,
                 ns,
                 hookDef->getFieldVL(sfCreateCode),
                 parameters,

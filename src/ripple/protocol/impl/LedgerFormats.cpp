@@ -31,6 +31,7 @@ LedgerFormats::LedgerFormats()
         {sfLedgerIndex,              soeOPTIONAL},
         {sfLedgerEntryType,          soeREQUIRED},
         {sfFlags,                    soeREQUIRED},
+        {sfRemarks,                  soeOPTIONAL},
     };
 
     add(jss::AccountRoot,
@@ -228,6 +229,7 @@ LedgerFormats::LedgerFormats()
             {sfHookOn, soeOPTIONAL},  
             {sfIncomingHookOn, soeOPTIONAL},
             {sfOutgoingHookOn, soeOPTIONAL},
+            {sfHookCanEmit, soeOPTIONAL},
             {sfHookNamespace, soeREQUIRED},
             {sfHookParameters, soeREQUIRED},
             {sfHookApiVersion, soeREQUIRED},  

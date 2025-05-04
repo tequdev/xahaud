@@ -450,6 +450,7 @@ extern SF_UINT256 const sfParentHash;
 extern SF_UINT256 const sfTransactionHash;
 extern SF_UINT256 const sfAccountHash;
 extern SF_UINT256 const sfHookOn;
+extern SF_UINT256 const sfHookCanEmit;
 extern SF_UINT256 const sfPreviousTxnID;
 extern SF_UINT256 const sfLedgerIndex;
 extern SF_UINT256 const sfWalletLocator;
@@ -459,6 +460,7 @@ extern SF_UINT256 const sfNFTokenID;
 extern SF_UINT256 const sfEmitParentTxnID;
 extern SF_UINT256 const sfEmitNonce;
 extern SF_UINT256 const sfEmitHookHash;
+extern SF_UINT256 const sfObjectID;
 extern SF_UINT256 const sfIncomingHookOn;
 extern SF_UINT256 const sfOutgoingHookOn;
 
@@ -540,6 +542,8 @@ extern SF_VL const sfHookReturnString;
 extern SF_VL const sfHookParameterName;
 extern SF_VL const sfHookParameterValue;
 extern SF_VL const sfBlob;
+extern SF_VL const sfRemarkName;
+extern SF_VL const sfRemarkValue;
 
 // account
 extern SF_ACCOUNT const sfAccount;
@@ -597,6 +601,7 @@ extern SField const sfImportVLKey;
 extern SField const sfHookEmission;
 extern SField const sfMintURIToken;
 extern SField const sfAmountEntry;
+extern SField const sfRemark;
 
 // array of objects (common)
 // ARRAY/1 is reserved for end of array
@@ -625,6 +630,7 @@ extern SField const sfActiveValidators;
 extern SField const sfImportVLKeys;
 extern SField const sfHookEmissions;
 extern SField const sfAmounts;
+extern SField const sfRemarks;
 
 //------------------------------------------------------------------------------
 

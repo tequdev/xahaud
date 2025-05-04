@@ -101,8 +101,7 @@ class Catalogue_test : public beast::unit_test::suite
     {
         testcase("catalogue_create: Invalid parameters");
         using namespace test::jtx;
-        Env env{
-            *this, envconfig(), features, nullptr, beast::severities::kInfo};
+        Env env{*this, envconfig(), features};
 
         // No parameters
         {
@@ -177,8 +176,7 @@ class Catalogue_test : public beast::unit_test::suite
         using namespace test::jtx;
 
         // Create environment and some test ledgers
-        Env env{
-            *this, envconfig(), features, nullptr, beast::severities::kInfo};
+        Env env{*this, envconfig(), features};
         prepareLedgerData(env, 5);
 
         boost::filesystem::path tempDir =
@@ -217,8 +215,7 @@ class Catalogue_test : public beast::unit_test::suite
     {
         testcase("catalogue_load: Invalid parameters");
         using namespace test::jtx;
-        Env env{
-            *this, envconfig(), features, nullptr, beast::severities::kInfo};
+        Env env{*this, envconfig(), features};
 
         // No parameters
         {
@@ -265,8 +262,7 @@ class Catalogue_test : public beast::unit_test::suite
         using namespace test::jtx;
 
         // Create environment and test data
-        Env env{
-            *this, envconfig(), features, nullptr, beast::severities::kInfo};
+        Env env{*this, envconfig(), features};
         prepareLedgerData(env, 5);
 
         // Store some key state information before catalogue creation
@@ -322,8 +318,7 @@ class Catalogue_test : public beast::unit_test::suite
             *this,
             test::jtx::envconfig(test::jtx::port_increment, 3),
             features,
-            nullptr,
-            beast::severities::kInfo};
+        };
 
         // Now load the catalogue
         Json::Value params{Json::objectValue};
@@ -406,18 +401,8 @@ class Catalogue_test : public beast::unit_test::suite
                 sourceLedger->info().accepted == loadedLedger->info().accepted);
 
             // Check SLE counts
-            std::size_t sourceCount = 0;
-            std::size_t loadedCount = 0;
-
-            for (auto const& sle : sourceLedger->sles)
-            {
-                sourceCount++;
-            }
-
-            for (auto const& sle : loadedLedger->sles)
-            {
-                loadedCount++;
-            }
+            std::size_t sourceCount = std::ranges::distance(sourceLedger->sles);
+            std::size_t loadedCount = std::ranges::distance(loadedLedger->sles);
 
             BEAST_EXPECT(sourceCount == loadedCount);
 
@@ -518,8 +503,7 @@ class Catalogue_test : public beast::unit_test::suite
                     return cfg;
                 }),
                 features,
-                nullptr,
-                beast::severities::kInfo};
+            };
             prepareLedgerData(env1, 5);
 
             // Create catalogue with network ID 123
@@ -544,8 +528,7 @@ class Catalogue_test : public beast::unit_test::suite
                     return cfg;
                 }),
                 features,
-                nullptr,
-                beast::severities::kInfo};
+            };
 
             {
                 Json::Value params{Json::objectValue};
@@ -569,7 +552,12 @@ class Catalogue_test : public beast::unit_test::suite
 
         // Create environment and test data
         Env env{
-            *this, envconfig(), features, nullptr, beast::severities::kInfo};
+            *this,
+            envconfig(),
+            features,
+            nullptr,
+            beast::severities::kDisabled,
+        };
         prepareLedgerData(env, 3);
 
         boost::filesystem::path tempDir =
@@ -661,7 +649,12 @@ class Catalogue_test : public beast::unit_test::suite
 
         // Create environment and test data
         Env env{
-            *this, envconfig(), features, nullptr, beast::severities::kInfo};
+            *this,
+            envconfig(),
+            features,
+            nullptr,
+            beast::severities::kDisabled,
+        };
         prepareLedgerData(env, 3);
 
         boost::filesystem::path tempDir =
@@ -736,8 +729,7 @@ class Catalogue_test : public beast::unit_test::suite
         using namespace test::jtx;
 
         // Create environment and test data
-        Env env{
-            *this, envconfig(), features, nullptr, beast::severities::kInfo};
+        Env env{*this, envconfig(), features};
         prepareLedgerData(env, 5);
 
         boost::filesystem::path tempDir =
@@ -826,8 +818,7 @@ class Catalogue_test : public beast::unit_test::suite
         using namespace test::jtx;
 
         // Create environment
-        Env env{
-            *this, envconfig(), features, nullptr, beast::severities::kInfo};
+        Env env{*this, envconfig(), features};
 
         boost::filesystem::path tempDir =
             boost::filesystem::temp_directory_path() /
@@ -840,7 +831,7 @@ class Catalogue_test : public beast::unit_test::suite
         {
             auto result = env.client().invoke(
                 "catalogue_status", Json::objectValue)[jss::result];
-            std::cout << to_string(result) << "\n";
+            // std::cout << to_string(result) << "\n";
             BEAST_EXPECT(result[jss::job_status] == "no_job_running");
         }
 

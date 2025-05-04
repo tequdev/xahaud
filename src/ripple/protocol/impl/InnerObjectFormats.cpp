@@ -90,6 +90,7 @@ InnerObjectFormats::InnerObjectFormats()
          {sfHookOn, soeOPTIONAL},
          {sfIncomingHookOn, soeOPTIONAL},
          {sfOutgoingHookOn, soeOPTIONAL},
+         {sfHookCanEmit, soeOPTIONAL},
          {sfHookApiVersion, soeREQUIRED},
          {sfFlags, soeREQUIRED},
          {sfFee, soeREQUIRED}});
@@ -104,6 +105,7 @@ InnerObjectFormats::InnerObjectFormats()
          {sfHookOn, soeOPTIONAL},
          {sfIncomingHookOn, soeOPTIONAL},
          {sfOutgoingHookOn, soeOPTIONAL},
+         {sfHookCanEmit, soeOPTIONAL},
          {sfHookApiVersion, soeOPTIONAL},
          {sfFlags, soeOPTIONAL}});
 
@@ -159,6 +161,14 @@ InnerObjectFormats::InnerObjectFormats()
         {
             {sfURI, soeREQUIRED},
             {sfDigest, soeOPTIONAL},
+            {sfFlags, soeOPTIONAL},
+        });
+
+    add(sfRemark.jsonName.c_str(),
+        sfRemark.getCode(),
+        {
+            {sfRemarkName, soeREQUIRED},
+            {sfRemarkValue, soeOPTIONAL},
             {sfFlags, soeOPTIONAL},
         });
 }
