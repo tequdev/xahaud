@@ -22,12 +22,12 @@
 
 #include <ripple/basics/Buffer.h>
 #include <ripple/protocol/SField.h>
+#include <ripple/protocol/STAccount.h>
+#include <ripple/protocol/STAmount.h>
 #include <ripple/protocol/STBase.h>
 #include <ripple/protocol/STBitString.h>
 #include <ripple/protocol/STInteger.h>
 #include <ripple/protocol/impl/STVar.h>
-#include <ripple/protocol/STAccount.h>
-#include <ripple/protocol/STAmount.h>
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -41,7 +41,8 @@ private:
     bool default_{true};
 
 public:
-    using value_type = STDataType;  // Although not directly holding a single value
+    using value_type =
+        STDataType;  // Although not directly holding a single value
 
     STDataType(SField const& n);
     STDataType(SField const& n, SerializedTypeID);

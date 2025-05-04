@@ -40,10 +40,10 @@
 namespace ripple {
 
 using HookSetValidation = std::variant<
-    bool,          // true = valid
+    bool,                            // true = valid
     std::map<std::string, uint64_t>  // map of export function name to max
                                      // instruction count
->;
+    >;
 
 struct SetHookCtx
 {

@@ -22,9 +22,9 @@
 #include <ripple/protocol/STAccount.h>
 #include <ripple/protocol/STArray.h>
 #include <ripple/protocol/STBlob.h>
-#include <ripple/protocol/STObject.h>
 #include <ripple/protocol/STData.h>
 #include <ripple/protocol/STDataType.h>
+#include <ripple/protocol/STObject.h>
 
 namespace ripple {
 

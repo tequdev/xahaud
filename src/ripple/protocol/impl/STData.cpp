@@ -212,7 +212,7 @@ STData::size() const
         case STI_AMOUNT: {
             // TODO: STAmount::size()
             const STAmount& st_amt = data_.get().downcast<STAmount>();
-            return st_amt.native()? 8: 48;
+            return st_amt.native() ? 8 : 48;
         }
         default:
             Throw<std::runtime_error>("STData: unknown type");

@@ -1035,7 +1035,8 @@ validateGuards(
                     {
                         // PASS, this is a version 1 api
                     }
-                    else if (rulesVersion & 0x04U &&
+                    else if (
+                        rulesVersion & 0x04U &&
                         hook_api::import_whitelist_v3.find(import_name) !=
                             hook_api::import_whitelist_v3.end())
                     {
@@ -1276,7 +1277,8 @@ validateGuards(
                         if (!sig)
                             sig = findInWhitelist(hook_api::import_whitelist_1);
                         if (!sig)
-                            sig = findInWhitelist(hook_api::import_whitelist_v3);
+                            sig =
+                                findInWhitelist(hook_api::import_whitelist_v3);
 
                         auto const& api_signature = *sig;
 
@@ -1520,8 +1522,7 @@ validateGuards(
                     last_import_number,
                     guardLog,
                     guardLogAccStr,
-                    rulesVersion
-                    );
+                    rulesVersion);
 
                 if (!valid)
                     return {};

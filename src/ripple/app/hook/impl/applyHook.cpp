@@ -6243,7 +6243,7 @@ DEFINE_HOOK_FUNCTION(
 
     // TODO: validate utf8
     // auto const key = strHex(
-        // ripple::Blob{memory + kread_ptr, memory + kread_ptr + kread_len});
+    // ripple::Blob{memory + kread_ptr, memory + kread_ptr + kread_len});
 
     std::string key((const char*)(memory + kread_ptr), (size_t)kread_len);
     ripple::STData data{sfHookParameterValue};

@@ -161,7 +161,7 @@ InnerObjectFormats::InnerObjectFormats()
             {sfDigest, soeOPTIONAL},
             {sfFlags, soeOPTIONAL},
         });
-        
+
     add(sfRemark.jsonName.c_str(),
         sfRemark.getCode(),
         {

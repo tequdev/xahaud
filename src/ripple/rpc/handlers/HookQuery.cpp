@@ -143,11 +143,10 @@ doHookQuery(RPC::JsonContext& context)
     STArray parameters = hookObj.isFieldPresent(sfFunctionParameters)
         ? hookObj.getFieldArray(sfFunctionParameters)
         : hookDef->isFieldPresent(sfFunctionParameters)
-          ? hookDef->getFieldArray(sfFunctionParameters)
-          : STArray();
+            ? hookDef->getFieldArray(sfFunctionParameters)
+            : STArray();
 
-    auto const& parameter = [function_name,
-                             &parameters]() -> STArray {
+    auto const& parameter = [function_name, &parameters]() -> STArray {
         for (const auto& param : parameters)
         {
             auto const param_name = param.getFieldVL(sfFunctionParameterName);
@@ -157,8 +156,7 @@ doHookQuery(RPC::JsonContext& context)
         return STArray();
     }();
 
-    auto const paramTypeMap =
-        hook::getFunctionParameterTypeVec(parameter);
+    auto const paramTypeMap = hook::getFunctionParameterTypeVec(parameter);
 
     std::vector<hook::FunctionParameterValueVec> sortedDataMap;
     for (const auto& param : paramTypeMap)
@@ -188,7 +186,7 @@ doHookQuery(RPC::JsonContext& context)
 
     if (!queryResult)
         return RPC::invalid_field_error(jss::function_params);
-        
+
     Json::Value query_results;
     for (const auto& [key, value] : queryResult.value())
         query_results[key] = value.getJson(JsonOptions::none);

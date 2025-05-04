@@ -193,8 +193,7 @@ struct STData_test : public beast::unit_test::suite
             s1.setFieldAmount(amount);
             BEAST_EXPECT(s1.getFieldAmount() == amount);
             s1.add(s);
-            BEAST_EXPECT(
-                strHex(s) == "00064000000000000001");
+            BEAST_EXPECT(strHex(s) == "00064000000000000001");
             s.erase();
 
             STAmount amount2 = STAmount(2);
@@ -209,7 +208,8 @@ struct STData_test : public beast::unit_test::suite
             IOUAmount iouamount1 = IOUAmount(1000);
             Issue const usd(
                 Currency(0x5553440000000000),
-                parseBase58<AccountID>("rG1QQv2nh2gr7RCZ1P8YYcBUKCCN633jCn").value());
+                parseBase58<AccountID>("rG1QQv2nh2gr7RCZ1P8YYcBUKCCN633jCn")
+                    .value());
             STAmount amount = STAmount(iouamount1, usd);
 
             STData s1(sf);

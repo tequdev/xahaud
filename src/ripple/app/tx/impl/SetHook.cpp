@@ -735,7 +735,7 @@ SetHook::validateNewHooks(ApplyView& view, STArray const& hookSets)
             return false;
 
         uint16_t hookApiVersion = defSLE->getFieldU16(sfHookApiVersion);
-        
+
         if (hookApiVersion == 3)
             hasV3 = true;
 

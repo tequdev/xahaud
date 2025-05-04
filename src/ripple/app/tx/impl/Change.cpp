@@ -588,7 +588,7 @@ Change::activateXahauGenesis()
                                                                   : 0U) +
                 (ctx_.view().rules().enabled(fix20250131) ? 0x0002U : 0U) +
                 (ctx_.view().rules().enabled(featureFunctionalHooks) ? 0x0004U
-                                                                  : 0U);
+                                                                     : 0U);
             std::optional<std::map<std::string, uint64_t>> result =
                 validateGuards(
                     wasmBytes,  // wasm to verify
@@ -664,7 +664,8 @@ Change::activateXahauGenesis()
                 sfReferenceCount,
                 (hookCount++ == 0 ? l2_entries.size() : 0) + 1);
             hookDef->setFieldAmount(
-                sfFee, XRPAmount{hook::computeExecutionFee(result->at("hook"))});
+                sfFee,
+                XRPAmount{hook::computeExecutionFee(result->at("hook"))});
             if (result->find("cbak") != result->end())
                 hookDef->setFieldAmount(
                     sfHookCallbackFee,

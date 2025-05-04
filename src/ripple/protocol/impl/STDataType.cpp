@@ -142,8 +142,7 @@ STDataType::getText() const
     return "STDataType{InnerType: " + inner_type_str + "}";
 }
 
-Json::Value
-STDataType::getJson(JsonOptions) const
+Json::Value STDataType::getJson(JsonOptions) const
 {
     Json::Value ret(Json::objectValue);
     ret[jss::type] = getInnerTypeString();

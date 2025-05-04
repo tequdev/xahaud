@@ -730,11 +730,10 @@ parseLeaf(
                 return ret;
             }
         }
-        case STI_DATA : {
+        case STI_DATA: {
             try
             {
-                ret =
-                    detail::make_stvar<STData>(dataFromJson(field, value));
+                ret = detail::make_stvar<STData>(dataFromJson(field, value));
             }
             catch (std::exception const&)
             {
@@ -744,11 +743,11 @@ parseLeaf(
 
             break;
         }
-        case STI_DATATYPE : {
+        case STI_DATATYPE: {
             try
             {
-                ret =
-                    detail::make_stvar<STDataType>(dataTypeFromJson(field, value));
+                ret = detail::make_stvar<STDataType>(
+                    dataTypeFromJson(field, value));
             }
             catch (std::exception const&)
             {
