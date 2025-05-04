@@ -188,7 +188,7 @@ public:
         AccountID const& account,
         STObject const& hookObj,
         std::string const& functionName,
-        std::vector<hook::FunctionParameterValueMap> const& parameters);
+        std::vector<hook::FunctionParameterValueVec> const& parameters);
 
 protected:
     void

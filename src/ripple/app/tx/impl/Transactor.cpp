@@ -1285,9 +1285,9 @@ Transactor::executeHookChain(
         uint16_t hookApiVersion = hookObj.isFieldPresent(sfHookApiVersion)
             ? hookObj.getFieldU16(sfHookApiVersion)
             : hookDef->getFieldU16(sfHookApiVersion);
-            
+
         std::optional<Blob> functionName;
-        std::vector<hook::FunctionParameterValueMap> fparameters;
+        std::vector<hook::FunctionParameterValueVec> fparameters;
 
         if (hookApiVersion == 3)
         {
@@ -1325,23 +1325,18 @@ Transactor::executeHookChain(
                     ctx_.tx.getFieldArray(sfFunctionParameters);
                 STArray const& funcParamsDef =
                     functionDef->getFieldArray(sfFunctionParameters);
-                if (funcParams.size() != funcParamsDef.size())
+
+                fparameters = hook::getFunctionParameterValueVec(funcParams);
+                auto typeVec = hook::getFunctionParameterTypeVec(funcParamsDef);
+
+                if (fparameters.size() != typeVec.size())
                     return tecHOOK_REJECTED;
 
-                for (std::size_t i = 0; i < funcParams.size(); i++)
+                for (std::size_t i = 0; i < fparameters.size(); i++)
                 {
-                    STData const& funcParamData =
-                        funcParams[i].getFieldData(sfFunctionParameterValue);
-                    STDataType const& funcParamDefData =
-                        funcParamsDef[i].getFieldDataType(
-                            sfFunctionParameterType);
-                    if (funcParamData.getInnerSType() !=
-                        funcParamDefData.getInnerSType())
+                    if (fparameters[i].value.getInnerSType() !=
+                        typeVec[i].type.getInnerSType())
                         return tecHOOK_REJECTED;
-
-                    fparameters.emplace_back(
-                        funcParams[i].getFieldVL(sfFunctionParameterName),
-                        funcParams[i].getFieldData(sfFunctionParameterValue));
                 }
             }
         }
@@ -1535,8 +1530,8 @@ Transactor::doFunctionalHookInitialize(
             false,  // isCallback,
             true,   // strong,
             hook::HookApplyType::Apply,
-            0,      // 0 = strong, 1 = weak
-            0,      // hook_no
+            0,  // 0 = strong, 1 = weak
+            0,  // hook_no
             {});
 
         if (hookResult.exitType != hook_api::ExitType::ACCEPT)
@@ -1600,7 +1595,7 @@ Transactor::doFunctionalHookQuery(
     AccountID const& hookAccount,
     STObject const& hookObj,
     std::string const& functionName,
-    std::vector<hook::FunctionParameterValueMap> const& parameters)
+    std::vector<hook::FunctionParameterValueVec> const& parameters)
 {
     if (!hookObj.isFieldPresent(sfHookHash))
         return std::nullopt;
@@ -1623,19 +1618,13 @@ Transactor::doFunctionalHookQuery(
              : hookDef->getFieldH256(sfHookNamespace));
 
     STTx tx = STTx{ttACCOUNT_SET, [](STObject&) {}};
-    
+
     auto ov = OpenView{&view};
 
     hook::HookStateMap stateMap;
     try
     {
-        ApplyContext ac{
-            app,
-            ov,
-            tx,
-            tesSUCCESS,
-            view.fees().base,
-            tapNONE};
+        ApplyContext ac{app, ov, tx, tesSUCCESS, view.fees().base, tapNONE};
 
         hook::HookResult hookResult = hook::apply(
             tx.getTransactionID(),

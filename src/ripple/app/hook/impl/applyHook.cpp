@@ -1053,23 +1053,22 @@ hook::getHookCanEmit(
     return hookCanEmit;
 }
 
-std::vector<hook::FunctionParameterValueMap>
-hook::getFunctionParameterValueMap(ripple::STArray const& functionParameters)
+std::vector<hook::FunctionParameterValueVec>
+hook::getFunctionParameterValueVec(ripple::STArray const& functionParameters)
 {
-    std::vector<hook::FunctionParameterValueMap> param_map;
+    std::vector<hook::FunctionParameterValueVec> param_map;
     for (auto const& param : functionParameters)
     {
-        const auto& name = param.getFieldVL(sfFunctionParameterName);
         const auto& value = param.getFieldData(sfFunctionParameterValue);
-        param_map.emplace_back(name, value);
+        param_map.emplace_back(value);
     }
     return param_map;
 }
 
-std::vector<hook::FunctionParameterTypeMap>
-hook::getFunctionParameterTypeMap(ripple::STArray const& functionParameters)
+std::vector<hook::FunctionParameterTypeVec>
+hook::getFunctionParameterTypeVec(ripple::STArray const& functionParameters)
 {
-    std::vector<hook::FunctionParameterTypeMap> param_map;
+    std::vector<hook::FunctionParameterTypeVec> param_map;
     for (auto const& param : functionParameters)
     {
         const auto& name = param.getFieldVL(sfFunctionParameterName);
@@ -1234,7 +1233,7 @@ hook::apply(
     ripple::uint256 const& hookNamespace,
     ripple::Blob const& wasm,
     std::optional<std::string> const& fname,
-    std::vector<hook::FunctionParameterValueMap> const& fparameters,
+    std::vector<hook::FunctionParameterValueVec> const& fparameters,
     std::map<
         std::vector<uint8_t>, /* param name  */
         std::vector<uint8_t>  /* param value */

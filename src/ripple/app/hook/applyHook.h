@@ -22,7 +22,8 @@
 namespace hook {
 struct HookContext;
 struct HookResult;
-struct FunctionParameterValueMap;
+struct FunctionParameterValueVec;
+struct FunctionParameterValueVecWithName;
 
 enum HookApplyType {
     Apply,
@@ -458,14 +459,15 @@ canEmit(ripple::TxType txType, ripple::uint256 hookCanEmit);
 ripple::uint256
 getHookCanEmit(ripple::STObject const& hookObj, SLE::pointer const& hookDef);
 
-struct FunctionParameterValueMap;
-struct FunctionParameterTypeMap;
+struct FunctionParameterValueVec;
+struct FunctionParameterValueVecWithName;
+struct FunctionParameterTypeVec;
 
-std::vector<FunctionParameterValueMap>
-getFunctionParameterValueMap(ripple::STArray const& functionParameters);
+std::vector<FunctionParameterValueVec>
+getFunctionParameterValueVec(ripple::STArray const& functionParameters);
 
-std::vector<FunctionParameterTypeMap>
-getFunctionParameterTypeMap(ripple::STArray const& functionParameters);
+std::vector<FunctionParameterTypeVec>
+getFunctionParameterTypeVec(ripple::STArray const& functionParameters);
 
 struct HookResult;
 
@@ -479,7 +481,7 @@ apply(
     ripple::uint256 const& hookNamespace,
     ripple::Blob const& wasm,
     std::optional<std::string> const& fname,
-    std::vector<hook::FunctionParameterValueMap> const& fparameters,
+    std::vector<hook::FunctionParameterValueVec> const& fparameters,
     std::map<
         std::vector<uint8_t>, /* param name  */
         std::vector<uint8_t>  /* param value */
@@ -511,13 +513,18 @@ computeExecutionFee(uint64_t instructionCount);
 int64_t
 computeCreationFee(uint64_t byteCount);
 
-struct FunctionParameterValueMap
+struct FunctionParameterValueVec
+{
+    ripple::STData const value;
+};
+
+struct FunctionParameterValueVecWithName
 {
     ripple::Blob const name;
     ripple::STData const value;
 };
 
-struct FunctionParameterTypeMap
+struct FunctionParameterTypeVec
 {
     ripple::Blob const name;
     ripple::STDataType const type;
@@ -539,7 +546,7 @@ struct HookResult
         emittedTxn{};  // etx stored here until accept/rollback
     HookStateMap& stateMap;
     uint16_t changedStateCount = 0;
-    std::vector<hook::FunctionParameterValueMap> fparameters;
+    std::vector<hook::FunctionParameterValueVec> fparameters;
     std::map<std::string, STData> hookQueryResults = {};
     std::map<
         ripple::uint256,  // hook hash

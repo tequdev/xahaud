@@ -95,7 +95,7 @@ doHookQuery(RPC::JsonContext& context)
     if (!params[jss::function_params].isObject())
         return RPC::invalid_field_error(jss::function_params);
 
-    std::vector<hook::FunctionParameterValueMap> paramDataMap;
+    std::vector<hook::FunctionParameterValueVecWithName> paramDataMap;
 
     auto const function_name = params[jss::function_name].asString();
 
@@ -158,9 +158,9 @@ doHookQuery(RPC::JsonContext& context)
     }();
 
     auto const paramTypeMap =
-        hook::getFunctionParameterTypeMap(parameter);
+        hook::getFunctionParameterTypeVec(parameter);
 
-    std::vector<hook::FunctionParameterValueMap> sortedDataMap;
+    std::vector<hook::FunctionParameterValueVec> sortedDataMap;
     for (const auto& param : paramTypeMap)
     {
         bool found = false;
@@ -168,7 +168,7 @@ doHookQuery(RPC::JsonContext& context)
         {
             if (data.name == param.name)
             {
-                sortedDataMap.emplace_back(data);
+                sortedDataMap.emplace_back(data.value);
                 found = true;
                 break;
             }
