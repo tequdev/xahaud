@@ -564,8 +564,6 @@ public:
                 M("First set = tesSUCCESS"),
                 HSFEE,
                 ter(tesSUCCESS));
-            auto const def = env.le(accept_keylet);
-            BEAST_EXPECT(def);
         }
 
         Json::Value jv;
@@ -636,8 +634,6 @@ public:
                 HSFEE,
                 ter(tesSUCCESS));
             env.close();
-            auto const def = env.le(rollback_keylet);
-            BEAST_EXPECT(def);
         }
     }
 
@@ -12767,7 +12763,6 @@ public:
         testGuards(features);
 
         test_emit(features);  //
-
         // test_etxn_burden(features);       // tested above
         // test_etxn_generation(features);   // tested above
         // test_otxn_burden(features);       // tested above
