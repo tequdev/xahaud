@@ -238,7 +238,12 @@ public:
 
         using namespace jtx;
 
-        Env env{*this, features};
+        Env env{
+            *this,
+            envconfig(),
+            features,
+            nullptr,
+            beast::severities::kDisabled};
 
         auto const alice = Account{"alice"};
         auto const gw = Account{"gateway"};
