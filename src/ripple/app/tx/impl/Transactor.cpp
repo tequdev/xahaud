@@ -230,7 +230,7 @@ Transactor::calculateHookChainFee(
 
         uint256 const& hash = hookObj.getFieldH256(sfHookHash);
 
-        std::shared_ptr<SLE const> hookDef =
+        std::shared_ptr<SLE const> const& hookDef =
             view.read(keylet::hookDefinition(hash));
 
         // this is an edge case that happens when a hook is deleted and executed
@@ -241,29 +241,15 @@ Transactor::calculateHookChainFee(
             continue;
         }
 
-        auto const getHookOnField = [](STObject const& obj,
-                                       std::shared_ptr<SLE const>& def,
-                                       SField const& field) -> uint256 {
-            if (obj.isFieldPresent(field))
-                return obj.getFieldH256(field);
-            if (obj.isFieldPresent(sfHookOn))
-                return obj.getFieldH256(sfHookOn);
-            if (def->isFieldPresent(field))
-                return def->getFieldH256(field);
-            if (def->isFieldPresent(sfHookOn))
-                return def->getFieldH256(sfHookOn);
-            return uint256{0};
-        };
-
-        // check if the hook can fire
-        uint256 hookOn = getHookOnField(
-            hookObj, hookDef, isOutgoing ? sfOutgoingHookOn : sfIncomingHookOn);
-
         uint32_t flags = 0;
         if (hookObj.isFieldPresent(sfFlags))
             flags = hookObj.getFieldU32(sfFlags);
         else
             flags = hookDef->getFieldU32(sfFlags);
+
+        // check if the hook can fire
+        uint256 hookOn = hook::getHookOn(
+            hookObj, hookDef, isOutgoing ? sfOutgoingHookOn : sfIncomingHookOn);
 
         if (hook::canHook(tx.getTxnType(), hookOn) &&
             (!collectCallsOnly || (flags & hook::hsfCOLLECT)))
@@ -1235,22 +1221,8 @@ Transactor::executeHookChain(
             continue;
         }
 
-        auto const getHookOnField = [](ripple::STObject const& obj,
-                                       std::shared_ptr<SLE> const& def,
-                                       SField const& field) -> uint256 {
-            if (obj.isFieldPresent(field))
-                return obj.getFieldH256(field);
-            if (obj.isFieldPresent(sfHookOn))
-                return obj.getFieldH256(sfHookOn);
-            if (def->isFieldPresent(field))
-                return def->getFieldH256(field);
-            if (def->isFieldPresent(sfHookOn))
-                return def->getFieldH256(sfHookOn);
-            return uint256{0};
-        };
-
         // check if the hook can fire
-        uint256 hookOn = getHookOnField(
+        uint256 hookOn = hook::getHookOn(
             hookObj, hookDef, isOutgoing ? sfOutgoingHookOn : sfIncomingHookOn);
 
         if (!hook::canHook(ctx_.tx.getTxnType(), hookOn))
