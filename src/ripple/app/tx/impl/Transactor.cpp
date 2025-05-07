@@ -2061,6 +2061,9 @@ Transactor::operator()()
         hook::HookStateMap stateMap;
         std::vector<hook::HookResult> weakResults;
 
+        if (!view().rules().enabled(featureIOUIssuerWeakTSH))
+            tsh = hook::getTransactionalStakeHolders(ctx_.tx, ctx_.view());
+
         doTSH(false, tsh, stateMap, weakResults, proMeta);
 
         // execute any hooks that nominated for 'again as weak'
