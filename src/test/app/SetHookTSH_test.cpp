@@ -897,13 +897,16 @@ private:
 
         // otxn: account
         // tsh destination
-        // w/s: none
+        // w/s: weak
         for (bool const testStrong : {true, false})
         {
             test::jtx::Env env{
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+
+            bool const withIOUIssuerWeakTSH =
+                env.current()->rules().enabled(featureIOUIssuerWeakTSH);
 
             auto const account = Account("alice");
             auto const dest = Account("bob");
@@ -927,7 +930,14 @@ private:
             env.close();
 
             // verify tsh hook triggered
-            testTSHStrongWeak(env, tshNONE, __LINE__);
+            if (withIOUIssuerWeakTSH && !testStrong)
+            {
+                testTSHStrongWeak(env, tshWEAK, __LINE__);
+            }
+            else
+            {
+                testTSHStrongWeak(env, tshNONE, __LINE__);
+            }
         }
 
         // otxn: dest
@@ -1200,10 +1210,9 @@ private:
             env.close();
 
             // verify tsh hook triggered
-            if (withIOUIssuerWeakTSH)
+            if (withIOUIssuerWeakTSH && !testStrong)
             {
-                auto const expected = testStrong ? tshNONE : tshWEAK;
-                testTSHStrongWeak(env, expected, __LINE__);
+                testTSHStrongWeak(env, tshWEAK, __LINE__);
             }
             else
             {
@@ -1440,13 +1449,16 @@ private:
 
         // otxn: account
         // tsh dest
-        // w/s: none
+        // w/s: weak
         for (bool const testStrong : {true, false})
         {
             test::jtx::Env env{
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+
+            bool const withIOUIssuerWeakTSH =
+                env.current()->rules().enabled(featureIOUIssuerWeakTSH);
 
             auto const account = Account("alice");
             auto const dest = Account("bob");
@@ -1479,7 +1491,14 @@ private:
             env.close();
 
             // verify tsh hook triggered
-            testTSHStrongWeak(env, tshNONE, __LINE__);
+            if (withIOUIssuerWeakTSH && !testStrong)
+            {
+                testTSHStrongWeak(env, tshWEAK, __LINE__);
+            }
+            else
+            {
+                testTSHStrongWeak(env, tshNONE, __LINE__);
+            }
         }
 
         // otxn: dest
@@ -1621,10 +1640,9 @@ private:
             env.close();
 
             // verify tsh hook triggered
-            if (withIOUIssuerWeakTSH)
+            if (withIOUIssuerWeakTSH && !testStrong)
             {
-                auto const expected = testStrong ? tshWEAK : tshNONE;
-                testTSHStrongWeak(env, expected, __LINE__);
+                testTSHStrongWeak(env, tshWEAK, __LINE__);
             }
             else
             {
@@ -1695,13 +1713,16 @@ private:
 
         // otxn: account
         // tsh dest
-        // w/s: none
+        // w/s: weak
         for (bool const testStrong : {true, false})
         {
             test::jtx::Env env{
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+
+            bool const withIOUIssuerWeakTSH =
+                env.current()->rules().enabled(featureIOUIssuerWeakTSH);
 
             auto const account = Account("alice");
             auto const dest = Account("bob");
@@ -1741,7 +1762,14 @@ private:
             env.close();
 
             // verify tsh hook triggered
-            testTSHStrongWeak(env, tshNONE, __LINE__);
+            if (withIOUIssuerWeakTSH && !testStrong)
+            {
+                testTSHStrongWeak(env, tshWEAK, __LINE__);
+            }
+            else
+            {
+                testTSHStrongWeak(env, tshNONE, __LINE__);
+            }
         }
 
         // otxn: dest
@@ -1908,10 +1936,9 @@ private:
             env.close();
 
             // verify tsh hook triggered
-            if (withIOUIssuerWeakTSH)
+            if (withIOUIssuerWeakTSH && !testStrong)
             {
-                auto const expected = testStrong ? tshNONE : tshWEAK;
-                testTSHStrongWeak(env, expected, __LINE__);
+                testTSHStrongWeak(env, tshWEAK, __LINE__);
             }
             else
             {
@@ -2047,10 +2074,9 @@ private:
             env.close();
 
             // verify tsh hook triggered
-            if (withIOUIssuerWeakTSH)
+            if (withIOUIssuerWeakTSH && !testStrong)
             {
-                auto const expected = testStrong ? tshNONE : tshWEAK;
-                testTSHStrongWeak(env, expected, __LINE__);
+                testTSHStrongWeak(env, tshWEAK, __LINE__);
             }
             else
             {
@@ -2280,10 +2306,9 @@ private:
             env.close();
 
             // verify tsh hook triggered
-            if (withIOUIssuerWeakTSH)
+            if (withIOUIssuerWeakTSH && !testStrong)
             {
-                auto const expected = testStrong ? tshNONE : tshWEAK;
-                testTSHStrongWeak(env, expected, __LINE__);
+                testTSHStrongWeak(env, tshWEAK, __LINE__);
             }
             else
             {
@@ -2557,10 +2582,9 @@ private:
             env.close();
 
             // verify tsh hook triggered
-            if (withIOUIssuerWeakTSH)
+            if (withIOUIssuerWeakTSH && !testStrong)
             {
-                auto const expected = testStrong ? tshNONE : tshWEAK;
-                testTSHStrongWeak(env, expected, __LINE__);
+                testTSHStrongWeak(env, tshWEAK, __LINE__);
             }
             else
             {
@@ -3132,7 +3156,8 @@ private:
             }
             else
             {
-                testTSHStrongWeak(env, tshNONE, __LINE__);
+                auto const expected = testStrong ? tshNONE : tshWEAK;
+                testTSHStrongWeak(env, expected, __LINE__);
             }
         }
     }
@@ -3298,7 +3323,8 @@ private:
             }
             else
             {
-                testTSHStrongWeak(env, tshNONE, __LINE__);
+                auto const expected = testStrong ? tshNONE : tshWEAK;
+                testTSHStrongWeak(env, expected, __LINE__);
             }
         }
     }
@@ -3579,10 +3605,9 @@ private:
             env.close();
 
             // verify tsh hook triggered
-            if (withIOUIssuerWeakTSH)
+            if (withIOUIssuerWeakTSH && !testStrong)
             {
-                auto const expected = testStrong ? tshNONE : tshWEAK;
-                testTSHStrongWeak(env, expected, __LINE__);
+                testTSHStrongWeak(env, tshWEAK, __LINE__);
             }
             else
             {
@@ -3708,10 +3733,9 @@ private:
             env.close();
 
             // verify tsh hook triggered
-            if (withIOUIssuerWeakTSH)
+            if (withIOUIssuerWeakTSH && !testStrong)
             {
-                auto const expected = testStrong ? tshNONE : tshWEAK;
-                testTSHStrongWeak(env, expected, __LINE__);
+                testTSHStrongWeak(env, tshWEAK, __LINE__);
             }
             else
             {
@@ -3856,10 +3880,9 @@ private:
             env.close();
 
             // verify tsh hook triggered
-            if (withIOUIssuerWeakTSH)
+            if (withIOUIssuerWeakTSH && !testStrong)
             {
-                auto const expected = testStrong ? tshNONE : tshWEAK;
-                testTSHStrongWeak(env, expected, __LINE__);
+                testTSHStrongWeak(env, tshWEAK, __LINE__);
             }
             else
             {
@@ -4451,7 +4474,7 @@ private:
         // otxn: owner
         // flag: not burnable
         // tsh issuer
-        // w/s: none
+        // w/s: weak
         for (bool const testStrong : {true, false})
         {
             test::jtx::Env env{
@@ -4494,9 +4517,14 @@ private:
 
             // verify tsh hook triggered
             bool const fixV1 = env.current()->rules().enabled(fixXahauV1);
+            bool const withIOUIssuerWeakTSH =
+                env.current()->rules().enabled(featureIOUIssuerWeakTSH);
+
             auto const expected =
-                (fixV1 ? (testStrong ? tshNONE : tshNONE)
-                       : (testStrong ? tshSTRONG : tshSTRONG));
+                (fixV1
+                     ? (testStrong ? tshNONE
+                                   : (withIOUIssuerWeakTSH ? tshWEAK : tshNONE))
+                     : (testStrong ? tshSTRONG : tshSTRONG));
             testTSHStrongWeak(env, expected, __LINE__);
         }
 
@@ -4552,7 +4580,7 @@ private:
         // otxn: owner
         // flag: burnable
         // tsh issuer
-        // w/s: none
+        // w/s: weak
         for (bool const testStrong : {true, false})
         {
             test::jtx::Env env{
@@ -4596,16 +4624,20 @@ private:
 
             // verify tsh hook triggered
             bool const fixV1 = env.current()->rules().enabled(fixXahauV1);
+            bool const withIOUIssuerWeakTSH =
+                env.current()->rules().enabled(featureIOUIssuerWeakTSH);
             auto const expected =
-                (fixV1 ? (testStrong ? tshNONE : tshNONE)
-                       : (testStrong ? tshSTRONG : tshSTRONG));
+                (fixV1
+                     ? (testStrong ? tshNONE
+                                   : (withIOUIssuerWeakTSH ? tshWEAK : tshNONE))
+                     : (testStrong ? tshSTRONG : tshSTRONG));
             testTSHStrongWeak(env, expected, __LINE__);
         }
 
         // otxn: issuer
         // flag: burnable
         // tsh owner
-        // w/s: none
+        // w/s: weak
         for (bool const testStrong : {true, false})
         {
             test::jtx::Env env{
@@ -4649,9 +4681,14 @@ private:
 
             // verify tsh hook triggered
             bool const fixV1 = env.current()->rules().enabled(fixXahauV1);
+            bool const withIOUIssuerWeakTSH =
+                env.current()->rules().enabled(featureIOUIssuerWeakTSH);
+
             auto const expected =
-                (fixV1 ? (testStrong ? tshNONE : tshNONE)
-                       : (testStrong ? tshSTRONG : tshSTRONG));
+                (fixV1
+                     ? (testStrong ? tshNONE
+                                   : (withIOUIssuerWeakTSH ? tshWEAK : tshNONE))
+                     : (testStrong ? tshSTRONG : tshSTRONG));
             testTSHStrongWeak(env, expected, __LINE__);
         }
 
@@ -5003,10 +5040,9 @@ private:
             env.close();
 
             // verify tsh hook triggered
-            if (withIOUIssuerWeakTSH)
+            if (withIOUIssuerWeakTSH && !testStrong)
             {
-                auto const expected = testStrong ? tshNONE : tshWEAK;
-                testTSHStrongWeak(env, expected, __LINE__);
+                testTSHStrongWeak(env, tshWEAK, __LINE__);
             }
             else
             {
@@ -5082,13 +5118,16 @@ private:
         // otxn: owner
         // flag: not burnable
         // tsh buyer
-        // w/s: none
+        // w/s: weak
         for (bool const testStrong : {true, false})
         {
             test::jtx::Env env{
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+
+            bool const withIOUIssuerWeakTSH =
+                env.current()->rules().enabled(featureIOUIssuerWeakTSH);
 
             auto const issuer = Account("alice");
             auto const owner = Account("bob");
@@ -5132,7 +5171,14 @@ private:
             env.close();
 
             // verify tsh hook triggered
-            testTSHStrongWeak(env, tshNONE, __LINE__);
+            if (withIOUIssuerWeakTSH && !testStrong)
+            {
+                testTSHStrongWeak(env, tshWEAK, __LINE__);
+            }
+            else
+            {
+                testTSHStrongWeak(env, tshNONE, __LINE__);
+            }
         }
 
         // otxn: owner
@@ -5145,6 +5191,9 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+
+            bool const withIOUIssuerWeakTSH =
+                env.current()->rules().enabled(featureIOUIssuerWeakTSH);
 
             auto const issuer = Account("alice");
             auto const owner = Account("bob");
@@ -5189,7 +5238,14 @@ private:
             env.close();
 
             // verify tsh hook triggered
-            testTSHStrongWeak(env, tshNONE, __LINE__);
+            if (withIOUIssuerWeakTSH && !testStrong)
+            {
+                testTSHStrongWeak(env, tshWEAK, __LINE__);
+            }
+            else
+            {
+                testTSHStrongWeak(env, tshNONE, __LINE__);
+            }
         }
 
         // otxn: owner
@@ -6007,10 +6063,9 @@ private:
             env.close();
 
             // verify tsh hook triggered
-            if (withIOUIssuerWeakTSH)
+            if (withIOUIssuerWeakTSH && !testStrong)
             {
-                auto const expected = testStrong ? tshNONE : tshWEAK;
-                testTSHStrongWeak(env, expected, __LINE__);
+                testTSHStrongWeak(env, tshWEAK, __LINE__);
             }
             else
             {
@@ -6296,8 +6351,8 @@ public:
         using namespace test::jtx;
         auto const sa = supported_amendments();
         testTSH(sa - fixXahauV1 - fixXahauV2 - featureIOUIssuerWeakTSH);
-        testTSH(sa - fixXahauV1 - fixXahauV2);
-        testTSH(sa - fixXahauV2);
+        testTSH(sa - fixXahauV2 - featureIOUIssuerWeakTSH);
+        testTSH(sa - featureIOUIssuerWeakTSH);
         testTSH(sa);
         testEmittedTxn(sa);
     }

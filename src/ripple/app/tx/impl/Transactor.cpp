@@ -1499,12 +1499,16 @@ Transactor::addWeakTSHFromSandbox(detail::ApplyViewBase const& pv)
             AccountID const& highAcc = std::get<1>(tpl);
 
             STAmount const& amt = entry.second;
-            AccountID const& holder = amt >= beast::zero ? lowAcc : highAcc;
-            AccountID const& issuer = amt >= beast::zero ? highAcc : lowAcc;
+            AccountID const& acc1 = amt >= beast::zero ? lowAcc : highAcc;
+            AccountID const& acc2 = amt >= beast::zero ? highAcc : lowAcc;
 
-            additionalWeakTSH_.emplace(holder);
+            // amt represents the difference in balance, so it cannot be used to
+            // determine the issuer/holder.
+            // featureIOUIssuerWeakTSH resolves this issue by treating both as
+            // weakTSH.
+            additionalWeakTSH_.emplace(acc1);
             if (ctx_.view().rules().enabled(featureIOUIssuerWeakTSH))
-                additionalWeakTSH_.emplace(issuer);
+                additionalWeakTSH_.emplace(acc2);
         }
     }
 }
