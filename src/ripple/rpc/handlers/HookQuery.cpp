@@ -106,7 +106,7 @@ doHookQuery(RPC::JsonContext& context)
         {
             STData data =
                 dataFromJson(sfFunctionParameterValue, param_obj[param_name]);
-            auto const param_name_hex = strUnHex(param_name);
+            auto const param_name_hex = strUnHex(strHex(param_name));
             if (!param_name_hex)
                 return RPC::invalid_field_error(param_name);
             paramDataMap.emplace_back(param_name_hex.value(), data);

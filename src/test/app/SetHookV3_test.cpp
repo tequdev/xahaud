@@ -814,6 +814,8 @@ public:
         env.close();
 
         Json::Value params = Json::objectValue;
+        params["hook"][jss::type] = "VL";
+        params["hook"][jss::value] = "DEADBEEF";
 
         testQueryRPCCall(env, alice, alice, "query", params, "success");
     }
