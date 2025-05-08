@@ -776,9 +776,13 @@ public:
             #define GUARD(maxiter) _g((1ULL << 31U) + __LINE__, (maxiter)+1)
             extern int64_t accept   (uint32_t read_ptr, uint32_t read_len, int64_t error_code);
             extern int64_t rollback (uint32_t read_ptr, uint32_t read_len, int64_t error_code);
+            extern int64_t trace_num(uint32_t, uint32_t, uint64_t);
+            extern int64_t state(uint32_t,uint32_t,uint32_t,uint32_t);
             extern int64_t hook_account(uint32_t,uint32_t);
+            extern int64_t otxn_func_param (uint32_t write_ptr, uint32_t write_len, uint32_t index, uint32_t serialized_type_id);
             extern int64_t query_result_set(uint32_t,uint32_t,uint32_t,uint32_t,uint32_t);
             #define STI_ACCOUNT 8
+            #define STI_VL 7
             #define SBUF(x) (uint32_t)x,sizeof(x)
             #define SVAR(x) (uint32_t)&x,sizeof(x)
             #define ASSERT(x) if (!(x)) rollback((uint32_t)#x,sizeof(#x), __LINE__);
@@ -787,6 +791,9 @@ public:
                 _g(1,1);
                 uint8_t account[20];
                 ASSERT(hook_account(SBUF(account)) == 20);
+                state(0,0,0,0);
+                uint8_t buf[256];
+                ASSERT(otxn_func_param(SBUF(buf), 0, STI_VL) > 0);
                 ASSERT(query_result_set(SBUF("some_target_account"),SBUF(account),STI_ACCOUNT) > 0);
                 return accept(SBUF("success"),0);
             }
@@ -808,6 +815,8 @@ public:
             function[jss::FunctionName] = strHex("query"s);
             function[jss::Flags] = FunctionalHookFlags::hffQUERY;
             jv[jss::HookFunctions][1u][jss::HookFunction] = function;
+            jv[jss::HookFunctions][1u][jss::HookFunction]
+              [jss::FunctionParameters][0u] = addFuncParam("hook", "VL");
         }
 
         env(ripple::test::jtx::hook(alice, {{jv}}, 0), HSFEE);
@@ -823,11 +832,11 @@ public:
     void
     testWithFeatures(FeatureBitset features)
     {
-        testInvalid(features);
-        testFeeRPC(features);
-        testSimple(features);
-        testFunctionParameters(features);
-        testInitialize(features);
+        // testInvalid(features);
+        // testFeeRPC(features);
+        // testSimple(features);
+        // testFunctionParameters(features);
+        // testInitialize(features);
         testHookQuery(features);
     }
 

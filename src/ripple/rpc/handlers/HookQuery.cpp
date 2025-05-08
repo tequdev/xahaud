@@ -140,23 +140,27 @@ doHookQuery(RPC::JsonContext& context)
         return rpcError(rpcHOOK_NOT_FOUND);
 
     // get FunctionParameters from function_name
-    STArray parameters = hookObj.isFieldPresent(sfFunctionParameters)
-        ? hookObj.getFieldArray(sfFunctionParameters)
-        : hookDef->isFieldPresent(sfFunctionParameters)
-            ? hookDef->getFieldArray(sfFunctionParameters)
+    STArray const functions = hookObj.isFieldPresent(sfHookFunctions)
+        ? hookObj.getFieldArray(sfHookFunctions)
+        : hookDef->isFieldPresent(sfHookFunctions)
+            ? hookDef->getFieldArray(sfHookFunctions)
             : STArray();
 
-    auto const& parameter = [function_name, &parameters]() -> STArray {
-        for (const auto& param : parameters)
+    STArray const& parameters = [function_name, &functions]() -> STArray {
+        for (const auto& function : functions)
         {
-            auto const param_name = param.getFieldVL(sfFunctionParameterName);
-            if (param_name == strUnHex(function_name))
-                return param.getFieldArray(sfFunctionParameters);
+            if (function.getFieldVL(sfFunctionName) ==
+                strUnHex(strHex(function_name)).value())
+            {
+                if (!function.isFieldPresent(sfFunctionParameters))
+                    return STArray();
+                return function.getFieldArray(sfFunctionParameters);
+            }
         }
         return STArray();
     }();
 
-    auto const paramTypeMap = hook::getFunctionParameterTypeVec(parameter);
+    auto const paramTypeMap = hook::getFunctionParameterTypeVec(parameters);
 
     std::vector<hook::FunctionParameterValueVec> sortedDataMap;
     for (const auto& param : paramTypeMap)
