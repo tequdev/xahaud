@@ -65,7 +65,7 @@ public:
             return {};
 
         std::shared_lock<std::shared_mutex> lock(mutex_);
-        for (const auto& [ledgerSeq, ledgerData] : ledgers_)
+        for (auto const& [ledgerSeq, ledgerData] : ledgers_)
         {
             if (!ledgerData.transactions.empty())
                 return ledgerSeq;
@@ -83,7 +83,7 @@ public:
         if (accountTxMap_.empty())
             return std::nullopt;
         LedgerIndex minSeq = std::numeric_limits<LedgerIndex>::max();
-        for (const auto& [_, accountData] : accountTxMap_)
+        for (auto const& [_, accountData] : accountTxMap_)
         {
             if (!accountData.ledgerTxMap.empty())
                 minSeq =
@@ -112,7 +112,7 @@ public:
         auto it = ledgers_.find(ledgerSeq);
         if (it != ledgers_.end())
         {
-            for (const auto& [txHash, _] : it->second.transactions)
+            for (auto const& [txHash, _] : it->second.transactions)
             {
                 transactionMap_.erase(txHash);
             }
@@ -142,7 +142,7 @@ public:
         auto it = ledgers_.begin();
         while (it != ledgers_.end() && it->first < ledgerSeq)
         {
-            for (const auto& [txHash, _] : it->second.transactions)
+            for (auto const& [txHash, _] : it->second.transactions)
             {
                 transactionMap_.erase(txHash);
             }
@@ -186,9 +186,9 @@ public:
 
         std::shared_lock<std::shared_mutex> lock(mutex_);
         std::size_t count = 0;
-        for (const auto& [_, accountData] : accountTxMap_)
+        for (auto const& [_, accountData] : accountTxMap_)
         {
-            for (const auto& [_, txVector] : accountData.ledgerTxMap)
+            for (auto const& [_, txVector] : accountData.ledgerTxMap)
             {
                 count += txVector.size();
             }
@@ -412,7 +412,7 @@ public:
         auto it = transactionMap_.find(id);
         if (it != transactionMap_.end())
         {
-            const auto& [txn, txMeta] = it->second;
+            auto const& [txn, txMeta] = it->second;
             std::uint32_t inLedger =
                 rangeCheckedCast<std::uint32_t>(txMeta->getLgrSeq());
             it->second.first->setStatus(COMMITTED);
@@ -468,7 +468,7 @@ private:
 
         // Add the transaction map nodes inside each ledger (ledger's view of
         // its transactions)
-        for (const auto& [_, ledgerData] : ledgers_)
+        for (auto const& [_, ledgerData] : ledgers_)
         {
             size += ledgerData.transactions.size() *
                 (sizeof(uint256) + sizeof(AccountTx) + MAP_NODE_OVERHEAD);
@@ -495,7 +495,7 @@ private:
             (sizeof(uint256) + sizeof(AccountTx) + MAP_NODE_OVERHEAD);
 
         // Add actual transaction and metadata data sizes
-        for (const auto& [_, accountTx] : transactionMap_)
+        for (auto const& [_, accountTx] : transactionMap_)
         {
             if (accountTx.first)
                 size += accountTx.first->getSTransaction()
@@ -512,11 +512,11 @@ private:
         // Count structural overhead of account transaction index
         // The actual transaction data is already counted above from
         // transactionMap_
-        for (const auto& [accountId, accountData] : accountTxMap_)
+        for (auto const& [accountId, accountData] : accountTxMap_)
         {
             size +=
                 sizeof(accountId) + sizeof(AccountTxData) + MAP_NODE_OVERHEAD;
-            for (const auto& [ledgerSeq, txVector] : accountData.ledgerTxMap)
+            for (auto const& [ledgerSeq, txVector] : accountData.ledgerTxMap)
             {
                 // Use capacity() to account for actual allocated memory
                 size += sizeof(ledgerSeq) + MAP_NODE_OVERHEAD;
@@ -594,8 +594,8 @@ public:
 
         for (auto it = ledgers_.rbegin(); it != ledgers_.rend(); ++it)
         {
-            const auto& transactions = it->second.transactions;
-            for (const auto& [txHash, accountTx] : transactions)
+            auto const& transactions = it->second.transactions;
+            for (auto const& [txHash, accountTx] : transactions)
             {
                 if (skipped < startIndex)
                 {
@@ -645,7 +645,7 @@ public:
             return {};
 
         AccountTxs result;
-        const auto& accountData = it->second;
+        auto const& accountData = it->second;
         auto txIt = accountData.ledgerTxMap.lower_bound(options.minLedger);
         auto txEnd = accountData.ledgerTxMap.upper_bound(options.maxLedger);
 
@@ -654,7 +654,7 @@ public:
              (options.bUnlimited || result.size() < options.limit);
              ++txIt)
         {
-            for (const auto& accountTx : txIt->second)
+            for (auto const& accountTx : txIt->second)
             {
                 if (skipped < options.offset)
                 {
@@ -686,7 +686,7 @@ public:
             return {};
 
         AccountTxs result;
-        const auto& accountData = it->second;
+        auto const& accountData = it->second;
         auto txIt = accountData.ledgerTxMap.lower_bound(options.minLedger);
         auto txEnd = accountData.ledgerTxMap.upper_bound(options.maxLedger);
 
@@ -730,7 +730,7 @@ public:
             return {};
 
         MetaTxsList result;
-        const auto& accountData = it->second;
+        auto const& accountData = it->second;
         auto txIt = accountData.ledgerTxMap.lower_bound(options.minLedger);
         auto txEnd = accountData.ledgerTxMap.upper_bound(options.maxLedger);
 
@@ -739,14 +739,14 @@ public:
              (options.bUnlimited || result.size() < options.limit);
              ++txIt)
         {
-            for (const auto& accountTx : txIt->second)
+            for (auto const& accountTx : txIt->second)
             {
                 if (skipped < options.offset)
                 {
                     ++skipped;
                     continue;
                 }
-                const auto& [txn, txMeta] = accountTx;
+                auto const& [txn, txMeta] = accountTx;
                 result.emplace_back(
                     txn->getSTransaction()->getSerializer().peekData(),
                     txMeta->getAsObject().getSerializer().peekData(),
@@ -771,7 +771,7 @@ public:
             return {};
 
         MetaTxsList result;
-        const auto& accountData = it->second;
+        auto const& accountData = it->second;
         auto txIt = accountData.ledgerTxMap.lower_bound(options.minLedger);
         auto txEnd = accountData.ledgerTxMap.upper_bound(options.maxLedger);
 
@@ -790,7 +790,7 @@ public:
                     ++skipped;
                     continue;
                 }
-                const auto& [txn, txMeta] = *innerRIt;
+                auto const& [txn, txMeta] = *innerRIt;
                 result.emplace_back(
                     txn->getSTransaction()->getSerializer().peekData(),
                     txMeta->getAsObject().getSerializer().peekData(),
@@ -855,7 +855,7 @@ public:
         if (forward)
         {
             // Oldest (forward = true)
-            const auto& accountData = it->second;
+            auto const& accountData = it->second;
             auto txIt = accountData.ledgerTxMap.lower_bound(
                 findLedger == 0 ? options.minLedger : findLedger);
             auto txEnd = accountData.ledgerTxMap.upper_bound(options.maxLedger);
@@ -863,7 +863,7 @@ public:
             {
                 std::uint32_t const ledgerSeq = txIt->first;
                 std::uint32_t txnSeq = 0;
-                for (const auto& accountTx : txIt->second)
+                for (auto const& accountTx : txIt->second)
                 {
                     if (lookingForMarker)
                     {
@@ -908,7 +908,7 @@ public:
         else
         {
             // Newest (forward = false)
-            const auto& accountData = it->second;
+            auto const& accountData = it->second;
             auto txIt = accountData.ledgerTxMap.lower_bound(options.minLedger);
             auto txEnd = accountData.ledgerTxMap.upper_bound(
                 findLedger == 0 ? options.maxLedger : findLedger);
@@ -941,7 +941,7 @@ public:
                         return {newmarker, total};
                     }
 
-                    const auto& accountTx = *innerRIt;
+                    auto const& accountTx = *innerRIt;
                     Blob rawTxn = accountTx.first->getSTransaction()
                                       ->getSerializer()
                                       .peekData();

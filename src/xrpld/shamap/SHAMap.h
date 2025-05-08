@@ -383,7 +383,7 @@ public:
     std::size_t
     serializeToStream(
         StreamType& stream,
-        std::optional<std::reference_wrapper<const SHAMap>> baseSHAMap =
+        std::optional<std::reference_wrapper<SHAMap const>> baseSHAMap =
             std::nullopt) const;
 
     /**
@@ -544,9 +544,9 @@ private:
     struct MissingNodes
     {
         MissingNodes() = delete;
-        MissingNodes(const MissingNodes&) = delete;
+        MissingNodes(MissingNodes const&) = delete;
         MissingNodes&
-        operator=(const MissingNodes&) = delete;
+        operator=(MissingNodes const&) = delete;
 
         // basic parameters
         int max_;

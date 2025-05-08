@@ -565,7 +565,7 @@ SHAMap::firstBelow(
 
     return belowHelper(node, stack, branch, {init, cmp, incr});
 }
-static const boost::intrusive_ptr<SHAMapItem const> no_item;
+static boost::intrusive_ptr<SHAMapItem const> const no_item;
 
 boost::intrusive_ptr<SHAMapItem const> const&
 SHAMap::onlyBelow(SHAMapTreeNode* node) const
@@ -801,7 +801,7 @@ SHAMap::delItem(uint256 const& id)
         {
             // we may have made this a node with 1 or 0 children
             // And, if so, we need to remove this branch
-            const int bc = node->getBranchCount();
+            int const bc = node->getBranchCount();
             if (bc == 0)
             {
                 // no children below this branch
@@ -1304,7 +1304,7 @@ template <typename StreamType>
 std::size_t
 SHAMap::serializeToStream(
     StreamType& stream,
-    std::optional<std::reference_wrapper<const SHAMap>> baseSHAMap) const
+    std::optional<std::reference_wrapper<SHAMap const>> baseSHAMap) const
 {
     // Static map to track bytes written to streams
     static std::mutex streamMapMutex;
@@ -1415,7 +1415,7 @@ SHAMap::serializeToStream(
     // If we're creating a delta, first compute the differences
     if (baseSHAMap && baseSHAMap->get().root_)
     {
-        const SHAMap& baseMap = baseSHAMap->get();
+        SHAMap const& baseMap = baseSHAMap->get();
 
         // Only compute delta if the maps are different
         if (getHash() != baseMap.getHash())
@@ -1689,6 +1689,6 @@ using FilteringOutputStream = boost::iostreams::filtering_stream<
 template std::size_t
 SHAMap::serializeToStream<FilteringOutputStream>(
     FilteringOutputStream&,
-    std::optional<std::reference_wrapper<const SHAMap>> baseSHAMap) const;
+    std::optional<std::reference_wrapper<SHAMap const>> baseSHAMap) const;
 
 }  // namespace ripple

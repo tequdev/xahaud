@@ -1328,7 +1328,7 @@ class MPToken_test : public beast::unit_test::suite
         Account const diana("diana");
         Account const dpIssuer("dpIssuer");  // holder
 
-        const char credType[] = "abcde";
+        char const credType[] = "abcde";
 
         {
             Env env(*this, features);
@@ -1880,7 +1880,7 @@ class MPToken_test : public beast::unit_test::suite
                 test(jv, sfAmounts.jsonName.c_str());
             }
         }
-        for (const auto& str : txWithAmounts)
+        for (auto const& str : txWithAmounts)
             printf("%s\n", str.c_str());
         BEAST_EXPECT(txWithAmounts.empty());
     }
