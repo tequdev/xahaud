@@ -583,6 +583,10 @@ getTransactionalStakeHolders(STTx const& tx, ReadView const& rv)
         case ttREMARKS_SET: {
             break;
         }
+        case ttDELEGATE_SET: {
+            // TODO: Implement if needed
+            break;
+        }
         // pseudo transactions
         case ttAMENDMENT:
         case ttFEE:

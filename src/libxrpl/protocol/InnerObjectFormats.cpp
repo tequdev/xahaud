@@ -266,6 +266,10 @@ InnerObjectFormats::InnerObjectFormats()
             {sfIssuer, soeREQUIRED},
             {sfCredentialType, soeREQUIRED},
         });
+
+    add(sfPermission.jsonName.c_str(),
+        sfPermission.getCode(),
+        {{sfPermissionValue, soeREQUIRED}});
 }
 
 InnerObjectFormats const&

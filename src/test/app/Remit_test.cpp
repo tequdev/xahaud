@@ -394,7 +394,7 @@ struct Remit_test : public beast::unit_test::suite
             env.memoize(carol);
             auto tx = remit::remit(carol, bob);
             tx[jss::Sequence] = 0;
-            env(tx, carol, ter(terNO_ACCOUNT));
+            env(tx, ter(terNO_ACCOUNT));
             env.close();
         }
 
@@ -408,7 +408,7 @@ struct Remit_test : public beast::unit_test::suite
             env.memoize(carol);
             auto tx = remit::remit(alice, bob);
             tx[sfInform.jsonName] = carol.human();
-            env(tx, alice, ter(tecNO_TARGET));
+            env(tx, ter(tecNO_TARGET));
             env.close();
         }
 
