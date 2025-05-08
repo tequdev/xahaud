@@ -755,6 +755,9 @@ SetHook::calculateBaseFee(ReadView const& view, STTx const& tx)
 
     auto const& hookSets = tx.getFieldArray(sfHooks);
 
+    bool const hasFunctionalHooks =
+        view.rules().enabled(featureFunctionalHooks);
+
     for (auto const& hookSetObj : hookSets)
     {
         XRPAmount createFee{0};
@@ -789,6 +792,31 @@ SetHook::calculateBaseFee(ReadView const& view, STTx const& tx)
 
             // one drop per byte
             paramFee = XRPAmount{paramBytes};
+        }
+
+        if (hasFunctionalHooks && hookSetObj.isFieldPresent(sfHookFunctions))
+        {
+            int64_t paramBytes = 0;
+            auto const& functions = hookSetObj.getFieldArray(sfHookFunctions);
+            for (auto const& function : functions)
+            {
+                if (function.isFieldPresent(sfFunctionParameters))
+                {
+                    auto const& params =
+                        function.getFieldArray(sfFunctionParameters);
+                    for (auto const& param : params)
+                    {
+                        paramBytes +=
+                            (param.isFieldPresent(sfFunctionParameterValue)
+                                 ? param.getFieldData(sfFunctionParameterValue)
+                                       .size()
+                                 : 0);
+                    }
+                }
+            }
+
+            // one drop per byte
+            paramFee += XRPAmount{paramBytes};
         }
 
         if (hookFee + paramFee < hookFee)

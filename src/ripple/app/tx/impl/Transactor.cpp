@@ -406,13 +406,7 @@ Transactor::calculateBaseFee(ReadView const& view, STTx const& tx)
                          : 0);
             }
         }
-        // // Check function parameters
-        // if (tx.isFieldPresent(sfFunctionParameters))
-        // {
-        //     STArray const& paramsTx = tx.getFieldArray(sfFunctionParameters);
-        //     for (auto const& param : paramsTx)
-        //         toAdd += param.getFieldData(sfFunctionParameterValue).size();
-        // }
+
         accumulator += XRPAmount{static_cast<XRPAmount>(paramBytes)};
     }
 
