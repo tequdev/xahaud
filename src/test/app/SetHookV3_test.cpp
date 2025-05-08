@@ -832,11 +832,11 @@ public:
     void
     testWithFeatures(FeatureBitset features)
     {
-        // testInvalid(features);
-        // testFeeRPC(features);
-        // testSimple(features);
-        // testFunctionParameters(features);
-        // testInitialize(features);
+        testInvalid(features);
+        testFeeRPC(features);
+        testSimple(features);
+        testFunctionParameters(features);
+        testInitialize(features);
         testHookQuery(features);
     }
 

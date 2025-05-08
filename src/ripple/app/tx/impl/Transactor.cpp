@@ -260,23 +260,22 @@ Transactor::calculateHookChainFee(
             XRPAmount toAdd{0};
             if (hookDef->getFieldU16(sfHookApiVersion) == 3)
             {
-                if (!tx.isFieldPresent(sfFunctionName))
-                    return XRPAmount{INITIAL_XRP.drops()};
-                Blob functionName = tx.getFieldVL(sfFunctionName);
-                STArray const& functionsDef =
-                    hookDef->getFieldArray(sfHookFunctions);
-                for (auto const& function : functionsDef)
+                if (tx.isFieldPresent(sfFunctionName))
                 {
-                    Blob fName = function.getFieldVL(sfFunctionName);
-                    // FunctionName should be exist
-                    if (fName == functionName)
+                    Blob functionName = tx.getFieldVL(sfFunctionName);
+                    // no need to look at HookObj because FunctionName and Fee
+                    // cannot be changed from Definition.
+                    STArray const& functionsDef =
+                        hookDef->getFieldArray(sfHookFunctions);
+                    for (auto const& func : functionsDef)
                     {
-                        toAdd = function.getFieldAmount(sfFee).xrp().drops();
-                        break;
+                        if (func.getFieldVL(sfFunctionName) == functionName)
+                        {
+                            toAdd = func.getFieldAmount(sfFee).xrp().drops();
+                            break;
+                        }
                     }
                 }
-                if (toAdd == 0)
-                    return XRPAmount{INITIAL_XRP.drops()};
             }
             else
             {
