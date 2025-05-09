@@ -209,6 +209,7 @@ SHAMapStoreImp::makeNodeStore(int readThreads)
         // Create NodeStore with two backends to allow online deletion of
         // data
         auto dbr = std::make_unique<NodeStore::DatabaseRotatingImp>(
+            app_,
             scheduler_,
             readThreads,
             std::move(writableBackend),
@@ -294,8 +295,6 @@ SHAMapStoreImp::run()
     ledgerMaster_ = &app_.getLedgerMaster();
     fullBelowCache_ = &(*app_.getNodeFamily().getFullBelowCache(0));
     treeNodeCache_ = &(*app_.getNodeFamily().getTreeNodeCache(0));
-
-    bool const isMem = app_.config().mem_backend();
 
     if (advisoryDelete_)
         canDelete_ = state_db_.getCanDelete();
