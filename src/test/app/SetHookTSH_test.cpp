@@ -1082,6 +1082,53 @@ private:
             // verify tsh hook triggered
             testTSHStrongWeak(env, tshSTRONG, __LINE__);
         }
+
+        // otxn: account
+        // tsh amount issuer
+        // w/s: weak
+        for (bool const testStrong : {true, false})
+        {
+            test::jtx::Env env{
+                *this,
+                network::makeNetworkConfig(21337, "10", "1000000", "200000"),
+                features};
+
+            bool const withIOUIssuerWeakTSH =
+                env.current()->rules().enabled(featureIOUIssuerWeakTSH);
+
+            auto const account = Account("alice");
+            auto const dest = Account("bob");
+            auto const gw = Account("gw");
+            auto const USD = gw["USD"];
+            env.fund(XRP(1000), account, dest, gw);
+            env.close();
+            env.trust(USD(10'000), account);
+            env.trust(USD(10'000), dest);
+            env.close();
+            env(pay(gw, account, USD(10'000)));
+            env.close();
+
+            // set tsh collect
+            if (!testStrong)
+                addWeakTSH(env, gw);
+
+            // set tsh hook
+            setTSHHook(env, gw, testStrong);
+
+            // create check
+            env(check::create(account, dest, USD(100)), ter(tesSUCCESS));
+            env.close();
+
+            // verify tsh hook triggered
+            if (withIOUIssuerWeakTSH && !testStrong)
+            {
+                testTSHStrongWeak(env, tshWEAK, __LINE__);
+            }
+            else
+            {
+                testTSHStrongWeak(env, tshNONE, __LINE__);
+            }
+        }
     }
 
     void
