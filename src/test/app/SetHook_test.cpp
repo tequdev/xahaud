@@ -2434,7 +2434,7 @@ public:
     void
     test_emit(FeatureBitset features)
     {
-        testcase("Test float_emit");
+        testcase("Test emit");
         using namespace jtx;
         Env env{*this, features};
 
@@ -2916,6 +2916,397 @@ public:
                 BEAST_EXPECT(
                     hookExecutions[0].getFieldU64(sfHookReturnCode) ==
                     283);  // emission failure on first emit
+                if (fixV2)
+                    BEAST_EXPECT(hookExecutions[0].getFieldU32(sfFlags) == 2);
+            }
+            BEAST_EXPECT(txcount == 256);
+        }
+
+        // next close will lead to zero transactions
+        env.close();
+        {
+            auto const ledger = env.closed();
+            int txcount = 0;
+            for ([[maybe_unused]] auto& i : ledger->txs)
+                txcount++;
+            BEAST_EXPECT(txcount == 0);
+        }
+    }
+
+    void
+    test_prepare(FeatureBitset features)
+    {
+        testcase("Test prepare");
+        using namespace jtx;
+        Env env{
+            *this, envconfig(), features, nullptr, beast::severities::kError
+            //            beast::severities::kTrace
+        };
+
+        auto const alice = Account{"alice"};
+        auto const bob = Account{"bob"};
+        env.fund(XRP(10000), alice);
+        env.fund(XRP(10000), bob);
+
+        TestHook hook = wasm[R"[test.hook](
+        #include <stdint.h>
+        extern int32_t _g(uint32_t, uint32_t);
+        extern int64_t accept (uint32_t read_ptr, uint32_t read_len, int64_t error_code);
+        extern int64_t rollback (uint32_t read_ptr, uint32_t read_len, int64_t error_code);
+        extern int64_t emit (uint32_t, uint32_t, uint32_t, uint32_t);
+        extern int64_t etxn_details (uint32_t, uint32_t);
+        extern int64_t etxn_reserve(uint32_t);
+        extern int64_t otxn_param(uint32_t, uint32_t, uint32_t, uint32_t);
+        extern int64_t prepare(uint32_t, uint32_t, uint32_t, uint32_t);
+        extern int64_t otxn_field (
+            uint32_t write_ptr,
+            uint32_t write_len,
+            uint32_t field_id
+        );
+        #define GUARD(maxiter) _g((1ULL << 31U) + __LINE__, (maxiter)+1)
+        #define OUT_OF_BOUNDS (-1)
+        #define ttPAYMENT 0
+        #define tfCANONICAL 0x80000000UL
+        #define amAMOUNT 1U
+        #define DOESNT_EXIST (-5)
+        #define atDESTINATION 3U
+        #define SBUF(x) (uint32_t)x,sizeof(x)
+
+        #define PREREQUISITE_NOT_MET -9
+        #define ENCODE_DROPS_SIZE 9
+        #define ENCODE_DROPS(buf_out, drops, amount_type ) \
+            {\
+                uint8_t uat = amount_type; \
+                uint64_t udrops = drops; \
+                buf_out[0] = 0x60U +(uat & 0x0FU ); \
+                buf_out[1] = 0b01000000 + (( udrops >> 56 ) & 0b00111111 ); \
+                buf_out[2] = (udrops >> 48) & 0xFFU; \
+                buf_out[3] = (udrops >> 40) & 0xFFU; \
+                buf_out[4] = (udrops >> 32) & 0xFFU; \
+                buf_out[5] = (udrops >> 24) & 0xFFU; \
+                buf_out[6] = (udrops >> 16) & 0xFFU; \
+                buf_out[7] = (udrops >>  8) & 0xFFU; \
+                buf_out[8] = (udrops >>  0) & 0xFFU; \
+                buf_out += ENCODE_DROPS_SIZE; \
+            }
+
+        #define ENCODE_DROPS_AMOUNT(buf_out, drops )\
+            ENCODE_DROPS(buf_out, drops, amAMOUNT );
+        #define _06_01_ENCODE_DROPS_AMOUNT(buf_out, drops )\
+            ENCODE_DROPS_AMOUNT(buf_out, drops );
+
+        #define ENCODE_TT_SIZE 3
+        #define ENCODE_TT(buf_out, tt )\
+            {\
+                uint8_t utt = tt;\
+                buf_out[0] = 0x12U;\
+                buf_out[1] =(utt >> 8 ) & 0xFFU;\
+                buf_out[2] =(utt >> 0 ) & 0xFFU;\
+                buf_out += ENCODE_TT_SIZE; \
+            }
+        #define _01_02_ENCODE_TT(buf_out, tt)\
+            ENCODE_TT(buf_out, tt);
+
+        #define ENCODE_ACCOUNT_SIZE 22
+        #define ENCODE_ACCOUNT(buf_out, account_id, account_type)\
+            {\
+                uint8_t uat = account_type;\
+                buf_out[0] = 0x80U + uat;\
+                buf_out[1] = 0x14U;\
+                *(uint64_t*)(buf_out +  2) = *(uint64_t*)(account_id +  0);\
+                *(uint64_t*)(buf_out + 10) = *(uint64_t*)(account_id +  8);\
+                *(uint32_t*)(buf_out + 18) = *(uint32_t*)(account_id + 16);\
+                buf_out += ENCODE_ACCOUNT_SIZE;\
+            }
+
+        #define ENCODE_ACCOUNT_DST_SIZE 22
+        #define ENCODE_ACCOUNT_DST(buf_out, account_id)\
+            ENCODE_ACCOUNT(buf_out, account_id, atDESTINATION);
+        #define _08_03_ENCODE_ACCOUNT_DST(buf_out, account_id)\
+            ENCODE_ACCOUNT_DST(buf_out, account_id);
+
+        #define ENCODE_UINT32_COMMON_SIZE 5U
+        #define ENCODE_UINT32_COMMON(buf_out, i, field)\
+            {\
+                uint32_t ui = i; \
+                uint8_t uf = field; \
+                buf_out[0] = 0x20U +(uf & 0x0FU); \
+                buf_out[1] =(ui >> 24 ) & 0xFFU; \
+                buf_out[2] =(ui >> 16 ) & 0xFFU; \
+                buf_out[3] =(ui >>  8 ) & 0xFFU; \
+                buf_out[4] =(ui >>  0 ) & 0xFFU; \
+                buf_out += ENCODE_UINT32_COMMON_SIZE; \
+            }
+
+        #define ENCODE_TAG_SRC_SIZE 5
+        #define ENCODE_TAG_SRC(buf_out, tag )\
+            ENCODE_UINT32_COMMON(buf_out, tag, 0x3U );
+        #define _02_03_ENCODE_TAG_SRC(buf_out, tag )\
+            ENCODE_TAG_SRC(buf_out, tag );
+
+        #define ENCODE_TAG_DST_SIZE 5
+        #define ENCODE_TAG_DST(buf_out, tag )\
+            ENCODE_UINT32_COMMON(buf_out, tag, 0xEU );
+        #define _02_14_ENCODE_TAG_DST(buf_out, tag )\
+            ENCODE_TAG_DST(buf_out, tag );
+
+        #define ENCODE_FLAGS_SIZE 5
+        #define ENCODE_FLAGS(buf_out, tag )\
+            ENCODE_UINT32_COMMON(buf_out, tag, 0x2U );
+        #define _02_02_ENCODE_FLAGS(buf_out, tag )\
+            ENCODE_FLAGS(buf_out, tag );
+
+        #define PREPARE_PAYMENT_SIMPLE_SIZE 270U 
+        #define PREPARE_PAYMENT_SIMPLE(prepared_buf, drops_amount_raw, to_address, dest_tag_raw, src_tag_raw)\
+            {\
+                uint8_t* buf_out = prepared_buf;\
+                uint8_t buf[49];\
+                uint8_t* buf_tx = buf;\
+                uint64_t drops_amount = (drops_amount_raw);\
+                uint32_t dest_tag = (dest_tag_raw);\
+                uint32_t src_tag = (src_tag_raw);\
+                _01_02_ENCODE_TT                   (buf_tx, ttPAYMENT                      );      /* uint16  | size   3 */ \
+                _02_02_ENCODE_FLAGS                (buf_tx, tfCANONICAL                    );      /* uint32  | size   5 */ \
+                _02_03_ENCODE_TAG_SRC              (buf_tx, src_tag                        );      /* uint32  | size   5 */ \
+                _02_14_ENCODE_TAG_DST              (buf_tx, dest_tag                       );      /* uint32  | size   5 */ \
+                _06_01_ENCODE_DROPS_AMOUNT         (buf_tx, drops_amount                   );      /* amount  | size   9 */ \
+                _08_03_ENCODE_ACCOUNT_DST          (buf_tx, to_address                     );      /* account | size  22 */ \
+                ASSERT(prepare(buf_out, 1000, SBUF(buf)) > 0);\
+            }
+
+        #define UINT16_FROM_BUF(buf)\
+            (((uint64_t)((buf)[0]) <<  8U) +\
+             ((uint64_t)((buf)[1]) <<  0U))
+
+        #define BUFFER_EQUAL_32(buf1, buf2)\
+            (\
+                *(((uint64_t*)(buf1)) + 0) == *(((uint64_t*)(buf2)) + 0) &&\
+                *(((uint64_t*)(buf1)) + 1) == *(((uint64_t*)(buf2)) + 1) &&\
+                *(((uint64_t*)(buf1)) + 2) == *(((uint64_t*)(buf2)) + 2) &&\
+                *(((uint64_t*)(buf1)) + 3) == *(((uint64_t*)(buf2)) + 3) &&\
+                *(((uint64_t*)(buf1)) + 4) == *(((uint64_t*)(buf2)) + 4) &&\
+                *(((uint64_t*)(buf1)) + 5) == *(((uint64_t*)(buf2)) + 5) &&\
+                *(((uint64_t*)(buf1)) + 6) == *(((uint64_t*)(buf2)) + 6) &&\
+                *(((uint64_t*)(buf1)) + 7) == *(((uint64_t*)(buf2)) + 7))
+
+        #define ASSERT(x)\
+             if (!(x))\
+                rollback((uint32_t)#x,sizeof(#x),__LINE__)
+
+        #define sfDestination ((8U << 16U) + 3U)
+
+        extern int64_t etxn_generation(void);
+        extern int64_t otxn_generation(void);
+        extern int64_t otxn_burden(void);
+        extern int64_t etxn_burden(void);
+
+        int64_t cbak(uint32_t r)
+        {
+            // on callback we emit 2 more txns
+            uint8_t bob[20];
+            ASSERT(otxn_field(SBUF(bob), sfDestination) == 20);
+
+            ASSERT(otxn_generation() + 1 == etxn_generation());
+
+            ASSERT(etxn_burden() == PREREQUISITE_NOT_MET);
+
+            ASSERT(etxn_reserve(2) == 2);
+            
+            ASSERT(otxn_burden() > 0);
+            ASSERT(etxn_burden() == otxn_burden() * 2);
+
+            uint8_t tx[PREPARE_PAYMENT_SIMPLE_SIZE];
+            PREPARE_PAYMENT_SIMPLE(tx, 1000, bob, 0, 0);
+
+            uint8_t hash1[32];
+            ASSERT(emit(SBUF(hash1), SBUF(tx)) == 32);
+
+            ASSERT(etxn_details(tx + 132, 138) == 138);
+            uint8_t hash2[32];
+            ASSERT(emit(SBUF(hash2), SBUF(tx)) == 32);
+
+            ASSERT(!BUFFER_EQUAL_32(hash1, hash2)); 
+
+            return accept(0,0,0);
+        }
+
+        int64_t hook(uint32_t r)
+        {
+            _g(1,1);
+
+            etxn_reserve(1);
+            
+            // bounds checks
+            ASSERT(prepare(1000000, 32, 0, 32) == OUT_OF_BOUNDS);
+            ASSERT(prepare(0,1000000, 0, 32) == OUT_OF_BOUNDS);
+            ASSERT(prepare(0,32, 1000000, 32) == OUT_OF_BOUNDS);
+            ASSERT(prepare(0,32, 0, 1000000) == OUT_OF_BOUNDS);
+
+            uint8_t bob[20];
+            ASSERT(otxn_param(SBUF(bob), "bob", 3) == 20);
+
+            uint8_t tx[PREPARE_PAYMENT_SIMPLE_SIZE];
+            PREPARE_PAYMENT_SIMPLE(tx, 1000, bob, 0, 0);
+
+            uint8_t hash[32];
+            ASSERT(emit(SBUF(hash), SBUF(tx)) == 32);
+
+            return accept(0,0,0);
+        }
+        )[test.hook]"];
+
+        env(ripple::test::jtx::hook(alice, {{hso(hook, overrideFlag)}}, 0),
+            M("set emit"),
+            HSFEE);
+        env.close();
+
+        Json::Value invoke;
+        invoke[jss::TransactionType] = "Invoke";
+        invoke[jss::Account] = alice.human();
+
+        Json::Value params{Json::arrayValue};
+        params[0U][jss::HookParameter][jss::HookParameterName] =
+            strHex(std::string("bob"));
+        params[0U][jss::HookParameter][jss::HookParameterValue] =
+            strHex(bob.id());
+
+        invoke[jss::HookParameters] = params;
+
+        env(invoke, M("test emit"), fee(XRP(1)));
+
+        bool const fixV2 = env.current()->rules().enabled(fixXahauV2);
+
+        std::optional<uint256> emithash;
+        {
+            auto meta = env.meta();  // meta can close
+
+            // ensure hook execution occured
+            BEAST_REQUIRE(meta);
+            BEAST_REQUIRE(meta->isFieldPresent(sfHookExecutions));
+
+            auto const hookEmissions = meta->getFieldArray(sfHookEmissions);
+            BEAST_EXPECT(
+                hookEmissions[0u].isFieldPresent(sfEmitNonce) == fixV2 ? true
+                                                                       : false);
+            BEAST_EXPECT(
+                hookEmissions[0u].getAccountID(sfHookAccount) == alice.id());
+
+            auto const hookExecutions = meta->getFieldArray(sfHookExecutions);
+            BEAST_REQUIRE(hookExecutions.size() == 1);
+
+            // ensure there was one emitted txn
+            BEAST_EXPECT(hookExecutions[0].getFieldU16(sfHookEmitCount) == 1);
+
+            BEAST_REQUIRE(meta->isFieldPresent(sfAffectedNodes));
+
+            BEAST_REQUIRE(meta->getFieldArray(sfAffectedNodes).size() == 3);
+
+            for (auto const& node : meta->getFieldArray(sfAffectedNodes))
+            {
+                SField const& metaType = node.getFName();
+                uint16_t nodeType = node.getFieldU16(sfLedgerEntryType);
+                if (metaType == sfCreatedNode && nodeType == ltEMITTED_TXN)
+                {
+                    BEAST_REQUIRE(node.isFieldPresent(sfNewFields));
+
+                    auto const& nf = const_cast<ripple::STObject&>(node)
+                                         .getField(sfNewFields)
+                                         .downcast<STObject>();
+
+                    auto const& et = const_cast<ripple::STObject&>(nf)
+                                         .getField(sfEmittedTxn)
+                                         .downcast<STObject>();
+
+                    auto const& em = const_cast<ripple::STObject&>(et)
+                                         .getField(sfEmitDetails)
+                                         .downcast<STObject>();
+
+                    BEAST_EXPECT(em.getFieldU32(sfEmitGeneration) == 1);
+                    BEAST_EXPECT(em.getFieldU64(sfEmitBurden) == 1);
+
+                    Blob txBlob = et.getSerializer().getData();
+                    auto const tx = std::make_unique<STTx>(
+                        Slice{txBlob.data(), txBlob.size()});
+                    emithash = tx->getTransactionID();
+
+                    break;
+                }
+            }
+
+            BEAST_REQUIRE(emithash);
+            BEAST_EXPECT(
+                emithash == hookEmissions[0u].getFieldH256(sfEmittedTxnID));
+        }
+
+        {
+            auto balbefore = env.balance(bob).value().xrp().drops();
+
+            env.close();
+
+            auto const ledger = env.closed();
+
+            int txcount = 0;
+            for (auto& i : ledger->txs)
+            {
+                auto const& hash = i.first->getTransactionID();
+                txcount++;
+                BEAST_EXPECT(hash == *emithash);
+            }
+
+            BEAST_EXPECT(txcount == 1);
+
+            auto balafter = env.balance(bob).value().xrp().drops();
+
+            BEAST_EXPECT(balafter - balbefore == 1000);
+
+            env.close();
+        }
+
+        uint64_t burden_expected = 2;
+        for (int j = 0; j < 7; ++j)
+        {
+            auto const ledger = env.closed();
+            for (auto& i : ledger->txs)
+            {
+                auto const& em = const_cast<ripple::STTx&>(*(i.first))
+                                     .getField(sfEmitDetails)
+                                     .downcast<STObject>();
+                BEAST_EXPECT(em.getFieldU64(sfEmitBurden) == burden_expected);
+                BEAST_EXPECT(em.getFieldU32(sfEmitGeneration) == j + 2);
+                BEAST_REQUIRE(i.second->isFieldPresent(sfHookExecutions));
+                auto const hookExecutions =
+                    i.second->getFieldArray(sfHookExecutions);
+                BEAST_EXPECT(hookExecutions.size() == 1);
+                BEAST_EXPECT(
+                    hookExecutions[0].getFieldU64(sfHookReturnCode) == 0);
+                BEAST_EXPECT(hookExecutions[0].getFieldU8(sfHookResult) == 3);
+                BEAST_EXPECT(
+                    hookExecutions[0].getFieldU16(sfHookEmitCount) == 2);
+                if (fixV2)
+                    BEAST_EXPECT(hookExecutions[0].getFieldU32(sfFlags) == 2);
+            }
+            env.close();
+            burden_expected *= 2U;
+        }
+
+        {
+            auto const ledger = env.closed();
+            int txcount = 0;
+            for (auto& i : ledger->txs)
+            {
+                txcount++;
+                auto const& em = const_cast<ripple::STTx&>(*(i.first))
+                                     .getField(sfEmitDetails)
+                                     .downcast<STObject>();
+                BEAST_EXPECT(em.getFieldU64(sfEmitBurden) == 256);
+                BEAST_EXPECT(em.getFieldU32(sfEmitGeneration) == 9);
+                BEAST_REQUIRE(i.second->isFieldPresent(sfHookExecutions));
+                auto const hookExecutions =
+                    i.second->getFieldArray(sfHookExecutions);
+                BEAST_EXPECT(hookExecutions.size() == 1);
+                BEAST_EXPECT(
+                    hookExecutions[0].getFieldU64(sfHookReturnCode) ==
+                    172);  // emission failure on first emit
                 if (fixV2)
                     BEAST_EXPECT(hookExecutions[0].getFieldU32(sfFlags) == 2);
             }
@@ -12871,6 +13262,7 @@ public:
         testGuards(features);
 
         test_emit(features);  //
+        test_prepare(features);
         // test_etxn_burden(features);       // tested above
         // test_etxn_generation(features);   // tested above
         // test_otxn_burden(features);       // tested above

@@ -485,12 +485,16 @@ SetHook::validateHookSetEntry(SetHookCtx& ctx, STObject const& hookSetObj)
                     hsacc = ss.str();
                 }
 
+                auto rulesVersion =
+                    (ctx.rules.enabled(featureHooksUpdate1) ? 0x0001U : 0U) +
+                    (ctx.rules.enabled(fix20250131) ? 0x0002U : 0U) +
+                    (ctx.rules.enabled(featureHooksUpdate2) ? 0x0004U : 0U);
+
                 auto result = validateGuards(
                     hook,  // wasm to verify
                     logger,
                     hsacc,
-                    (ctx.rules.enabled(featureHooksUpdate1) ? 1 : 0) +
-                        (ctx.rules.enabled(fix20250131) ? 2 : 0));
+                    rulesVersion);
 
                 if (ctx.j.trace())
                 {

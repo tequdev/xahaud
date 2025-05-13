@@ -79,7 +79,7 @@ main(int argc, char** argv)
 
     close(fd);
 
-    auto result = validateGuards(hook, std::cout, "", 3);
+    auto result = validateGuards(hook, std::cout, "", 0x0001 + 0x0002 + 0x0004);
 
     if (!result)
     {

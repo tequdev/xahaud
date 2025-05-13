@@ -185,6 +185,13 @@ DECLARE_HOOK_FUNCTION(
     uint32_t write_len);
 DECLARE_HOOK_FUNCTION(
     int64_t,
+    prepare,
+    uint32_t write_ptr,
+    uint32_t write_len,
+    uint32_t read_ptr,
+    uint32_t read_len);
+DECLARE_HOOK_FUNCTION(
+    int64_t,
     emit,
     uint32_t write_ptr,
     uint32_t write_len,
@@ -824,6 +831,7 @@ public:
         ADD_HOOK_FUNCTION(sto_erase, ctx);
         ADD_HOOK_FUNCTION(util_keylet, ctx);
 
+        ADD_HOOK_FUNCTION(prepare, ctx);
         ADD_HOOK_FUNCTION(emit, ctx);
         ADD_HOOK_FUNCTION(etxn_burden, ctx);
         ADD_HOOK_FUNCTION(etxn_fee_base, ctx);
