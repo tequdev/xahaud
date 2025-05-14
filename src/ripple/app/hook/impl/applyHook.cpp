@@ -4092,6 +4092,34 @@ DEFINE_HOOK_FUNCTION(
     HOOK_TEARDOWN();
 }
 
+DEFINE_HOOK_FUNCTION(
+    int64_t,
+    util_sha256,
+    uint32_t write_ptr,
+    uint32_t write_len,
+    uint32_t read_ptr,
+    uint32_t read_len)
+{
+    HOOK_SETUP();  // populates memory_ctx, memory, memory_length, applyCtx,
+                   // hookCtx, view on current stack
+
+    if (write_len < 32)
+        return TOO_SMALL;
+
+    if (NOT_IN_BOUNDS(write_ptr, write_len, memory_length) ||
+        NOT_IN_BOUNDS(read_ptr, read_len, memory_length))
+        return OUT_OF_BOUNDS;
+
+    ripple::sha256_hasher h;
+    h(memory + read_ptr, read_len);
+    auto hash = static_cast<ripple::sha256_hasher::result_type>(h);
+
+    WRITE_WASM_MEMORY_AND_RETURN(
+        write_ptr, 32, hash.data(), 32, memory, memory_length);
+
+    HOOK_TEARDOWN();
+}
+
 // these are only used by get_stobject_length below
 enum parse_error : int32_t {
     pe_unexpected_end = -1,

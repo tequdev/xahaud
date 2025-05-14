@@ -155,6 +155,13 @@ DECLARE_HOOK_FUNCTION(
     uint32_t read_len);
 DECLARE_HOOK_FUNCTION(
     int64_t,
+    util_sha256,
+    uint32_t write_ptr,
+    uint32_t write_len,
+    uint32_t read_ptr,
+    uint32_t read_len);
+DECLARE_HOOK_FUNCTION(
+    int64_t,
     util_keylet,
     uint32_t write_ptr,
     uint32_t write_len,
@@ -824,6 +831,7 @@ public:
         ADD_HOOK_FUNCTION(util_verify, ctx);
         ADD_HOOK_FUNCTION(util_verify_p256, ctx);
         ADD_HOOK_FUNCTION(util_sha512h, ctx);
+        ADD_HOOK_FUNCTION(util_sha256, ctx);
         ADD_HOOK_FUNCTION(sto_validate, ctx);
         ADD_HOOK_FUNCTION(sto_subfield, ctx);
         ADD_HOOK_FUNCTION(sto_subarray, ctx);
