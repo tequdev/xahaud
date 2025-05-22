@@ -488,10 +488,15 @@ SetHook::validateHookSetEntry(SetHookCtx& ctx, STObject const& hookSetObj)
                 // interface so it can be used in other projects (i.e. tooling).
                 // As such the calling here is a bit convoluted.
 
-                auto rulesVersion =
-                    (ctx.rules.enabled(featureHooksUpdate1) ? 0x0001U : 0U) +
-                    (ctx.rules.enabled(fix20250131) ? 0x0002U : 0U) +
-                    (ctx.rules.enabled(featureFunctionalHooks) ? 0x0004U : 0U);
+                auto rulesVersion = (ctx.rules.enabled(featureHooksUpdate1)
+                                         ? hook_api::GuardRules::HooksUpdate1
+                                         : 0U) +
+                    (ctx.rules.enabled(fix20250131)
+                         ? hook_api::GuardRules::Fix20250131
+                         : 0U) +
+                    (ctx.rules.enabled(featureFunctionalHooks)
+                         ? hook_api::GuardRules::FunctionalHooks
+                         : 0U);
 
                 std::optional<std::reference_wrapper<std::basic_ostream<char>>>
                     logger;

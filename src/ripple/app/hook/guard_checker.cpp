@@ -79,7 +79,11 @@ main(int argc, char** argv)
 
     close(fd);
 
-    auto result = validateGuards(hook, std::cout, "", 0x0001 + 0x0002 + 0x0004);
+    auto const allRules = hook_api::GuardRules::HooksUpdate1 +
+        hook_api::GuardRules::Fix20250131 +
+        hook_api::GuardRules::FunctionalHooks;
+
+    auto result = validateGuards(hook, std::cout, "", allRules);
 
     if (!result)
     {

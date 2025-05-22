@@ -634,7 +634,7 @@ check_guard(
             }
             else if (fc_type == 10)  // memory.copy
             {
-                if (rulesVersion & 0x02U)
+                if (rulesVersion & hook_api::GuardRules::Fix20250131)
                     GUARD_ERROR("Memory.copy instruction is not allowed.");
 
                 REQUIRE(2);
@@ -642,7 +642,7 @@ check_guard(
             }
             else if (fc_type == 11)  // memory.fill
             {
-                if (rulesVersion & 0x02U)
+                if (rulesVersion & hook_api::GuardRules::Fix20250131)
                     GUARD_ERROR("Memory.fill instruction is not allowed.");
 
                 ADVANCE(1);
@@ -1029,14 +1029,14 @@ validateGuards(
                     hook_api::import_whitelist.find(import_name) ==
                     hook_api::import_whitelist.end())
                 {
-                    if (rulesVersion & 0x1U &&
+                    if (rulesVersion & hook_api::GuardRules::HooksUpdate1 &&
                         hook_api::import_whitelist_1.find(import_name) !=
                             hook_api::import_whitelist_1.end())
                     {
                         // PASS, this is a version 1 api
                     }
                     else if (
-                        rulesVersion & 0x04U &&
+                        rulesVersion & hook_api::GuardRules::FunctionalHooks &&
                         hook_api::import_whitelist_v3.find(import_name) !=
                             hook_api::import_whitelist_v3.end())
                     {
