@@ -482,70 +482,9 @@ SetHook::validateHookSetEntry(SetHookCtx& ctx, STObject const& hookSetObj)
                 if (!hookSetObj.isFieldPresent(sfCreateCode))
                     return {};
 
-                Blob hook = hookSetObj.getFieldVL(sfCreateCode);
+                Blob const& hook = hookSetObj.getFieldVL(sfCreateCode);
 
-                // RH NOTE: validateGuards has a generic non-rippled specific
-                // interface so it can be used in other projects (i.e. tooling).
-                // As such the calling here is a bit convoluted.
-
-                auto rulesVersion = (ctx.rules.enabled(featureHooksUpdate1)
-                                         ? hook_api::GuardRules::HooksUpdate1
-                                         : 0U) +
-                    (ctx.rules.enabled(fix20250131)
-                         ? hook_api::GuardRules::Fix20250131
-                         : 0U) +
-                    (ctx.rules.enabled(featureFunctionalHooks)
-                         ? hook_api::GuardRules::FunctionalHooks
-                         : 0U);
-
-                std::optional<std::reference_wrapper<std::basic_ostream<char>>>
-                    logger;
-                std::ostringstream loggerStream;
-                std::string hsacc{""};
-                if (ctx.j.trace())
-                {
-                    logger = loggerStream;
-                    std::stringstream ss;
-                    ss << HS_ACC();
-                    hsacc = ss.str();
-                }
-
-                auto result = validateGuards(
-                    hook,  // wasm to verify
-                    logger,
-                    hsacc,
-                    rulesVersion);
-
-                if (ctx.j.trace())
-                {
-                    // clunky but to get the stream to accept the output
-                    // correctly we will split on new line and feed each line
-                    // one by one into the trace stream beast::Journal should be
-                    // updated to inherit from basic_ostream<char> then this
-                    // wouldn't be necessary.
-
-                    // is this a needless copy or does the compiler do copy
-                    // elision here?
-                    std::string s = loggerStream.str();
-
-                    char* data = s.data();
-                    size_t len = s.size();
-
-                    char* last = data;
-                    size_t i = 0;
-                    for (; i < len; ++i)
-                    {
-                        if (data[i] == '\n')
-                        {
-                            data[i] = '\0';
-                            ctx.j.trace() << last;
-                            last = data + i;
-                        }
-                    }
-
-                    if (last < data + i)
-                        ctx.j.trace() << last;
-                }
+                auto result = doValidateGuards(hook, ctx.tx, ctx.rules, ctx.j);
 
                 if (!result)
                     return false;
@@ -713,6 +652,75 @@ SetHook::validateHookSetEntry(SetHookCtx& ctx, STObject const& hookSetObj)
     }
 }
 
+std::optional<std::map<std::string, uint64_t>>
+SetHook::doValidateGuards(
+    Blob const& hook,
+    STTx const& tx,
+    Rules const& rules,
+    std::optional<beast::Journal> j)
+{
+    // RH NOTE: validateGuards has a generic non-rippled specific
+    // interface so it can be used in other projects (i.e. tooling).
+    // As such the calling here is a bit convoluted.
+    auto rulesVersion =
+        (rules.enabled(featureHooksUpdate1) ? hook_api::GuardRules::HooksUpdate1
+                                            : 0U) +
+        (rules.enabled(fix20250131) ? hook_api::GuardRules::Fix20250131 : 0U) +
+        (rules.enabled(featureFunctionalHooks)
+             ? hook_api::GuardRules::FunctionalHooks
+             : 0U);
+
+    std::optional<std::reference_wrapper<std::basic_ostream<char>>> logger;
+    std::ostringstream loggerStream;
+    std::string hsacc{""};
+
+    if (j.has_value() && j->trace())
+    {
+        logger = loggerStream;
+        std::stringstream ss;
+        ss << tx.getAccountID(sfAccount) << "-" << tx.getTransactionID();
+        hsacc = ss.str();
+    }
+
+    auto result = validateGuards(
+        hook,  // wasm to verify
+        logger,
+        hsacc,
+        rulesVersion);
+
+    if (j.has_value() && j->trace())
+    {
+        // clunky but to get the stream to accept the output
+        // correctly we will split on new line and feed each line
+        // one by one into the trace stream beast::Journal should be
+        // updated to inherit from basic_ostream<char> then this
+        // wouldn't be necessary.
+
+        // is this a needless copy or does the compiler do copy
+        // elision here?
+        std::string s = loggerStream.str();
+
+        char* data = s.data();
+        size_t len = s.size();
+
+        char* last = data;
+        size_t i = 0;
+        for (; i < len; ++i)
+        {
+            if (data[i] == '\n')
+            {
+                data[i] = '\0';
+                j->trace() << last;
+                last = data + i;
+            }
+        }
+
+        if (last < data + i)
+            j->trace() << last;
+    }
+    return result;
+}
+
 bool
 SetHook::validateNewHooks(ApplyView& view, STArray const& hookSets)
 {
@@ -760,7 +768,7 @@ SetHook::calculateBaseFee(ReadView const& view, STTx const& tx)
 
     auto const& hookSets = tx.getFieldArray(sfHooks);
 
-    bool const hasFunctionalHooks =
+    bool const hasFeatureFunctionalHooks =
         view.rules().enabled(featureFunctionalHooks);
 
     for (auto const& hookSetObj : hookSets)
@@ -799,29 +807,124 @@ SetHook::calculateBaseFee(ReadView const& view, STTx const& tx)
             paramFee = XRPAmount{paramBytes};
         }
 
-        if (hasFunctionalHooks && hookSetObj.isFieldPresent(sfHookFunctions))
+        if (hasFeatureFunctionalHooks)
         {
             int64_t paramBytes = 0;
-            auto const& functions = hookSetObj.getFieldArray(sfHookFunctions);
-            for (auto const& function : functions)
+            int64_t functionFees = 0;
+            if (hookSetObj.isFieldPresent(sfHookFunctions))
             {
-                if (function.isFieldPresent(sfFunctionParameters))
+                // create or install functional hook with HookFunctions
+                auto const& functions =
+                    hookSetObj.getFieldArray(sfHookFunctions);
+                for (auto const& function : functions)
                 {
-                    auto const& params =
-                        function.getFieldArray(sfFunctionParameters);
-                    for (auto const& param : params)
+                    if (function.isFieldPresent(sfFunctionParameters))
                     {
-                        paramBytes +=
-                            (param.isFieldPresent(sfFunctionParameterValue)
-                                 ? param.getFieldData(sfFunctionParameterValue)
-                                       .size()
-                                 : 0);
+                        auto const& params =
+                            function.getFieldArray(sfFunctionParameters);
+                        for (auto const& param : params)
+                        {
+                            paramBytes +=
+                                (param.isFieldPresent(sfFunctionParameterValue)
+                                     ? param
+                                           .getFieldData(
+                                               sfFunctionParameterValue)
+                                           .size()
+                                     : 0);
+                        }
+                    }
+
+                    if (function.isFlag(FunctionalHookFlags::hffINITIALIZE))
+                    {
+                        auto const& functionName =
+                            function.getFieldVL(sfFunctionName);
+                        std::string functionNameHexStr(
+                            functionName.begin(), functionName.end());
+
+                        if (hookSetObj.isFieldPresent(sfCreateCode))
+                        {
+                            // get ExecultionFee for InitializeHook
+                            auto const result = doValidateGuards(
+                                hookSetObj.getFieldVL(sfCreateCode),
+                                tx,
+                                view.rules(),
+                                std::nullopt);
+                            if (!result)
+                                continue;
+
+                            auto const& functionNamesMap = result.value();
+                            for (const auto& [key, value] : functionNamesMap)
+                            {
+                                if (functionNameHexStr == key)
+                                    paramBytes += value;
+                            }
+                        }
+                        else
+                        {
+                            if (!hookSetObj.isFieldPresent(
+                                    sfHookHash))  // skip blanks
+                                continue;
+
+                            uint256 const& hash =
+                                hookSetObj.getFieldH256(sfHookHash);
+                            std::shared_ptr<SLE const> hookDef =
+                                view.read(keylet::hookDefinition(hash));
+                            if (!hookDef)
+                                continue;
+                            if (!hookDef->isFieldPresent(sfHookFunctions))
+                                continue;
+
+                            auto const& functionsDef =
+                                hookDef->getFieldArray(sfHookFunctions);
+                            for (auto const& functionDef : functionsDef)
+                            {
+                                auto const& functionNameDef =
+                                    functionDef.getFieldVL(sfFunctionName);
+                                std::string functionNameDefHexStr(
+                                    functionNameDef.begin(),
+                                    functionNameDef.end());
+                                if (functionNameDefHexStr == functionNameHexStr)
+                                {
+                                    functionFees +=
+                                        functionDef.getFieldAmount(sfFee)
+                                            .xrp()
+                                            .drops();
+                                }
+                            }
+                        }
                     }
                 }
             }
+            else
+            {
+                // install functional hook without HookFunctions (only use
+                // HookHash)
+                if (!hookSetObj.isFieldPresent(sfHookHash))
+                    continue;
 
-            // one drop per byte
+                uint256 const& hash =
+                    hookSetObj.getFieldH256(sfHookHash);
+                std::shared_ptr<SLE const> hookDef =
+                    view.read(keylet::hookDefinition(hash));
+                if (!hookDef)
+                    continue;
+
+                if (!hookDef->isFieldPresent(sfHookFunctions))
+                    continue;
+
+                auto const& functionsDef =
+                    hookDef->getFieldArray(sfHookFunctions);
+                for (auto const& functionDef : functionsDef)
+                {
+                    if (functionDef.isFlag(FunctionalHookFlags::hffINITIALIZE))
+                    {
+                        functionFees +=
+                            functionDef.getFieldAmount(sfFee).xrp().drops();
+                    }
+                }
+            }
             paramFee += XRPAmount{paramBytes};
+            paramFee += XRPAmount{functionFees};
         }
 
         if (hookFee + paramFee < hookFee)

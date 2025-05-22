@@ -134,6 +134,11 @@ public:
         // verify hooks fee
         auto const hooksFee = jrr[jss::result][jss::fee_hooks_feeunits];
         BEAST_EXPECT(hooksFee == expected);
+        if (hooksFee != expected)
+        {
+            std::cout << "hooksFee: " << hooksFee << "";
+            std::cout << "expected: " << expected << "\n";
+        }
     }
 
     void
@@ -344,8 +349,12 @@ public:
 
         auto const alice = Account{"alice"};
         auto const bob = Account{"bob"};
+        auto const charlie = Account{"charlie"};
+        auto const dave = Account{"dave"};
         env.fund(XRP(10000), alice);
         env.fund(XRP(10000), bob);
+        env.fund(XRP(10000), charlie);
+        env.fund(XRP(10000), dave);
         env.close();
 
         // install the hook on alice
@@ -396,6 +405,63 @@ public:
                 addFuncParamValue("ACCOUNT", Account{"bob"}.human());
             // basefee 21 + 20byte(AccountID)
             testFeeRPCCall(env, tx, "41");
+        }
+        
+        // Initialize Hook
+        {
+            TestHook initialize_wasm = wasmv3[
+                R"[test.hook](
+                #include <stdint.h>
+                extern int32_t _g       (uint32_t id, uint32_t maxiter);
+                extern int64_t accept   (uint32_t read_ptr, uint32_t read_len, int64_t error_code);
+                int64_t hook_initialize(uint32_t reserved)
+                {
+                    _g(1,1);
+                    return accept(0,0,0);
+                }
+            )[test.hook]"];
+            HASH_WASM(initialize);
+
+            auto makeTx = [&](uint32_t flags) {
+                Json::Value jv = hso(initialize_wasm, overrideFlag);
+                jv[jss::HookApiVersion] = 3;
+                Json::Value function = Json::Value(Json::objectValue);
+                function[jss::FunctionName] = strHex("hook_initialize"s);
+                function[jss::Flags] = flags;
+                jv[jss::HookFunctions][0u][jss::HookFunction] = function;
+                return jv;
+            };
+
+            Json::Value jv = makeTx(0);
+            // No Definition, without initialize flag
+            testFeeRPCCall(
+                env, ripple::test::jtx::hook(charlie, {{jv}}, 0), "76010");
+
+            // No Definition,with initialize flag
+            jv = makeTx(hffINITIALIZE);
+            testFeeRPCCall(
+                env, ripple::test::jtx::hook(charlie, {{jv}}, 0), "76019");
+
+            // With Definition, without initialize flag
+            jv = makeTx(0);
+            env(ripple::test::jtx::hook(charlie, {{jv}}, 0), HSFEE);
+            
+            jv = Json::Value(Json::objectValue);
+            jv[jss::HookHash] = initialize_hash_str;
+            testFeeRPCCall(
+                env, ripple::test::jtx::hook(dave, {{jv}}, 0), "10");
+
+            // remove the hook
+            env(ripple::test::jtx::hook(charlie, {{hso_delete()}}, 0), HSFEE);
+            env.close();
+
+            // With Definition, with initialize flag
+            jv = makeTx(hffINITIALIZE);
+            env(ripple::test::jtx::hook(charlie, {{jv}}, 0), HSFEE);
+
+            jv = Json::Value(Json::objectValue);
+            jv[jss::HookHash] = initialize_hash_str;
+            testFeeRPCCall(env, ripple::test::jtx::hook(dave, {{jv}}, 0), "19");
         }
     }
 

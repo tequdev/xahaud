@@ -89,6 +89,13 @@ public:
     static HookSetValidation
     validateHookSetEntry(SetHookCtx& ctx, STObject const& hookSetObj);
 
+    static std::optional<std::map<std::string, uint64_t>>
+    doValidateGuards(
+        Blob const& hook,
+        STTx const& tx,
+        Rules const& rules,
+        std::optional<beast::Journal> j);
+
 private:
     TER
     setHook();

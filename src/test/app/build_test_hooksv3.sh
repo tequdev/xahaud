@@ -59,6 +59,7 @@ cat $INPUT_FILE | tr '\n' '\f' |
                 echo '#include "api.h"' > "$WASM_DIR/test-$COUNTER-gen.c"
                 tr '\f' '\n' <<< $line >> "$WASM_DIR/test-$COUNTER-gen.c"
                 DECLARED="`tr '\f' '\n' <<< $line | grep  -E '(extern|define) ' | grep -Eo '[a-z\-\_]+ *\(' | grep -v 'sizeof' | sed -E 's/[^a-z\-\_]//g' | sort | uniq`"
+                # TODO: allow all functions (not only hook*/cbak*)
                 USED="`tr '\f' '\n' <<< $line | grep -vE '(extern|define) ' | grep -Eo '[a-z\-\_]+\(' | grep -v 'sizeof' | sed -E 's/[^a-z\-\_]//g' | grep -vE '^(hook|cbak)' | sort | uniq`"
                 ONCE="`echo $DECLARED $USED | tr ' ' '\n' | sort | uniq -c | grep '1 ' | sed -E 's/^ *1 //g'`"
                 FILTER="`echo $DECLARED | tr ' ' '|' | sed -E 's/\|$//g'`"
