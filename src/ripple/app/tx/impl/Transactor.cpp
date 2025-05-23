@@ -1285,7 +1285,7 @@ Transactor::executeHookChain(
         if (hookApiVersion == 3)
         {
             if (!ctx_.tx.isFieldPresent(sfFunctionName))
-                return tecHOOK_REJECTED;
+                return tecHOOK_INVALID_CALL;
             functionName = ctx_.tx.getFieldVL(sfFunctionName);
 
             auto const hookFunctions = hookObj.isFieldPresent(sfHookFunctions)
@@ -1299,7 +1299,12 @@ Transactor::executeHookChain(
                     functionDef = hookFunction;
             }
             if (!functionDef)
-                return tecHOOK_REJECTED;
+                return tecHOOK_INVALID_CALL;
+
+            auto const funcFlags = functionDef->getFlags();
+
+            if (funcFlags & (hffINITIALIZE | hffQUERY))
+                return tecHOOK_INVALID_CALL;
 
             // Validate function parameters
             //   1. Parameter size
@@ -1310,7 +1315,7 @@ Transactor::executeHookChain(
                 ctx_.tx.isFieldPresent(sfFunctionParameters);
 
             if (hasFuncParams != hasFuncParamsDef)
-                return tecHOOK_REJECTED;
+                return tecHOOK_INVALID_CALL;
 
             if (hasFuncParams)
             {
@@ -1323,22 +1328,22 @@ Transactor::executeHookChain(
                 auto typeVec = hook::getFunctionParameterTypeVec(funcParamsDef);
 
                 if (fparameters.size() != typeVec.size())
-                    return tecHOOK_REJECTED;
+                    return tecHOOK_INVALID_CALL;
 
                 for (std::size_t i = 0; i < fparameters.size(); i++)
                 {
                     if (fparameters[i].value.getInnerSType() !=
                         typeVec[i].type.getInnerSType())
-                        return tecHOOK_REJECTED;
+                        return tecHOOK_INVALID_CALL;
                 }
             }
         }
         else
         {
             if (ctx_.tx.isFieldPresent(sfFunctionName))
-                return tecHOOK_REJECTED;
+                return tecHOOK_INVALID_CALL;
             if (ctx_.tx.isFieldPresent(sfFunctionParameters))
-                return tecHOOK_REJECTED;
+                return tecHOOK_INVALID_CALL;
         }
 
         uint32_t flags =

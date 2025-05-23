@@ -309,7 +309,7 @@ public:
                 Json::Value jv = invoke::invoke(bob);
                 jv[jss::Destination] = alice.human();
                 jv[jss::FunctionName] = strHex("hook_accept"s);
-                env(jv, fee(XRP(1)), ter(tecHOOK_REJECTED));
+                env(jv, fee(XRP(1)), ter(tecHOOK_INVALID_CALL));
             }
             {
                 // size == 2
@@ -320,7 +320,7 @@ public:
                     addFuncParamValue("ACCOUNT", Account{"bob"}.human());
                 jv[jss::FunctionParameters][1u] =
                     addFuncParamValue("ACCOUNT", Account{"bob"}.human());
-                env(jv, fee(XRP(1)), ter(tecHOOK_REJECTED));
+                env(jv, fee(XRP(1)), ter(tecHOOK_INVALID_CALL));
             }
             // Invalid ParemeterType
             {
@@ -329,7 +329,7 @@ public:
                 jv[jss::FunctionName] = strHex("hook_accept"s);
                 jv[jss::FunctionParameters][0u] =
                     addFuncParamValue("VL", "1234567890");
-                env(jv, fee(XRP(1)), ter(tecHOOK_REJECTED));
+                env(jv, fee(XRP(1)), ter(tecHOOK_INVALID_CALL));
             }
         }
     }
@@ -691,7 +691,7 @@ public:
 
         Json::Value iv2 = invoke::invoke(alice);
         iv2[jss::FunctionName] = strHex("hook_rollback"s);
-        env(iv2, fee(XRP(1)), ter(tecHOOK_REJECTED));
+        env(iv2, fee(XRP(1)), ter(tecHOOK_INVALID_CALL));
         env.close();
 
         Json::Value iv3 = invoke::invoke(alice);
