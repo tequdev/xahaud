@@ -904,6 +904,7 @@ public:
         testFunctionParameters(features);
         testInitialize(features);
         testHookQuery(features);
+        // testWeakTSH(features);
     }
 
     void

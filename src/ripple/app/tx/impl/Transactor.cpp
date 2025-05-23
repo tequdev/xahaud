@@ -1284,6 +1284,10 @@ Transactor::executeHookChain(
 
         if (hookApiVersion == 3)
         {
+            // Functional hooks are only supported for strong hooks
+            if (!strong)
+                continue;
+
             if (!ctx_.tx.isFieldPresent(sfFunctionName))
                 return tecHOOK_INVALID_CALL;
             functionName = ctx_.tx.getFieldVL(sfFunctionName);
@@ -1992,6 +1996,10 @@ Transactor::doAgainAsWeak(
                 << "HookError[]: Hook def missing on aaw, hash: " << hookHash;
             continue;
         }
+
+        // Functional hooks are not supported for againAsWeak
+        if (hookDef->getFieldU16(sfHookApiVersion) == 3)
+            continue;
 
         uint256 hookCanEmit = hook::getHookCanEmit(hookObj, hookDef);
 
