@@ -524,7 +524,7 @@ class AccountTx_test : public beast::unit_test::suite
                 Json::Value jhv = hso(updateHookHex);
                 jhv[jss::Flags] = hsfOVERRIDE;
                 Json::Value jv =
-                    ripple::test::jtx::hook(account, {{jhv}}, hsfOVERRIDE);
+                    ripple::test::jtx::hook(account, {{jhv}}, 0);
                 return jv;
             };
             env(updateHook(alice), HSFEE, sig(alie));
@@ -554,7 +554,7 @@ class AccountTx_test : public beast::unit_test::suite
                 jhv[jss::HookNamespace] = to_string(uint256{beast::zero});
                 jhv[jss::HookHash] = to_string(hookHash);
                 Json::Value jv =
-                    ripple::test::jtx::hook(account, {{jhv}}, hsfOVERRIDE);
+                    ripple::test::jtx::hook(account, {{jhv}}, 0);
                 return jv;
             };
             uint256 const hid = hh(env, alice);
@@ -564,7 +564,7 @@ class AccountTx_test : public beast::unit_test::suite
             // Delete Hook
             auto deleteHook = [](test::jtx::Account const& account) {
                 Json::Value jv = ripple::test::jtx::hook(
-                    account, {{hso_delete()}}, hsfOVERRIDE);
+                    account, {{hso_delete()}}, 0);
                 return jv;
             };
             env(deleteHook(alice), HSFEE, sig(alie));

@@ -5204,7 +5204,7 @@ class Import_test : public beast::unit_test::suite
                 "CAFECAFECAFECAFECAFECAFECAFECAFECAFECAFECAFECAFECAFECAFECAFECA"
                 "FE";
             Json::Value jv = ripple::test::jtx::hook(
-                issuer, {{hso(createCodeHex)}}, hsfOVERRIDE | hsfCOLLECT);
+                issuer, {{hso(createCodeHex)}}, 0);
             jv[jss::Hooks][0U][jss::Hook][jss::HookNamespace] = ns_str;
             jv[jss::Hooks][0U][jss::Hook][jss::HookOn] =
                 "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFDFFFFFFFFFFFFFFFFFFBFFF"
