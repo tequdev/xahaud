@@ -297,7 +297,8 @@ getTransactionalStakeHolders(STTx const& tx, ReadView const& rv)
 
             if (iouIssuerWeakTSH)
             {
-                if (ut->isFieldPresent(sfAmount)){
+                if (ut->isFieldPresent(sfAmount))
+                {
                     STAmount const prevAmount = ut->getFieldAmount(sfAmount);
                     if (!isXRP(prevAmount))
                         ADD_TSH(prevAmount.getIssuer(), tshWEAK);
@@ -394,7 +395,8 @@ getTransactionalStakeHolders(STTx const& tx, ReadView const& rv)
 
             if (iouIssuerWeakTSH)
             {
-                STAmount const amount = (bo ? bo : so)->getFieldAmount(sfAmount);
+                STAmount const amount =
+                    (bo ? bo : so)->getFieldAmount(sfAmount);
                 if (!isXRP(amount))
                     ADD_TSH(amount.getIssuer(), tshWEAK);
             }

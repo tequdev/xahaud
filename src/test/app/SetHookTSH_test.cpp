@@ -5994,8 +5994,7 @@ private:
             std::string const hexid{strHex(tid)};
 
             // mint uritoken
-            env(uritoken::mint(issuer, uri),
-                ter(tesSUCCESS));
+            env(uritoken::mint(issuer, uri), ter(tesSUCCESS));
             env.close();
 
             // set tsh collect
