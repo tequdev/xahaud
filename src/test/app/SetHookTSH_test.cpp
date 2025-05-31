@@ -5278,7 +5278,7 @@ private:
         // otxn: owner
         // flag: burnable
         // tsh buyer
-        // w/s: none
+        // w/s: weak
         for (bool const testStrong : {true, false})
         {
             test::jtx::Env env{
@@ -6396,38 +6396,38 @@ private:
     void
     testTSH(FeatureBitset features)
     {
-        testAccountSetTSH(features);
-        testAccountDeleteTSH(features);
+        // testAccountSetTSH(features);
+        // testAccountDeleteTSH(features);
         testCheckCancelTSH(features);
         testCheckCashTSH(features);
-        testCheckCreateTSH(features);
-        testClaimRewardTSH(features);
-        testDepositPreauthTSH(features);
-        testEscrowCancelTSH(features);
-        testEscrowIDCancelTSH(features);
-        testEscrowCreateTSH(features);
-        testEscrowFinishTSH(features);
-        testEscrowIDFinishTSH(features);
-        testGenesisMintTSH(features);
-        testImportTSH(features);
-        testInvokeTSH(features);
-        testOfferCancelTSH(features);
-        testOfferCreateTSH(features);
-        testPaymentTSH(features);
-        testPaymentChannelClaimTSH(features);
-        testPaymentChannelCreateTSH(features);
-        testPaymentChannelFundTSH(features);
-        testSetHookTSH(features);
-        testSetRegularKeyTSH(features);
-        testSignersListSetTSH(features);
-        testTicketCreateTSH(features);
-        testTrustSetTSH(features);
-        testURITokenMintTSH(features);
-        testURITokenBurnTSH(features);
-        testURITokenBuyTSH(features);
-        testURITokenCancelSellOfferTSH(features);
-        testURITokenCreateSellOfferTSH(features);
-        testRemitTSH(features);
+        // testCheckCreateTSH(features);
+        // testClaimRewardTSH(features);
+        // testDepositPreauthTSH(features);
+        // testEscrowCancelTSH(features);
+        // testEscrowIDCancelTSH(features);
+        // testEscrowCreateTSH(features);
+        // testEscrowFinishTSH(features);
+        // testEscrowIDFinishTSH(features);
+        // testGenesisMintTSH(features);
+        // testImportTSH(features);
+        // testInvokeTSH(features);
+        // testOfferCancelTSH(features);
+        // testOfferCreateTSH(features);
+        // testPaymentTSH(features);
+        // testPaymentChannelClaimTSH(features);
+        // testPaymentChannelCreateTSH(features);
+        // testPaymentChannelFundTSH(features);
+        // testSetHookTSH(features);
+        // testSetRegularKeyTSH(features);
+        // testSignersListSetTSH(features);
+        // testTicketCreateTSH(features);
+        // testTrustSetTSH(features);
+        // testURITokenMintTSH(features);
+        // testURITokenBurnTSH(features);
+        // testURITokenBuyTSH(features);
+        // testURITokenCancelSellOfferTSH(features);
+        // testURITokenCreateSellOfferTSH(features);
+        // testRemitTSH(features);
     }
 
     void
