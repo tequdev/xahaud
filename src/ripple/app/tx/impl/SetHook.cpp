@@ -666,10 +666,10 @@ SetHook::preflight(PreflightContext const& ctx)
     if (!isTesSuccess(ret))
         return ret;
 
-    if (ctx.rules.enabled(fixInvalidSetHookFlags) &&
+    if (ctx.rules.enabled(fixInvalidTxFlags) &&
         ctx.tx.getFlags() & tfUniversalMask)
     {
-        JLOG(ctx.j.warn()) << "SetHook: Invalid flags set.";
+        JLOG(ctx.j.trace()) << "SetHook: Invalid flags set.";
         return temINVALID_FLAG;
     }
 

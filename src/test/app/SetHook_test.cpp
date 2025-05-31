@@ -370,12 +370,12 @@ public:
         testcase("Checks invalid tx flags");
         using namespace jtx;
 
-        for (bool const withFixInvalidSetHookFlags : {false, true})
+        for (bool const withFixInvalidTxFlags : {false, true})
         {
             Env env{
                 *this,
-                withFixInvalidSetHookFlags ? features
-                                           : features - fixInvalidSetHookFlags};
+                withFixInvalidTxFlags ? features
+                                      : features - fixInvalidTxFlags};
 
             auto const alice = Account{"alice"};
             env.fund(XRP(10000), alice);
@@ -388,8 +388,7 @@ public:
             env(jv,
                 M("Invalid SetHook flags"),
                 HSFEE,
-                withFixInvalidSetHookFlags ? ter(temINVALID_FLAG)
-                                           : ter(tesSUCCESS));
+                withFixInvalidTxFlags ? ter(temINVALID_FLAG) : ter(tesSUCCESS));
             env.close();
         }
     }
