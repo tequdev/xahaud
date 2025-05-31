@@ -4507,6 +4507,58 @@ private:
                        : (testStrong ? tshNONE : tshNONE));
             testTSHStrongWeak(env, expected, __LINE__);
         }
+
+        // otxn: issuer
+        // flag: burnable
+        // tsh amount issuer
+        // w/s: strong
+        for (bool const testStrong : {true, false})
+        {
+            test::jtx::Env env{
+                *this,
+                network::makeNetworkConfig(21337, "10", "1000000", "200000"),
+                features};
+
+            bool const withIOUIssuerWeakTSH =
+                env.current()->rules().enabled(featureIOUIssuerWeakTSH);
+
+            auto const issuer = Account("alice");
+            auto const buyer = Account("carol");
+            auto const gw = Account("gw");
+            auto const USD = gw["USD"];
+            env.fund(XRP(1000), issuer, buyer, gw);
+            env.close();
+
+            std::string const uri(2, '?');
+            auto const tid = uritoken::tokenid(issuer, uri);
+            std::string const hexid{strHex(tid)};
+
+            // set tsh collect
+            if (!testStrong)
+                addWeakTSH(env, gw);
+
+            // set tsh hook
+            setTSHHook(env, gw, testStrong);
+
+            // mint uritoken
+            env(uritoken::mint(issuer, uri),
+                uritoken::dest(buyer),
+                uritoken::amt(USD(1)),
+                fee(XRP(1)),
+                txflags(tfBurnable),
+                ter(tesSUCCESS));
+            env.close();
+
+            // verify tsh hook triggered
+            if (withIOUIssuerWeakTSH && !testStrong)
+            {
+                testTSHStrongWeak(env, tshWEAK, __LINE__);
+            }
+            else
+            {
+                testTSHStrongWeak(env, tshNONE, __LINE__);
+            }
+        }
     }
 
     void
@@ -4833,6 +4885,60 @@ private:
 
             // verify tsh hook triggered
             testTSHStrongWeak(env, tshSTRONG, __LINE__);
+        }
+
+        // otxn: issuer
+        // flag: not burnable
+        // tsh amount issuer
+        // w/s: strong
+        for (bool const testStrong : {true, false})
+        {
+            test::jtx::Env env{
+                *this,
+                network::makeNetworkConfig(21337, "10", "1000000", "200000"),
+                features};
+
+            bool const withIOUIssuerWeakTSH =
+                env.current()->rules().enabled(featureIOUIssuerWeakTSH);
+
+            auto const issuer = Account("alice");
+            auto const owner = Account("bob");
+            auto const gw = Account("gw");
+            auto const USD = gw["USD"];
+            env.fund(XRP(1000), issuer, owner, gw);
+            env.close();
+
+            std::string const uri(2, '?');
+            auto const tid = uritoken::tokenid(issuer, uri);
+            std::string const hexid{strHex(tid)};
+
+            // mint uritoken
+            env(uritoken::mint(issuer, uri),
+                uritoken::dest(owner),
+                uritoken::amt(USD(1)),
+                ter(tesSUCCESS));
+            env.close();
+
+            // set tsh collect
+            if (!testStrong)
+                addWeakTSH(env, gw);
+
+            // set tsh hook
+            setTSHHook(env, gw, testStrong);
+
+            // ttURITOKEN_BURN
+            env(uritoken::burn(issuer, hexid), fee(XRP(1)), ter(tesSUCCESS));
+            env.close();
+
+            // verify tsh hook triggered
+            if (withIOUIssuerWeakTSH && !testStrong)
+            {
+                testTSHStrongWeak(env, tshWEAK, __LINE__);
+            }
+            else
+            {
+                testTSHStrongWeak(env, tshNONE, __LINE__);
+            }
         }
     }
 
@@ -5398,6 +5504,80 @@ private:
             // verify tsh hook triggered
             testTSHStrongWeak(env, tshSTRONG, __LINE__);
         }
+
+        // otxn: owner
+        // flag: not burnable
+        // tsh amount issuer
+        // w/s: strong
+        for (bool const testStrong : {true, false})
+        {
+            test::jtx::Env env{
+                *this,
+                network::makeNetworkConfig(21337, "10", "1000000", "200000"),
+                features};
+
+            bool const withIOUIssuerWeakTSH =
+                env.current()->rules().enabled(featureIOUIssuerWeakTSH);
+
+            auto const issuer = Account("alice");
+            auto const owner = Account("bob");
+            auto const buyer = Account("carol");
+            auto const gw = Account("gw");
+            auto const USD = gw["USD"];
+            env.fund(XRP(1000), issuer, owner, buyer, gw);
+            env.close();
+
+            env(remit::remit(gw, owner),
+                remit::amts({USD(100)}),
+                fee(XRP(1)),
+                ter(tesSUCCESS));
+            env.close();
+
+            std::string const uri(2, '?');
+            auto const tid = uritoken::tokenid(issuer, uri);
+            std::string const hexid{strHex(tid)};
+
+            // mint uritoken
+            env(uritoken::mint(issuer, uri),
+                uritoken::dest(owner),
+                uritoken::amt(USD(1)),
+                ter(tesSUCCESS));
+            env.close();
+
+            // buy uritoken
+            env(uritoken::buy(owner, hexid),
+                uritoken::amt(USD(1)),
+                ter(tesSUCCESS));
+            env.close();
+
+            // sell uritoken
+            env(uritoken::sell(owner, hexid),
+                uritoken::dest(buyer),
+                uritoken::amt(USD(1)),
+                ter(tesSUCCESS));
+            env.close();
+
+            // set tsh collect
+            if (!testStrong)
+                addWeakTSH(env, gw);
+
+            // set tsh hook
+            setTSHHook(env, gw, testStrong);
+
+            // cancel uritoken
+            env(uritoken::cancel(owner, hexid), fee(XRP(1)), ter(tesSUCCESS));
+            env.close();
+
+            // verify tsh hook triggered
+            if (withIOUIssuerWeakTSH && !testStrong)
+            {
+                testTSHStrongWeak(env, tshWEAK, __LINE__);
+            }
+            else
+            {
+                testTSHStrongWeak(env, tshNONE, __LINE__);
+            }
+        }
     }
 
     void
@@ -5727,6 +5907,121 @@ private:
 
             // verify tsh hook triggered
             testTSHStrongWeak(env, tshSTRONG, __LINE__);
+        }
+
+        // otxn: issuer
+        // flag: not burnable
+        // tsh amount issuer (prev)
+        // w/s: weak
+        for (bool const testStrong : {true, false})
+        {
+            test::jtx::Env env{
+                *this,
+                network::makeNetworkConfig(21337, "10", "1000000", "200000"),
+                features};
+
+            bool const withIOUIssuerWeakTSH =
+                env.current()->rules().enabled(featureIOUIssuerWeakTSH);
+
+            auto const issuer = Account("alice");
+            auto const owner = Account("bob");
+            auto const buyer = Account("carol");
+            auto const gw = Account("gw");
+            auto const USD = gw["USD"];
+            env.fund(XRP(1000), issuer, owner, buyer, gw);
+            env.close();
+
+            std::string const uri(2, '?');
+            auto const tid = uritoken::tokenid(issuer, uri);
+            std::string const hexid{strHex(tid)};
+
+            // mint uritoken
+            env(uritoken::mint(issuer, uri),
+                uritoken::amt(USD(1)),
+                ter(tesSUCCESS));
+            env.close();
+
+            // set tsh collect
+            if (!testStrong)
+                addWeakTSH(env, gw);
+
+            // set tsh hook
+            setTSHHook(env, gw, testStrong);
+
+            // sell uritoken
+            env(uritoken::sell(issuer, hexid),
+                uritoken::dest(buyer),
+                uritoken::amt(XRP(1)),
+                fee(XRP(1)),
+                ter(tesSUCCESS));
+            env.close();
+
+            // verify tsh hook triggere
+            if (withIOUIssuerWeakTSH && !testStrong)
+            {
+                testTSHStrongWeak(env, tshWEAK, __LINE__);
+            }
+            else
+            {
+                testTSHStrongWeak(env, tshNONE, __LINE__);
+            }
+        }
+
+        // otxn: issuer
+        // flag: not burnable
+        // tsh amount issuer (new)
+        // w/s: weak
+        for (bool const testStrong : {true, false})
+        {
+            test::jtx::Env env{
+                *this,
+                network::makeNetworkConfig(21337, "10", "1000000", "200000"),
+                features};
+
+            bool const withIOUIssuerWeakTSH =
+                env.current()->rules().enabled(featureIOUIssuerWeakTSH);
+
+            auto const issuer = Account("alice");
+            auto const owner = Account("bob");
+            auto const buyer = Account("carol");
+            auto const gw = Account("gw");
+            auto const USD = gw["USD"];
+            env.fund(XRP(1000), issuer, owner, buyer, gw);
+            env.close();
+
+            std::string const uri(2, '?');
+            auto const tid = uritoken::tokenid(issuer, uri);
+            std::string const hexid{strHex(tid)};
+
+            // mint uritoken
+            env(uritoken::mint(issuer, uri),
+                ter(tesSUCCESS));
+            env.close();
+
+            // set tsh collect
+            if (!testStrong)
+                addWeakTSH(env, gw);
+
+            // set tsh hook
+            setTSHHook(env, gw, testStrong);
+
+            // sell uritoken
+            env(uritoken::sell(issuer, hexid),
+                uritoken::dest(buyer),
+                uritoken::amt(USD(1)),
+                fee(XRP(1)),
+                ter(tesSUCCESS));
+            env.close();
+
+            // verify tsh hook triggere
+            if (withIOUIssuerWeakTSH && !testStrong)
+            {
+                testTSHStrongWeak(env, tshWEAK, __LINE__);
+            }
+            else
+            {
+                testTSHStrongWeak(env, tshNONE, __LINE__);
+            }
         }
     }
 
@@ -6396,38 +6691,38 @@ private:
     void
     testTSH(FeatureBitset features)
     {
-        // testAccountSetTSH(features);
-        // testAccountDeleteTSH(features);
+        testAccountSetTSH(features);
+        testAccountDeleteTSH(features);
         testCheckCancelTSH(features);
         testCheckCashTSH(features);
-        // testCheckCreateTSH(features);
-        // testClaimRewardTSH(features);
-        // testDepositPreauthTSH(features);
-        // testEscrowCancelTSH(features);
-        // testEscrowIDCancelTSH(features);
-        // testEscrowCreateTSH(features);
-        // testEscrowFinishTSH(features);
-        // testEscrowIDFinishTSH(features);
-        // testGenesisMintTSH(features);
-        // testImportTSH(features);
-        // testInvokeTSH(features);
-        // testOfferCancelTSH(features);
-        // testOfferCreateTSH(features);
-        // testPaymentTSH(features);
-        // testPaymentChannelClaimTSH(features);
-        // testPaymentChannelCreateTSH(features);
-        // testPaymentChannelFundTSH(features);
-        // testSetHookTSH(features);
-        // testSetRegularKeyTSH(features);
-        // testSignersListSetTSH(features);
-        // testTicketCreateTSH(features);
-        // testTrustSetTSH(features);
-        // testURITokenMintTSH(features);
-        // testURITokenBurnTSH(features);
-        // testURITokenBuyTSH(features);
-        // testURITokenCancelSellOfferTSH(features);
-        // testURITokenCreateSellOfferTSH(features);
-        // testRemitTSH(features);
+        testCheckCreateTSH(features);
+        testClaimRewardTSH(features);
+        testDepositPreauthTSH(features);
+        testEscrowCancelTSH(features);
+        testEscrowIDCancelTSH(features);
+        testEscrowCreateTSH(features);
+        testEscrowFinishTSH(features);
+        testEscrowIDFinishTSH(features);
+        testGenesisMintTSH(features);
+        testImportTSH(features);
+        testInvokeTSH(features);
+        testOfferCancelTSH(features);
+        testOfferCreateTSH(features);
+        testPaymentTSH(features);
+        testPaymentChannelClaimTSH(features);
+        testPaymentChannelCreateTSH(features);
+        testPaymentChannelFundTSH(features);
+        testSetHookTSH(features);
+        testSetRegularKeyTSH(features);
+        testSignersListSetTSH(features);
+        testTicketCreateTSH(features);
+        testTrustSetTSH(features);
+        testURITokenMintTSH(features);
+        testURITokenBurnTSH(features);
+        testURITokenBuyTSH(features);
+        testURITokenCancelSellOfferTSH(features);
+        testURITokenCreateSellOfferTSH(features);
+        testRemitTSH(features);
     }
 
     void

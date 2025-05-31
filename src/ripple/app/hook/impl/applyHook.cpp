@@ -147,11 +147,20 @@ getTransactionalStakeHolders(STTx const& tx, ReadView const& rv)
 
             auto const owner = ut->getAccountID(sfOwner);
             auto const issuer = ut->getAccountID(sfIssuer);
+            std::optional<STAmount> amount;
+            if (ut->isFieldPresent(sfAmount))
+                amount = ut->getFieldAmount(sfAmount);
 
             // three possible burn scenarios:
             //  the burner is the owner and issuer of the token
             //  the burner is the owner and not the issuer of the token
             //  the burner is the issuer and not the owner of the token
+
+            if (iouIssuerWeakTSH && amount)
+            {
+                if (!isXRP(*amount))
+                    ADD_TSH(amount->getIssuer(), tshWEAK);
+            }
 
             if (issuer == owner)
                 break;
@@ -227,6 +236,13 @@ getTransactionalStakeHolders(STTx const& tx, ReadView const& rv)
             // destination is a strong tsh
             if (fixV2 && tx.isFieldPresent(sfDestination))
                 ADD_TSH(tx.getAccountID(sfDestination), tshSTRONG);
+
+            if (iouIssuerWeakTSH && tx.isFieldPresent(sfAmount))
+            {
+                STAmount const amount = tx.getFieldAmount(sfAmount);
+                if (!isXRP(amount))
+                    ADD_TSH(amount.getIssuer(), tshWEAK);
+            }
             break;
         }
 
@@ -246,6 +262,13 @@ getTransactionalStakeHolders(STTx const& tx, ReadView const& rv)
             {
                 auto const dest = ut->getAccountID(sfDestination);
                 ADD_TSH(dest, tshWEAK);
+            }
+
+            if (iouIssuerWeakTSH && ut->isFieldPresent(sfAmount))
+            {
+                STAmount const amount = ut->getFieldAmount(sfAmount);
+                if (!isXRP(amount))
+                    ADD_TSH(amount.getIssuer(), tshWEAK);
             }
             break;
         }
@@ -271,6 +294,19 @@ getTransactionalStakeHolders(STTx const& tx, ReadView const& rv)
             // destination is a strong tsh
             if (tx.isFieldPresent(sfDestination))
                 ADD_TSH(tx.getAccountID(sfDestination), tshSTRONG);
+
+            if (iouIssuerWeakTSH)
+            {
+                if (ut->isFieldPresent(sfAmount)){
+                    STAmount const prevAmount = ut->getFieldAmount(sfAmount);
+                    if (!isXRP(prevAmount))
+                        ADD_TSH(prevAmount.getIssuer(), tshWEAK);
+                }
+
+                STAmount const newAmount = tx.getFieldAmount(sfAmount);
+                if (!isXRP(newAmount))
+                    ADD_TSH(newAmount.getIssuer(), tshWEAK);
+            }
 
             break;
         }
@@ -303,6 +339,17 @@ getTransactionalStakeHolders(STTx const& tx, ReadView const& rv)
             ADD_TSH(issuer, issuerCanRollback);
             if (hasOwner)
                 ADD_TSH(owner, tshWEAK);
+
+            if (tt == ttNFTOKEN_CREATE_OFFER)
+            {
+                if (iouIssuerWeakTSH)
+                {
+                    STAmount const amount = tx.getFieldAmount(sfAmount);
+                    if (!isXRP(amount))
+                        ADD_TSH(amount.getIssuer(), tshWEAK);
+                }
+            }
+
             break;
         }
 
@@ -345,6 +392,13 @@ getTransactionalStakeHolders(STTx const& tx, ReadView const& rv)
                 }
             }
 
+            if (iouIssuerWeakTSH)
+            {
+                STAmount const amount = (bo ? bo : so)->getFieldAmount(sfAmount);
+                if (!isXRP(amount))
+                    ADD_TSH(amount.getIssuer(), tshWEAK);
+            }
+
             break;
         }
 
@@ -367,6 +421,12 @@ getTransactionalStakeHolders(STTx const& tx, ReadView const& rv)
                     uint256 nid = offer->getFieldH256(sfNFTokenID);
                     auto const issuer = nft::getIssuer(nid);
                     ADD_TSH(issuer, tshWEAK);
+                    if (iouIssuerWeakTSH)
+                    {
+                        STAmount const amount = offer->getFieldAmount(sfAmount);
+                        if (!isXRP(amount))
+                            ADD_TSH(amount.getIssuer(), tshWEAK);
+                    }
                 }
             }
             break;
