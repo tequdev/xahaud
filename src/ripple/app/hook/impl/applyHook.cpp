@@ -549,16 +549,13 @@ getTransactionalStakeHolders(STTx const& tx, ReadView const& rv)
             ADD_TSH(check->getAccountID(sfAccount), tshSTRONG);
             ADD_TSH(check->getAccountID(sfDestination), tshWEAK);
 
-            if (tt == ttCHECK_CASH)
+            if (iouIssuerWeakTSH)
             {
-                if (iouIssuerWeakTSH)
-                {
-                    // ttCHECK_CASH have sfAmount optionally but only check
-                    // check object
-                    auto const amount = check->getFieldAmount(sfSendMax);
-                    if (!isXRP(amount))
-                        ADD_TSH(amount.getIssuer(), tshWEAK);
-                }
+                // ttCHECK_CASH have sfAmount optionally but only check
+                // check object
+                auto const amount = check->getFieldAmount(sfSendMax);
+                if (!isXRP(amount))
+                    ADD_TSH(amount.getIssuer(), tshWEAK);
             }
             break;
         }

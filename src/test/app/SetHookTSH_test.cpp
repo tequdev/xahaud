@@ -843,7 +843,7 @@ private:
     // Check
     // | otxn | tsh | cancel |  create  | cash  |
     // |   A  |  A  |   S    |    S     |  N/A  |
-    // |   A  |  D  |   N    |    S     |  N/A  |
+    // |   A  |  D  |   W    |    S     |  N/A  |
     // |   D  |  D  |   S    |   N/A    |   S   |
     // |   D  |  A  |   S    |   N/A    |   S   |
     static uint256
@@ -1008,6 +1008,53 @@ private:
 
             // verify tsh hook triggered
             testTSHStrongWeak(env, tshSTRONG, __LINE__);
+        }
+
+        // otxn: account
+        // tsh amount issuer
+        // w/s: weak
+        for (bool const testStrong : {true, false})
+        {
+            test::jtx::Env env{
+                *this,
+                network::makeNetworkConfig(21337, "10", "1000000", "200000"),
+                features};
+
+            bool const withIOUIssuerWeakTSH =
+                env.current()->rules().enabled(featureIOUIssuerWeakTSH);
+
+            auto const account = Account("alice");
+            auto const dest = Account("bob");
+            auto const gw = Account("gw");
+            auto const USD = gw["USD"];
+            env.fund(XRP(1000), account, dest, gw);
+            env.close();
+
+            // create check
+            uint256 const checkId{getCheckIndex(account, env.seq(account))};
+            env(check::create(account, dest, USD(100)), ter(tesSUCCESS));
+            env.close();
+
+            // set tsh collect
+            if (!testStrong)
+                addWeakTSH(env, gw);
+
+            // set tsh hook
+            setTSHHook(env, gw, testStrong);
+
+            // cancel check
+            env(check::cancel(account, checkId), fee(XRP(1)), ter(tesSUCCESS));
+            env.close();
+
+            // verify tsh hook triggered
+            if (withIOUIssuerWeakTSH && !testStrong)
+            {
+                testTSHStrongWeak(env, tshWEAK, __LINE__);
+            }
+            else
+            {
+                testTSHStrongWeak(env, tshNONE, __LINE__);
+            }
         }
     }
 
