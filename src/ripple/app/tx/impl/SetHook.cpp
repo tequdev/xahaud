@@ -529,31 +529,36 @@ SetHook::validateHookSetEntry(SetHookCtx& ctx, STObject const& hookSetObj)
                                 << ")[" << HS_ACC() << "]: Invalid Fee.";
                             return false;
                         }
-                        if (function.isFieldPresent(sfFlags))
+                        const auto flags = function.getFlags();
+                        if (flags &
+                            ~(FunctionalHookFlags::hffINITIALIZE |
+                              FunctionalHookFlags::hffQUERY))
                         {
-                            const auto flags = function.getFieldU32(sfFlags);
-                            if (flags &
-                                ~(FunctionalHookFlags::hffINITIALIZE |
-                                  FunctionalHookFlags::hffQUERY))
+                            JLOG(ctx.j.trace())
+                                << "HookSet(" << hook::log::WASM_SMOKE_TEST
+                                << ")[" << HS_ACC() << "]: Invalid flags.";
+                            return false;
+                        }
+                        if (flags & FunctionalHookFlags::hffINITIALIZE)
+                        {
+                            if (flags & FunctionalHookFlags::hffQUERY)
                             {
                                 JLOG(ctx.j.trace())
                                     << "HookSet(" << hook::log::WASM_SMOKE_TEST
-                                    << ")[" << HS_ACC() << "]: Invalid flags.";
+                                    << ")[" << HS_ACC()
+                                    << "]: cannot have both initialize and "
+                                       "query flags.";
                                 return false;
                             }
-                            if (flags & FunctionalHookFlags::hffINITIALIZE)
+                            if (hasInitializeFlag)
                             {
-                                if (hasInitializeFlag)
-                                {
-                                    JLOG(ctx.j.trace())
-                                        << "HookSet("
-                                        << hook::log::WASM_SMOKE_TEST << ")["
-                                        << HS_ACC()
-                                        << "]: Duplicate initialize flag.";
-                                    return false;
-                                }
-                                hasInitializeFlag = true;
+                                JLOG(ctx.j.trace())
+                                    << "HookSet(" << hook::log::WASM_SMOKE_TEST
+                                    << ")[" << HS_ACC()
+                                    << "]: Duplicate initialize flag.";
+                                return false;
                             }
+                            hasInitializeFlag = true;
                         }
 
                         std::string hexStr(name.begin(), name.end());
@@ -726,12 +731,11 @@ SetHook::validateNewHooks(ApplyView& view, STArray const& hookSets)
 {
     // Check if HookSets contains HookV3 and other Hooks are not held
     // Already checked in preflight if HookV3 is the first index
-    int hookSetSize = -1;
+    int hooksSize = 0;
     bool hasV3 = false;
     for (uint16_t hookSetNumber = 0; hookSetNumber < hookSets.size();
          ++hookSetNumber)
     {
-        hookSetSize++;
         std::optional<std::reference_wrapper<ripple::STObject const>>
             hookSetObj = std::cref(
                 (hookSets[hookSetNumber]).downcast<ripple::STObject const>());
@@ -740,6 +744,8 @@ SetHook::validateNewHooks(ApplyView& view, STArray const& hookSets)
         std::shared_ptr<STLedgerEntry> defSLE;
         if (!hookSetObj->get().isFieldPresent(sfHookHash))
             continue;
+
+        hooksSize++;
 
         defKeylet =
             keylet::hookDefinition(hookSetObj->get().getFieldH256(sfHookHash));
@@ -753,7 +759,7 @@ SetHook::validateNewHooks(ApplyView& view, STArray const& hookSets)
             hasV3 = true;
 
         // Using HookV3 and holding other Hooks
-        if (hasV3 && hookSetSize > 1)
+        if (hasV3 && hooksSize > 1)
             return false;
     }
     return true;
@@ -902,8 +908,7 @@ SetHook::calculateBaseFee(ReadView const& view, STTx const& tx)
                 if (!hookSetObj.isFieldPresent(sfHookHash))
                     continue;
 
-                uint256 const& hash =
-                    hookSetObj.getFieldH256(sfHookHash);
+                uint256 const& hash = hookSetObj.getFieldH256(sfHookHash);
                 std::shared_ptr<SLE const> hookDef =
                     view.read(keylet::hookDefinition(hash));
                 if (!hookDef)
@@ -1522,13 +1527,10 @@ updateHookFunctions(
                     sfFunctionParameters, defFunctionParameters);
         }
 
-        if (defFunction.isFieldPresent(sfFlags))
-        {
-            auto const& defFlags = defFunction.getFieldU32(sfFlags);
-            auto const& txFlags = txFunction.getFieldU32(sfFlags);
-            if (defFlags != txFlags)
-                newFunction.setFieldU32(sfFlags, defFlags);
-        }
+        auto const& defFlags = defFunction.getFlags();
+        auto const& txFlags = txFunction.getFlags();
+        if (defFlags != txFlags)
+            newFunction.setFlag(txFlags);
         newFunctions.push_back(std::move(newFunction));
     }
     newHook.setFieldArray(sfHookFunctions, std::move(newFunctions));
@@ -2133,13 +2135,9 @@ SetHook::setHook()
                                 return tecINTERNAL;
                             }
 
-                            if (newFunction.isFieldPresent(sfFlags))
-                            {
-                                uint32_t flags =
-                                    newFunction.getFieldU32(sfFlags);
-                                if (flags & hffINITIALIZE)
-                                    initializationFunctionName = hexStr;
-                            }
+                            if (newFunction.isFlag(
+                                    FunctionalHookFlags::hffINITIALIZE))
+                                initializationFunctionName = hexStr;
 
                             newFunctions.push_back(std::move(newFunction));
                         }
@@ -2438,7 +2436,7 @@ SetHook::setHook()
         }
     }
     if (!validateNewHooks(view(), newHooks))
-        return tecINTERNAL;
+        return tecHOOK_INVALID_ENTRY;
 
     if (reserveDelta != 0)
     {

@@ -33,6 +33,7 @@
 #include <ripple/rpc/Context.h>
 #include <ripple/rpc/impl/RPCHelpers.h>
 #include <ripple/rpc/impl/Tuning.h>
+#include <optional>
 #include <sstream>
 #include <string>
 
@@ -146,19 +147,20 @@ doHookQuery(RPC::JsonContext& context)
             ? hookDef->getFieldArray(sfHookFunctions)
             : STArray();
 
-    STArray const& parameters = [function_name, &functions]() -> STArray {
+    std::optional<STObject> function = [&]() -> std::optional<STObject> {
         for (const auto& function : functions)
         {
             if (function.getFieldVL(sfFunctionName) ==
                 strUnHex(strHex(function_name)).value())
-            {
-                if (!function.isFieldPresent(sfFunctionParameters))
-                    return STArray();
-                return function.getFieldArray(sfFunctionParameters);
-            }
+                return function;
         }
-        return STArray();
+        return {};
     }();
+
+    if (!function || !function->isFlag(hffQUERY))
+        return RPC::invalid_field_error(jss::function_name);
+
+    STArray const& parameters = function->getFieldArray(sfFunctionParameters);
 
     auto const paramTypeMap = hook::getFunctionParameterTypeVec(parameters);
 

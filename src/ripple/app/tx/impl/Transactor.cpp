@@ -1296,16 +1296,16 @@ Transactor::executeHookChain(
                 ? hookObj.getFieldArray(sfHookFunctions)
                 : hookDef->getFieldArray(sfHookFunctions);
 
-            std::optional<STObject> functionDef;
+            std::optional<STObject> function;
             for (auto const& hookFunction : hookFunctions)
             {
                 if (hookFunction.getFieldVL(sfFunctionName) == functionName)
-                    functionDef = hookFunction;
+                    function = hookFunction;
             }
-            if (!functionDef)
+            if (!function)
                 return tecHOOK_INVALID_CALL;
 
-            auto const funcFlags = functionDef->getFlags();
+            auto const funcFlags = function->getFlags();
 
             if (funcFlags & (hffINITIALIZE | hffQUERY))
                 return tecHOOK_INVALID_CALL;
@@ -1314,7 +1314,7 @@ Transactor::executeHookChain(
             //   1. Parameter size
             //   2. Parameter type & order
             auto const hasFuncParamsDef =
-                functionDef->isFieldPresent(sfFunctionParameters);
+                function->isFieldPresent(sfFunctionParameters);
             auto const hasFuncParams =
                 ctx_.tx.isFieldPresent(sfFunctionParameters);
 
@@ -1326,7 +1326,7 @@ Transactor::executeHookChain(
                 STArray const& funcParams =
                     ctx_.tx.getFieldArray(sfFunctionParameters);
                 STArray const& funcParamsDef =
-                    functionDef->getFieldArray(sfFunctionParameters);
+                    function->getFieldArray(sfFunctionParameters);
 
                 fparameters = hook::getFunctionParameterValueVec(funcParams);
                 auto typeVec = hook::getFunctionParameterTypeVec(funcParamsDef);
@@ -1556,7 +1556,7 @@ Transactor::doFunctionalHookInitialize(
             return tecHOOK_REJECTED;
         }
 
-        // hook::finalizeHookState(stateMap, ctx_, ctx_.tx.getTransactionID());
+        hook::finalizeHookState(stateMap, ctx_, ctx_.tx.getTransactionID());
         hook::finalizeHookResult(hookResult, ctx_, true);
 
         // gather skips

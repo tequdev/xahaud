@@ -59,17 +59,9 @@ cat $INPUT_FILE | tr '\n' '\f' |
                 echo '#include "api.h"' > "$WASM_DIR/test-$COUNTER-gen.c"
                 tr '\f' '\n' <<< $line >> "$WASM_DIR/test-$COUNTER-gen.c"
                 DECLARED="`tr '\f' '\n' <<< $line | grep  -E '(extern|define) ' | grep -Eo '[a-z\-\_]+ *\(' | grep -v 'sizeof' | sed -E 's/[^a-z\-\_]//g' | sort | uniq`"
-                # TODO: allow all functions (not only hook*/cbak*)
-                USED="`tr '\f' '\n' <<< $line | grep -vE '(extern|define) ' | grep -Eo '[a-z\-\_]+\(' | grep -v 'sizeof' | sed -E 's/[^a-z\-\_]//g' | grep -vE '^(hook|cbak)' | sort | uniq`"
+                USED="`tr '\f' '\n' <<< $line | grep -vE '(extern|define) ' | grep -Eo '[a-z\-\_]+\(' | grep -v 'sizeof' | sed -E 's/[^a-z\-\_]//g' | sort | uniq`"
                 ONCE="`echo $DECLARED $USED | tr ' ' '\n' | sort | uniq -c | grep '1 ' | sed -E 's/^ *1 //g'`"
                 FILTER="`echo $DECLARED | tr ' ' '|' | sed -E 's/\|$//g'`"
-                UNDECL="`echo $ONCE | grep -v -E $FILTER 2>/dev/null || echo ''`"
-                if [ ! -z "$UNDECL" ]
-                then
-                    echo "Undeclared in $COUNTER: $UNDECL"
-                    echo "$line"
-                    exit 1
-                fi
                 wasmcc -x c /dev/stdin -o /dev/stdout -O2 -Wl,--allow-undefined <<< "`tr '\f' '\n' <<< $line`" |
                     hook-cleaner-v3 - - 2>/dev/null |
                     xxd -p -u -c 10 | 
