@@ -5797,14 +5797,15 @@ DEFINE_HOOK_FUNCTION(
 
     ripple::STData const& funcParam = funcParams[index].value;
 
+    if (funcParam.getInnerSType() != serialized_type_id)
+        return INVALID_ARGUMENT;
+
     switch (serialized_type_id)
     {
         case STI_UINT8: {
             if (write_len != 0 && write_len != 1)
                 return INVALID_ARGUMENT;
-            if (funcParam.getInnerSType() != STI_UINT8)
-                return INVALID_ARGUMENT;
-            uint8_t data = funcParam.getFieldU8();
+            uint8_t const data = funcParam.getFieldU8();
             WRITE_WASM_MEMORY_AND_RETURN(
                 write_ptr, write_len, &data, 1, memory, memory_length);
             break;
@@ -5812,9 +5813,7 @@ DEFINE_HOOK_FUNCTION(
         case STI_UINT16: {
             if (write_len != 0 && write_len != 2)
                 return INVALID_ARGUMENT;
-            if (funcParam.getInnerSType() != STI_UINT16)
-                return INVALID_ARGUMENT;
-            uint16_t data = funcParam.getFieldU16();
+            uint16_t const data = funcParam.getFieldU16();
             WRITE_WASM_MEMORY_AND_RETURN(
                 write_ptr, write_len, &data, 2, memory, memory_length);
             break;
@@ -5822,9 +5821,7 @@ DEFINE_HOOK_FUNCTION(
         case STI_UINT32: {
             if (write_len != 0 && write_len != 4)
                 return INVALID_ARGUMENT;
-            if (funcParam.getInnerSType() != STI_UINT32)
-                return INVALID_ARGUMENT;
-            uint32_t data = funcParam.getFieldU32();
+            uint32_t const data = funcParam.getFieldU32();
             WRITE_WASM_MEMORY_AND_RETURN(
                 write_ptr, write_len, &data, 4, memory, memory_length);
             break;
@@ -5832,9 +5829,7 @@ DEFINE_HOOK_FUNCTION(
         case STI_UINT64: {
             if (write_len != 0 && write_len != 8)
                 return INVALID_ARGUMENT;
-            if (funcParam.getInnerSType() != STI_UINT64)
-                return INVALID_ARGUMENT;
-            uint64_t data = funcParam.getFieldU64();
+            uint64_t const data = funcParam.getFieldU64();
             WRITE_WASM_MEMORY_AND_RETURN(
                 write_ptr, write_len, &data, 8, memory, memory_length);
             break;
@@ -5842,9 +5837,7 @@ DEFINE_HOOK_FUNCTION(
         case STI_UINT128: {
             if (write_len != 16)
                 return INVALID_ARGUMENT;
-            if (funcParam.getInnerSType() != STI_UINT128)
-                return INVALID_ARGUMENT;
-            uint128 data = funcParam.getFieldH128();
+            uint128 const data = funcParam.getFieldH128();
             WRITE_WASM_MEMORY_AND_RETURN(
                 write_ptr, write_len, &data, 16, memory, memory_length);
             break;
@@ -5852,9 +5845,7 @@ DEFINE_HOOK_FUNCTION(
         case STI_UINT256: {
             if (write_len != 32)
                 return INVALID_ARGUMENT;
-            if (funcParam.getInnerSType() != STI_UINT256)
-                return INVALID_ARGUMENT;
-            uint256 data = funcParam.getFieldH256();
+            uint256 const data = funcParam.getFieldH256();
             WRITE_WASM_MEMORY_AND_RETURN(
                 write_ptr, write_len, &data, 32, memory, memory_length);
             break;
@@ -5862,9 +5853,7 @@ DEFINE_HOOK_FUNCTION(
         case STI_AMOUNT: {
             if (write_len != 8 && write_len != 48)
                 return INVALID_ARGUMENT;
-            if (funcParam.getInnerSType() != STI_AMOUNT)
-                return INVALID_ARGUMENT;
-            STAmount data = funcParam.getFieldAmount();
+            STAmount const data = funcParam.getFieldAmount();
             if (data.native())
             {
                 if (write_len != 8)
@@ -5880,9 +5869,7 @@ DEFINE_HOOK_FUNCTION(
             break;
         }
         case STI_VL: {
-            if (funcParam.getInnerSType() != STI_VL)
-                return INVALID_ARGUMENT;
-            auto data = funcParam.getFieldVL();
+            Blob const data = funcParam.getFieldVL();
             WRITE_WASM_MEMORY_AND_RETURN(
                 write_ptr,
                 write_len,
@@ -5895,9 +5882,7 @@ DEFINE_HOOK_FUNCTION(
         case STI_ACCOUNT: {
             if (write_len != 20)
                 return INVALID_ARGUMENT;
-            if (funcParam.getInnerSType() != STI_ACCOUNT)
-                return INVALID_ARGUMENT;
-            AccountID data = funcParam.getAccountID();
+            AccountID const data = funcParam.getAccountID();
             WRITE_WASM_MEMORY_AND_RETURN(
                 write_ptr, write_len, &data, 20, memory, memory_length);
             break;
@@ -6241,9 +6226,8 @@ DEFINE_HOOK_FUNCTION(
         NOT_IN_BOUNDS(dread_ptr, dread_len, memory_length))
         return OUT_OF_BOUNDS;
 
-    // TODO: validate utf8
-    // auto const key = strHex(
-    // ripple::Blob{memory + kread_ptr, memory + kread_ptr + kread_len});
+    // TODO: check kread length
+    // TODO: validate utf8 for key
 
     std::string key((const char*)(memory + kread_ptr), (size_t)kread_len);
     ripple::STData data{sfHookParameterValue};
