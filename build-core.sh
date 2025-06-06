@@ -62,8 +62,5 @@ fi
 cd ..;
 
 mv src/ripple/net/impl/RegisterSSLCerts.cpp.old src/ripple/net/impl/RegisterSSLCerts.cpp;
-mv Builds/CMake/deps/Rocksdb.cmake.old Builds/CMake/deps/Rocksdb.cmake;
-mv Builds/CMake/deps/WasmEdge.old Builds/CMake/deps/WasmEdge.cmake;
-
 
 echo "END INSIDE CONTAINER - CORE"
