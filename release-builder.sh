@@ -1,9 +1,8 @@
-#!/bin/bash -u
+#!/bin/bash 
 # We use set -e and bash with -u to bail on first non zero exit code of any
 # processes launched or upon any unbound variable.
 # We use set -x to print commands before running them to help with
 # debugging.
-set -ex
 
 echo "START BUILDING (HOST)"
 
@@ -57,17 +56,19 @@ else
   rm -rf release-build;
   mkdir -p release-build;
 
+  docker volume create cache-volume
+
   if [[ "$GITHUB_REPOSITORY" == "" ]]; then
     # Non GH, local building
     echo "Non-GH runner, local building, temp container"
-    docker run -i --user 0:$(id -g) --rm -v /data/builds:/data/builds -v `pwd`:/io --network host ghcr.io/foobarwidget/holy-build-box-x64 /hbb_exe/activate-exec bash -x /io/build-full.sh "$GITHUB_REPOSITORY" "$GITHUB_SHA" "$BUILD_CORES" "$GITHUB_RUN_NUMBER"
+    docker run -i --user 0:$(id -g) --rm -v /data/builds:/data/builds -v `pwd`:/io -v cache-volume:/cache --network host ghcr.io/phusion/holy-build-box:4.0.1-amd64 /hbb_exe/activate-exec bash -x /io/build-full.sh "$GITHUB_REPOSITORY" "$GITHUB_SHA" "$BUILD_CORES" "$GITHUB_RUN_NUMBER"
   else
     # GH Action, runner
     echo "GH Action, runner, clean & re-create create persistent container"
     docker rm -f $CONTAINER_NAME
     echo "echo 'Stopping container: $CONTAINER_NAME'" >> "$JOB_CLEANUP_SCRIPT"
     echo "docker stop --time=15 \"$CONTAINER_NAME\" || echo 'Failed to stop container or container not running'" >> "$JOB_CLEANUP_SCRIPT"
-    docker run -di --user 0:$(id -g) --name $CONTAINER_NAME -v /data/builds:/data/builds -v `pwd`:/io --network host ghcr.io/foobarwidget/holy-build-box-x64 /hbb_exe/activate-exec bash
+    docker run -di --user 0:$(id -g) --name $CONTAINER_NAME -v /data/builds:/data/builds -v `pwd`:/io -v cache-volume:/cache --network host ghcr.io/phusion/holy-build-box:4.0.1-amd64 /hbb_exe/activate-exec bash
     docker exec -i $CONTAINER_NAME /hbb_exe/activate-exec bash -x /io/build-full.sh "$GITHUB_REPOSITORY" "$GITHUB_SHA" "$BUILD_CORES" "$GITHUB_RUN_NUMBER"
     docker stop $CONTAINER_NAME
   fi
