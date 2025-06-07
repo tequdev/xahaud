@@ -64,33 +64,9 @@ then
     #endif/g" src/ripple/net/impl/RegisterSSLCerts.cpp &&
     sed -i "s/#include <ripple\/net\/RegisterSSLCerts.h>/\0\n#include <certs\/certbundle.h>/g" src/ripple/net/impl/RegisterSSLCerts.cpp
 fi
-# Enable EPEL and PowerTools/CRB repositories
-dnf install -y epel-release
-dnf config-manager --set-enabled powertools || dnf config-manager --set-enabled crb
-# Install dependencies using dnf and gcc-toolset-10
-dnf install -y wget lz4 lz4-devel git llvm-static llvm-devel gcc-toolset-10-binutils zlib-static ncurses-devel \
-  gcc-toolset-10-gcc-c++ \
-  snappy snappy-devel \
-  zlib zlib-devel \
-  lz4-devel \
-  libasan
+# Environment setup moved to Dockerfile in release-builder.sh
 source /opt/rh/gcc-toolset-10/enable
-echo "-- Install Conan 1.66.0 --" &&
-dnf install -y python3 python3-pip && # Use dnf and add python3-pip
-pip3 install "conan==1.66.0" &&
-conan config set storage.path=/cache/conan &&
-(conan profile new default --detect || true) &&
-conan profile update settings.compiler.cppstd=20 default &&
-echo "-- Install Cmake 3.23.1 --" &&
-pwd &&
-( wget -nc -q https://github.com/Kitware/CMake/releases/download/v3.23.1/cmake-3.23.1-linux-x86_64.tar.gz; echo "" ) &&
-# Extract CMake to /usr/local and add to PATH
-tar -xzf cmake-3.23.1-linux-x86_64.tar.gz --strip-components=1 -C /usr/local &&
 export PATH=/usr/local/bin:$PATH
-echo "-- Install ccache --" &&
-dnf install -y ccache &&
-ccache -M 10G &&
-ccache -o cache_dir=/cache/ccache &&
 export CC='ccache gcc' &&
 export CXX='ccache g++' &&
 echo "-- Build Rippled --" &&

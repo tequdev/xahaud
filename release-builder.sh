@@ -49,7 +49,7 @@ STATIC_CONTAINER=$(docker ps -a | grep $CONTAINER_NAME |wc -l)
 if false; then
   echo "Static container, execute in static container to have max. cache"
   docker start $CONTAINER_NAME
-  docker exec -i $CONTAINER_NAME /hbb_exe/activate-exec bash -x /io/build-core.sh "$GITHUB_REPOSITORY" "$GITHUB_SHA" "$BUILD_CORES" "$GITHUB_RUN_NUMBER"
+  docker exec -i $CONTAINER_NAME /hbb_exe/activate-exec bash -c "source /opt/rh/gcc-toolset-10/enable && bash -x /io/build-core.sh '$GITHUB_REPOSITORY' '$GITHUB_SHA' '$BUILD_CORES' '$GITHUB_RUN_NUMBER'"
   docker stop $CONTAINER_NAME
 else
   echo "No static container, build on temp container"
@@ -58,18 +58,67 @@ else
 
   docker volume create cache-volume
 
+  # Create inline Dockerfile with environment setup for build-full.sh
+  DOCKERFILE_CONTENT=$(cat <<'DOCKERFILE_EOF'
+FROM ghcr.io/phusion/holy-build-box:4.0.1-amd64
+
+# Enable EPEL and PowerTools/CRB repositories
+RUN /hbb_exe/activate-exec dnf install -y epel-release && \
+    /hbb_exe/activate-exec dnf config-manager --set-enabled powertools || /hbb_exe/activate-exec dnf config-manager --set-enabled crb
+
+# Install dependencies using dnf and gcc-toolset-10
+RUN /hbb_exe/activate-exec dnf install -y \
+    wget lz4 lz4-devel git llvm-static llvm-devel gcc-toolset-10-binutils zlib-static ncurses-devel \
+    gcc-toolset-10-gcc-c++ \
+    snappy snappy-devel \
+    zlib zlib-devel \
+    lz4-devel \
+    libasan \
+    python3 python3-pip \
+    ccache
+
+# Install Conan 1.66.0
+RUN /hbb_exe/activate-exec pip3 install "conan==1.66.0"
+
+# Install CMake 3.23.1
+RUN /hbb_exe/activate-exec wget -q https://github.com/Kitware/CMake/releases/download/v3.23.1/cmake-3.23.1-linux-x86_64.tar.gz && \
+    /hbb_exe/activate-exec tar -xzf cmake-3.23.1-linux-x86_64.tar.gz --strip-components=1 -C /usr/local && \
+    rm cmake-3.23.1-linux-x86_64.tar.gz
+
+# Set environment variables
+ENV PATH=/usr/local/bin:$PATH
+ENV CC='ccache gcc'
+ENV CXX='ccache g++'
+
+# Configure ccache
+RUN /hbb_exe/activate-exec ccache -M 10G && \
+    /hbb_exe/activate-exec ccache -o cache_dir=/cache/ccache
+
+# Configure Conan
+RUN /hbb_exe/activate-exec bash -c "conan config set storage.path=/cache/conan && \
+    (conan profile new default --detect || true) && \
+    conan profile update settings.compiler.cppstd=20 default"
+
+DOCKERFILE_EOF
+)
+
+  # Build custom Docker image
+  IMAGE_NAME="xahaud-builder:latest"
+  echo "Building custom Docker image with dependencies..."
+  echo "$DOCKERFILE_CONTENT" | docker build -t "$IMAGE_NAME" -
+
   if [[ "$GITHUB_REPOSITORY" == "" ]]; then
     # Non GH, local building
     echo "Non-GH runner, local building, temp container"
-    docker run -i --user 0:$(id -g) --rm -v /data/builds:/data/builds -v `pwd`:/io -v cache-volume:/cache --network host ghcr.io/phusion/holy-build-box:4.0.1-amd64 /hbb_exe/activate-exec bash -x /io/build-full.sh "$GITHUB_REPOSITORY" "$GITHUB_SHA" "$BUILD_CORES" "$GITHUB_RUN_NUMBER"
+    docker run -i --user 0:$(id -g) --rm -v /data/builds:/data/builds -v `pwd`:/io -v cache-volume:/cache --network host "$IMAGE_NAME" /hbb_exe/activate-exec bash -c "source /opt/rh/gcc-toolset-10/enable && bash -x /io/build-full.sh '$GITHUB_REPOSITORY' '$GITHUB_SHA' '$BUILD_CORES' '$GITHUB_RUN_NUMBER'"
   else
     # GH Action, runner
     echo "GH Action, runner, clean & re-create create persistent container"
     docker rm -f $CONTAINER_NAME
     echo "echo 'Stopping container: $CONTAINER_NAME'" >> "$JOB_CLEANUP_SCRIPT"
     echo "docker stop --time=15 \"$CONTAINER_NAME\" || echo 'Failed to stop container or container not running'" >> "$JOB_CLEANUP_SCRIPT"
-    docker run -di --user 0:$(id -g) --name $CONTAINER_NAME -v /data/builds:/data/builds -v `pwd`:/io -v cache-volume:/cache --network host ghcr.io/phusion/holy-build-box:4.0.1-amd64 /hbb_exe/activate-exec bash
-    docker exec -i $CONTAINER_NAME /hbb_exe/activate-exec bash -x /io/build-full.sh "$GITHUB_REPOSITORY" "$GITHUB_SHA" "$BUILD_CORES" "$GITHUB_RUN_NUMBER"
+    docker run -di --user 0:$(id -g) --name $CONTAINER_NAME -v /data/builds:/data/builds -v `pwd`:/io -v cache-volume:/cache --network host "$IMAGE_NAME" /hbb_exe/activate-exec bash
+    docker exec -i $CONTAINER_NAME /hbb_exe/activate-exec bash -c "source /opt/rh/gcc-toolset-10/enable && bash -x /io/build-full.sh '$GITHUB_REPOSITORY' '$GITHUB_SHA' '$BUILD_CORES' '$GITHUB_RUN_NUMBER'"
     docker stop $CONTAINER_NAME
   fi
 fi
