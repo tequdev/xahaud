@@ -3912,6 +3912,17 @@ public:
                     // invalid XFL
                     ASSERT(float_sto(cur2, iss, -1n, sfAmount) === INVALID_FLOAT)
 
+                    // invalid currency length (not 3 or 20 bytes)
+                    ASSERT(float_sto([1, 2], iss, 0n, sfAmount) === INVALID_ARGUMENT)
+                    ASSERT(float_sto([1, 2, 3, 4], iss, 0n, sfAmount) === INVALID_ARGUMENT)
+                    ASSERT(float_sto(new Array(19).fill(0), iss, 0n, sfAmount) === INVALID_ARGUMENT)
+                    ASSERT(float_sto(new Array(21).fill(0), iss, 0n, sfAmount) === INVALID_ARGUMENT)
+
+                    // invalid issuer length (not 20 bytes)
+                    ASSERT(float_sto(cur1, [1, 2, 3], 0n, sfAmount) === INVALID_ARGUMENT)
+                    ASSERT(float_sto(cur1, new Array(19).fill(0), 0n, sfAmount) === INVALID_ARGUMENT)
+                    ASSERT(float_sto(cur1, new Array(21).fill(0), 0n, sfAmount) === INVALID_ARGUMENT)
+
                     // currency and issuer with field code not XRP is valid (XFL = 1234567.0)
                     // try with a three letter currency
                     y = float_sto(cur1, iss, 6198187654261802496n, sfAmount)
