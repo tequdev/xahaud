@@ -2065,8 +2065,12 @@ Transactor::operator()()
         hook::HookStateMap stateMap;
         std::vector<hook::HookResult> weakResults;
 
-        if (!view().rules().enabled(featureIOUIssuerWeakTSH))
+        if (!view().rules().enabled(featureIOUIssuerWeakTSH)){
+            // before amendment enabled, we need to get TSHs after txn basic
+            // processing If the object is deleted in cancen txn, it may not be
+            // possible to obtain the appropriate TSH.
             tsh = hook::getTransactionalStakeHolders(ctx_.tx, ctx_.view());
+        }
 
         doTSH(false, tsh, stateMap, weakResults, proMeta);
 

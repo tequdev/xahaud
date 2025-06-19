@@ -459,7 +459,7 @@ getTransactionalStakeHolders(STTx const& tx, ReadView const& rv)
         }
 
         // simple two party transactions
-        case ttPAYMENT:
+        case ttPAYMENT:  // this is handled seperately
         case ttACCOUNT_DELETE:
         case ttINVOKE: {
             if (destAcc)
