@@ -5442,7 +5442,12 @@ private:
                         std::uint16_t tfee,
                         bool closeLedger,
                         std::optional<std::uint16_t> extra = std::nullopt) {
-            Env env(*this, features);
+            Env env(
+                *this,
+                envconfig(),
+                features,
+                nullptr,
+                beast::severities::kDisabled);
             fund(env, gw, {alice}, XRP(1'000), {USD(10)});
             AMM amm(
                 env,
@@ -5615,7 +5620,12 @@ private:
         boost::smatch match;
         // tests that succeed should have the same amounts pre-fix and post-fix
         std::vector<std::pair<STAmount, STAmount>> successAmounts;
-        Env env(*this, features);
+        Env env(
+            *this,
+            envconfig(),
+            features,
+            nullptr,
+            beast::severities::kDisabled);
         auto rules = env.current()->rules();
         CurrentTransactionRulesGuard rg(rules);
         for (auto const& t : tests)
@@ -6021,7 +6031,12 @@ private:
             for (auto const& features :
                  {all - fixAMMOverflowOffer, all | fixAMMOverflowOffer})
             {
-                Env env(*this, features);
+                Env env(
+                    *this,
+                    envconfig(),
+                    features,
+                    nullptr,
+                    beast::severities::kDisabled);
 
                 env.fund(XRP(5'000), gatehub, bitstamp, trader);
                 env.close();
