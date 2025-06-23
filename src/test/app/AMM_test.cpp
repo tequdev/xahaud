@@ -6028,95 +6028,72 @@ private:
              })
         {
             testcase(input.testCase);
-            for (auto const& features :
-                 {all - fixAMMOverflowOffer, all | fixAMMOverflowOffer})
-            {
-                Env env(
-                    *this,
-                    envconfig(),
-                    features,
-                    nullptr,
-                    beast::severities::kDisabled);
 
-                env.fund(XRP(5'000), gatehub, bitstamp, trader);
-                env.close();
+            Env env(
+                *this, envconfig(), all, nullptr, beast::severities::kDisabled);
 
-                if (input.rateGH != 0.0)
-                    env(rate(gatehub, input.rateGH));
-                if (input.rateBIT != 0.0)
-                    env(rate(bitstamp, input.rateBIT));
+            env.fund(XRP(5'000), gatehub, bitstamp, trader);
+            env.close();
 
-                env(trust(trader, usdGH(10'000'000)));
-                env(trust(trader, usdBIT(10'000'000)));
-                env(trust(trader, btcGH(10'000'000)));
-                env.close();
+            if (input.rateGH != 0.0)
+                env(rate(gatehub, input.rateGH));
+            if (input.rateBIT != 0.0)
+                env(rate(bitstamp, input.rateBIT));
 
-                env(pay(gatehub, trader, usdGH(100'000)));
-                env(pay(gatehub, trader, btcGH(100'000)));
-                env(pay(bitstamp, trader, usdBIT(100'000)));
-                env.close();
+            env(trust(trader, usdGH(10'000'000)));
+            env(trust(trader, usdBIT(10'000'000)));
+            env(trust(trader, btcGH(10'000'000)));
+            env.close();
 
-                AMM amm{
-                    env,
-                    trader,
-                    usdGH(input.poolUsdGH),
-                    usdBIT(input.poolUsdBIT)};
-                env.close();
+            env(pay(gatehub, trader, usdGH(100'000)));
+            env(pay(gatehub, trader, btcGH(100'000)));
+            env(pay(bitstamp, trader, usdBIT(100'000)));
+            env.close();
 
-                IOUAmount const preSwapLPTokenBalance =
-                    amm.getLPTokensBalance();
+            AMM amm{
+                env, trader, usdGH(input.poolUsdGH), usdBIT(input.poolUsdBIT)};
+            env.close();
 
-                env(offer(trader, usdBIT(1), btcGH(input.offer1BtcGH)));
-                env(offer(
-                    trader,
-                    btcGH(input.offer2BtcGH),
-                    usdGH(input.offer2UsdGH)));
-                env.close();
+            IOUAmount const preSwapLPTokenBalance = amm.getLPTokensBalance();
 
-                env(pay(trader, trader, input.sendUsdGH),
-                    path(~usdGH),
-                    path(~btcGH, ~usdGH),
-                    sendmax(input.sendMaxUsdBIT),
-                    txflags(tfPartialPayment));
-                env.close();
+            env(offer(trader, usdBIT(1), btcGH(input.offer1BtcGH)));
+            env(offer(
+                trader, btcGH(input.offer2BtcGH), usdGH(input.offer2UsdGH)));
+            env.close();
 
-                auto const failUsdGH = input.failUsdGHr;
-                auto const failUsdBIT = input.failUsdBITr;
-                auto const goodUsdGH = input.goodUsdGHr;
-                auto const goodUsdBIT = input.goodUsdBITr;
-                if (!features[fixAMMOverflowOffer])
-                {
-                    BEAST_EXPECT(amm.expectBalances(
-                        failUsdGH, failUsdBIT, input.lpTokenBalance));
-                }
-                else
-                {
-                    BEAST_EXPECT(amm.expectBalances(
-                        goodUsdGH, goodUsdBIT, input.lpTokenBalance));
+            env(pay(trader, trader, input.sendUsdGH),
+                path(~usdGH),
+                path(~btcGH, ~usdGH),
+                sendmax(input.sendMaxUsdBIT),
+                txflags(tfPartialPayment));
+            env.close();
 
-                    // Invariant: LPToken balance must not change in a
-                    // payment or a swap transaction
-                    BEAST_EXPECT(
-                        amm.getLPTokensBalance() == preSwapLPTokenBalance);
+            auto const failUsdGH = input.failUsdGHr;
+            auto const failUsdBIT = input.failUsdBITr;
+            auto const goodUsdGH = input.goodUsdGHr;
+            auto const goodUsdBIT = input.goodUsdBITr;
 
-                    // Invariant: The square root of (product of the pool
-                    // balances) must be at least the LPTokenBalance
-                    Number const sqrtPoolProduct =
-                        root2(goodUsdGH * goodUsdBIT);
+            BEAST_EXPECT(amm.expectBalances(
+                goodUsdGH, goodUsdBIT, input.lpTokenBalance));
 
-                    // Include a tiny tolerance for the test cases using
-                    //   .goodUsdGH{usdGH, uint64_t(35'44113971506987),
-                    //   -14}, .goodUsdBIT{usdBIT,
-                    //   uint64_t(2'821579689703915), -15},
-                    // These two values multiply
-                    // to 99.99999999999994227040383754105 which gets
-                    // internally rounded to 100, due to representation
-                    // error.
-                    BEAST_EXPECT(
-                        (sqrtPoolProduct + Number{1, -14} >=
-                         input.lpTokenBalance));
-                }
-            }
+            // Invariant: LPToken balance must not change in a
+            // payment or a swap transaction
+            BEAST_EXPECT(amm.getLPTokensBalance() == preSwapLPTokenBalance);
+
+            // Invariant: The square root of (product of the pool
+            // balances) must be at least the LPTokenBalance
+            Number const sqrtPoolProduct = root2(goodUsdGH * goodUsdBIT);
+
+            // Include a tiny tolerance for the test cases using
+            //   .goodUsdGH{usdGH, uint64_t(35'44113971506987),
+            //   -14}, .goodUsdBIT{usdBIT,
+            //   uint64_t(2'821579689703915), -15},
+            // These two values multiply
+            // to 99.99999999999994227040383754105 which gets
+            // internally rounded to 100, due to representation
+            // error.
+            BEAST_EXPECT(
+                (sqrtPoolProduct + Number{1, -14} >= input.lpTokenBalance));
         }
     }
 
