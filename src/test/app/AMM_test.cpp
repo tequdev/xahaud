@@ -7070,8 +7070,7 @@ private:
         testcase("Fix Reserve Check On Withdrawal");
         using namespace jtx;
 
-        auto const err = features[fixAMMv1_2] ? ter(tecINSUFFICIENT_RESERVE)
-                                              : ter(tesSUCCESS);
+        auto const err = ter(tecINSUFFICIENT_RESERVE);
 
         auto test = [&](auto&& cb) {
             Env env(*this, features);
@@ -7167,7 +7166,6 @@ private:
         testAMMDepositWithFrozenAssets(all - featureAMMClawback);
         testAMMDepositWithFrozenAssets(all - fixAMMv1_1 - featureAMMClawback);
         testFixReserveCheckOnWithdrawal(all);
-        testFixReserveCheckOnWithdrawal(all - fixAMMv1_2);
     }
 };
 
