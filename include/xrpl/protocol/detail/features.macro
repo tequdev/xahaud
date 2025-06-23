@@ -44,7 +44,6 @@ XRPL_FIX    (InnerObjTemplate2,          Supported::yes, VoteBehavior::DefaultNo
 XRPL_FIX    (EnforceNFTokenTrustline,    Supported::yes, VoteBehavior::DefaultNo)
 XRPL_FIX    (ReducedOffersV2,            Supported::yes, VoteBehavior::DefaultNo)
 XRPL_FEATURE(NFTokenMintOffer,           Supported::yes, VoteBehavior::DefaultNo)
-XRPL_FIX    (AMMv1_1,                    Supported::yes, VoteBehavior::DefaultNo)
 XRPL_FIX    (PreviousTxnID,              Supported::yes, VoteBehavior::DefaultNo)
 XRPL_FIX    (XChainRewardRounding,       Supported::yes, VoteBehavior::DefaultNo)
 XRPL_FIX    (EmptyDID,                   Supported::yes, VoteBehavior::DefaultNo)

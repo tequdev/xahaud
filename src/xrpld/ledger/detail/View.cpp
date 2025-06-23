@@ -1443,18 +1443,9 @@ accountSendIOU(
     WaiveTransferFee waiveFee,
     bool const senderPaysXferFees)
 {
-    if (view.rules().enabled(fixAMMv1_1))
+    if (saAmount < beast::zero || saAmount.holds<MPTIssue>())
     {
-        if (saAmount < beast::zero || saAmount.holds<MPTIssue>())
-        {
-            return tecINTERNAL;
-        }
-    }
-    else
-    {
-        XRPL_ASSERT(
-            saAmount >= beast::zero && !saAmount.holds<MPTIssue>(),
-            "ripple::accountSendIOU : minimum amount and not MPT");
+        return tecINTERNAL;
     }
 
     /* If we aren't sending anything or if the sender is the same as the
