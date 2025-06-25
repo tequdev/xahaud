@@ -319,22 +319,22 @@ set(GRPC_GEN_DIR "${output_dir}/ripple/proto")
 file(MAKE_DIRECTORY ${GRPC_GEN_DIR})
 set(GRPC_PROTO_SRCS)
 set(GRPC_PROTO_HDRS)
-set(GRPC_PROTO_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/src/ripple/proto/org")
+set(GRPC_PROTO_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/include/xrpl/proto/org")
 file(GLOB_RECURSE GRPC_DEFINITION_FILES "${GRPC_PROTO_ROOT}/*.proto")
 foreach(file ${GRPC_DEFINITION_FILES})
-  # /home/user/rippled/src/ripple/proto/org/.../v1/get_ledger.proto
+  # /home/user/rippled/include/xrpl/proto/org/.../v1/get_ledger.proto
   get_filename_component(_abs_file ${file} ABSOLUTE)
-  # /home/user/rippled/src/ripple/proto/org/.../v1
+  # /home/user/rippled/include/xrpl/proto/org/.../v1
   get_filename_component(_abs_dir ${_abs_file} DIRECTORY)
   # get_ledger
   get_filename_component(_basename ${file} NAME_WE)
-  # /home/user/rippled/src/ripple/proto
+  # /home/user/rippled/include/xrpl/proto
   get_filename_component(_proto_inc ${GRPC_PROTO_ROOT} DIRECTORY) # updir one level
   # org/.../v1/get_ledger.proto
   file(RELATIVE_PATH _rel_root_file ${_proto_inc} ${_abs_file})
   # org/.../v1
   get_filename_component(_rel_root_dir ${_rel_root_file} DIRECTORY)
-  # src/ripple/proto/org/.../v1
+  # include/xrpl/proto/org/.../v1
   file(RELATIVE_PATH _rel_dir ${CMAKE_CURRENT_SOURCE_DIR} ${_abs_dir})
 
   set(src_1 "${GRPC_GEN_DIR}/${_rel_root_dir}/${_basename}.grpc.pb.cc")
