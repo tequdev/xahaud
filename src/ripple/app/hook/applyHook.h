@@ -32,6 +32,7 @@ class HookStateMap : public std::map<
                          std::tuple<
                              int64_t,  // remaining available ownercount
                              int64_t,  // total namespace count
+                             int16_t,  // hook state scale
                              std::map<
                                  ripple::uint256,  // namespace
                                  std::map<

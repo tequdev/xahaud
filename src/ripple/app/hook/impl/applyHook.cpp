@@ -1086,7 +1086,11 @@ hook::setHookState(
         return tefINTERNAL;
 
     // if the blob is too large don't set it
-    if (data.size() > hook::maxHookStateDataSize(view.rules()))
+    uint16_t hookStateScale = 1;
+    if (sleAccount->isFieldPresent(sfHookStateScale))
+        hookStateScale = sleAccount->getFieldU16(sfHookStateScale);
+
+    if (data.size() > hook::maxHookStateDataSize(hookStateScale))
         return temHOOK_DATA_TOO_LARGE;
 
     auto hookStateKeylet = ripple::keylet::hookState(acc, key, ns);
@@ -1098,11 +1102,6 @@ hook::setHookState(
     auto hookState = view.peek(hookStateKeylet);
 
     bool createNew = !hookState;
-
-    int32_t newHookStateReserves = computeHookStateReserves(data);
-    int32_t oldHookStateReserves = createNew
-        ? 0
-        : computeHookStateReserves(hookState->getFieldVL(sfHookStateData));
 
     // if the blob is nil then delete the entry if it exists
     if (data.empty())
@@ -1132,7 +1131,7 @@ hook::setHookState(
         // if removing this state entry would destroy the allotment then reduce
         // the owner count
         if (stateCount < oldStateCount)
-            adjustOwnerCount(view, sleAccount, -oldHookStateReserves, j);
+            adjustOwnerCount(view, sleAccount, -hookStateScale, j);
 
         if (view.rules().enabled(featureExtendedHookState) && stateCount == 0)
             sleAccount->makeFieldAbsent(sfHookStateCount);
@@ -1170,13 +1169,13 @@ hook::setHookState(
             // previous ownercount increment ownercount and give it another
             // allotment
 
-            ownerCount += newHookStateReserves;
+            ownerCount += hookStateScale;
             XRPAmount const newReserve{view.fees().accountReserve(ownerCount)};
 
             if (STAmount((*sleAccount)[sfBalance]).xrp() < newReserve)
                 return tecINSUFFICIENT_RESERVE;
 
-            adjustOwnerCount(view, sleAccount, newHookStateReserves, j);
+            adjustOwnerCount(view, sleAccount, hookStateScale, j);
         }
 
         // update state count
@@ -1185,27 +1184,6 @@ hook::setHookState(
 
         // create an entry
         hookState = std::make_shared<SLE>(hookStateKeylet);
-    }
-    else
-    {
-        // on Update
-        uint32_t changedOwnerCount =
-            newHookStateReserves - oldHookStateReserves;
-
-        if (changedOwnerCount != 0)
-        {
-            ownerCount += changedOwnerCount;
-            XRPAmount const newReserve{view.fees().accountReserve(ownerCount)};
-            if (changedOwnerCount > 0 &&
-                STAmount((*sleAccount)[sfBalance]).xrp() < newReserve)
-                // only check if increasing reserve
-                return tecINSUFFICIENT_RESERVE;
-
-            adjustOwnerCount(view, sleAccount, changedOwnerCount, j);
-
-            sleAccount->setFieldU32(sfHookStateCount, stateCount);
-            view.update(sleAccount);
-        }
     }
 
     hookState->setFieldVL(sfHookStateData, data);
@@ -1485,7 +1463,7 @@ lookup_state_cache(
     if (stateMap.find(acc) == stateMap.end())
         return std::nullopt;
 
-    auto& stateMapAcc = std::get<2>(stateMap[acc]);
+    auto& stateMapAcc = std::get<3>(stateMap[acc]);
     if (stateMapAcc.find(ns) == stateMapAcc.end())
         return std::nullopt;
 
@@ -1532,6 +1510,10 @@ set_state_cache(
 
         STAmount bal = accSLE->getFieldAmount(sfBalance);
 
+        uint16_t hookStateScale = 1;
+        if (accSLE->isFieldPresent(sfHookStateScale))
+            hookStateScale = accSLE->getFieldU16(sfHookStateScale);
+
         int64_t availableForReserves = bal.xrp().drops() -
             fees.accountReserve(accSLE->getFieldU32(sfOwnerCount)).drops();
 
@@ -1542,8 +1524,7 @@ set_state_cache(
 
         availableForReserves /= increment;
 
-        if (availableForReserves < hook::computeHookStateReserves(data) &&
-            modified)
+        if (availableForReserves < hookStateScale && modified)
             return RESERVE_INSUFFICIENT;
 
         int64_t namespaceCount = accSLE->isFieldPresent(sfHookNamespaces)
@@ -1563,15 +1544,17 @@ set_state_cache(
         stateMap.modified_entry_count++;
 
         stateMap[acc] = {
-            availableForReserves - hook::computeHookStateReserves(data),
+            availableForReserves - hookStateScale,
             namespaceCount,
+            hookStateScale,
             {{ns, {{key, {modified, data}}}}}};
         return 1;
     }
 
     auto& availableForReserves = std::get<0>(stateMap[acc]);
     auto& namespaceCount = std::get<1>(stateMap[acc]);
-    auto& stateMapAcc = std::get<2>(stateMap[acc]);
+    auto& hookStateScale = std::get<2>(stateMap[acc]);
+    auto& stateMapAcc = std::get<3>(stateMap[acc]);
     bool const canReserveNew =
         availableForReserves >= hook::computeHookStateReserves(data);
 
@@ -1595,7 +1578,7 @@ set_state_cache(
                 namespaceCount++;
             }
 
-            availableForReserves -= hook::computeHookStateReserves(data);
+            availableForReserves -= hookStateScale;
             stateMap.modified_entry_count++;
         }
 
@@ -1612,7 +1595,7 @@ set_state_cache(
         {
             if (!canReserveNew)
                 return RESERVE_INSUFFICIENT;
-            availableForReserves -= hook::computeHookStateReserves(data);
+            availableForReserves -= hookStateScale;
             stateMap.modified_entry_count++;
         }
 
@@ -1622,22 +1605,10 @@ set_state_cache(
     }
 
     // existing State Key
-    auto const newReserve = hook::computeHookStateReserves(data);
-    auto const oldReserve =
-        hook::computeHookStateReserves(stateMapNs[key].second);
-    bool const canReserveUpdate = newReserve <= oldReserve ||
-        availableForReserves >= newReserve - oldReserve;
-
     if (modified)
     {
-        if (!canReserveUpdate)
-            return RESERVE_INSUFFICIENT;
-
         if (!stateMapNs[key].first)
             hookCtx.result.changedStateCount++;
-
-        if (view.rules().enabled(featureExtendedHookState))
-            availableForReserves -= newReserve - oldReserve;
 
         stateMap.modified_entry_count++;
         stateMapNs[key].first = true;
@@ -1722,7 +1693,15 @@ DEFINE_HOOK_FUNCTION(
         (aread_len && NOT_IN_BOUNDS(aread_ptr, aread_len, memory_length)))
         return OUT_OF_BOUNDS;
 
-    uint32_t maxSize = hook::maxHookStateDataSize(view.rules());
+    auto const sleAccount = view.peek(hookCtx.result.accountKeylet);
+    if (!sleAccount && view.rules().enabled(featureExtendedHookState))
+        return tefINTERNAL;
+
+    uint16_t hookStateScale = 1;
+    if (sleAccount->isFieldPresent(sfHookStateScale))
+        hookStateScale = sleAccount->getFieldU16(sfHookStateScale);
+
+    uint32_t maxSize = hook::maxHookStateDataSize(hookStateScale);
     if (read_len > maxSize)
         return TOO_BIG;
 
@@ -1866,7 +1845,7 @@ hook::finalizeHookState(
     for (const auto& accEntry : stateMap)
     {
         const auto& acc = accEntry.first;
-        for (const auto& nsEntry : std::get<2>(accEntry.second))
+        for (const auto& nsEntry : std::get<3>(accEntry.second))
         {
             const auto& ns = nsEntry.first;
             for (const auto& cacheEntry : nsEntry.second)

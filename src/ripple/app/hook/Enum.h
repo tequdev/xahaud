@@ -1,5 +1,3 @@
-#include <ripple/protocol/Feature.h>
-#include <ripple/protocol/Rules.h>
 #include <map>
 #include <set>
 #include <string>
@@ -47,13 +45,11 @@ maxHookParameterValueSize(void)
 }
 
 inline uint32_t
-maxHookStateDataSize(Rules const& rules)
+maxHookStateDataSize(uint32_t hookStateScale)
 {
-    if (rules.enabled(featureExtendedHookState))
-    {
-        return 2048U;
-    }
-    return 256U;
+    if (hookStateScale == 0)
+        return 256U;
+    return 256U * hookStateScale;
 }
 
 inline uint32_t

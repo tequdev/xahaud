@@ -537,6 +537,8 @@ public:
     void
     testTicket()
     {
+        testcase("Ticket");
+
         using namespace test::jtx;
         Env env(*this);
         Account const alice("alice");
@@ -568,6 +570,85 @@ public:
     }
 
     void
+    testHookStateScale()
+    {
+        testcase("HookStateScale");
+
+        using namespace test::jtx;
+        Env env(*this, supported_amendments() - featureExtendedHookState);
+        Account const alice("alice");
+
+        env.fund(XRP(10000), alice);
+        env.close();
+
+        // disabled
+        auto jt = noop(alice);
+        jt[sfHookStateScale.fieldName] = 1;
+        env(jt, ter(temMALFORMED));
+        env.close();
+
+        env.enableFeature(featureExtendedHookState);
+        env.close();
+
+        // set HookStateScale
+        jt[sfHookStateScale.fieldName] = 9;
+        env(jt, ter(temMALFORMED));
+        env.close();
+
+        jt[sfHookStateScale.fieldName] = 1;
+        env(jt);
+        env.close();
+        BEAST_EXPECT(env.le(alice)->isFieldPresent(sfHookStateScale));
+
+        // set HookStateScale to 0
+        jt[sfHookStateScale.fieldName] = 0;
+        env(jt);
+        env.close();
+        BEAST_EXPECT(!env.le(alice)->isFieldPresent(sfHookStateScale));
+
+        // test OwnerCount
+
+        // This prevents an exception for sfMintedNFTokens when the AccountRoot
+        // template is applied.
+        {
+            uint256 const nftId0{token::getNextID(env, alice, 0u)};
+            env(token::mint(alice, 0u));
+            env(token::burn(alice, nftId0));
+            env.close();
+        }
+        auto applyCount = [&](uint16_t scale,
+                              uint32_t stateCount,
+                              uint32_t ownerCount) {
+            return env.app().openLedger().modify(
+                [&](OpenView& view, beast::Journal j) -> bool {
+                    auto const sle = view.read(keylet::account(alice.id()));
+                    if (!sle)
+                        return false;
+                    auto replacement = std::make_shared<SLE>(*sle, sle->key());
+                    (*replacement)[sfHookStateScale] = scale;
+                    (*replacement)[sfHookStateCount] = stateCount;
+                    (*replacement)[sfOwnerCount] = ownerCount;
+                    view.rawReplace(replacement);
+                    return true;
+                });
+        };
+        applyCount(5, 10, 100);
+
+        // remove, but HookStateCount exists
+        jt[sfHookStateScale.fieldName] = 0;
+        env(jt, ter(tecINTERNAL));
+        // decrease, but HookStateCount exists
+        jt[sfHookStateScale.fieldName] = 4;
+        env(jt, ter(tecINTERNAL));
+        // increase
+        jt[sfHookStateScale.fieldName] = 6;
+        env(jt);
+        BEAST_EXPECT(env.le(alice)->getFieldU16(sfHookStateScale) == 6);
+        BEAST_EXPECT(env.le(alice)->getFieldU32(sfHookStateCount) == 10);
+        BEAST_EXPECT(env.le(alice)->getFieldU32(sfOwnerCount) == 110);
+    }
+
+    void
     run() override
     {
         testNullAccountSet();
@@ -583,6 +664,7 @@ public:
         testRequireAuthWithDir();
         testTransferRate();
         testTicket();
+        testHookStateScale();
     }
 };
 
