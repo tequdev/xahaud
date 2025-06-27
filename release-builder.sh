@@ -167,7 +167,7 @@ RUN /hbb_exe/activate-exec bash -c "source /opt/rh/gcc-toolset-11/enable && \
     ./configure --prefix=/usr/local --disable-shared --enable-static && \
     make -j\${BUILD_CORES} && \
     make install && \
-    ln -sf /usr/local/bin/ar /usr/bin/ar" && \
+    ln -sf /usr/local/bin/ar /usr/bin/ar && \
     cd /tmp && \
     rm -rf binutils binutils.tar.gz"
 
