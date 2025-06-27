@@ -1,9 +1,8 @@
-#!/bin/bash -u
+#!/bin/bash 
 # We use set -e and bash with -u to bail on first non zero exit code of any
 # processes launched or upon any unbound variable.
 # We use set -x to print commands before running them to help with
 # debugging.
-set -ex
 
 echo "START BUILDING (HOST)"
 
@@ -50,25 +49,184 @@ STATIC_CONTAINER=$(docker ps -a | grep $CONTAINER_NAME |wc -l)
 if false; then
   echo "Static container, execute in static container to have max. cache"
   docker start $CONTAINER_NAME
-  docker exec -i $CONTAINER_NAME /hbb_exe/activate-exec bash -x /io/build-core.sh "$GITHUB_REPOSITORY" "$GITHUB_SHA" "$BUILD_CORES" "$GITHUB_RUN_NUMBER"
+  docker exec -i $CONTAINER_NAME /hbb_exe/activate-exec bash -c "source /opt/rh/gcc-toolset-11/enable && bash -x /io/build-core.sh '$GITHUB_REPOSITORY' '$GITHUB_SHA' '$BUILD_CORES' '$GITHUB_RUN_NUMBER'"
   docker stop $CONTAINER_NAME
 else
   echo "No static container, build on temp container"
   rm -rf release-build;
   mkdir -p release-build;
 
+  docker volume create cache-volume
+
+  # Create inline Dockerfile with environment setup for build-full.sh
+  DOCKERFILE_CONTENT=$(cat <<'DOCKERFILE_EOF'
+FROM ghcr.io/phusion/holy-build-box:4.0.1-amd64
+
+ARG BUILD_CORES=8
+
+# Enable repositories and install dependencies
+RUN /hbb_exe/activate-exec bash -c "dnf install -y epel-release && \
+    dnf config-manager --set-enabled powertools || dnf config-manager --set-enabled crb && \
+    dnf install -y \
+        wget git \
+        gcc-toolset-11-gcc-c++ gcc-toolset-11-binutils gcc-toolset-11-libatomic-devel \
+        lz4 lz4-devel \
+        ncurses-devel \
+        snappy snappy-devel \
+        zlib zlib-devel zlib-static \
+        libasan \
+        python3 python3-pip \
+        ccache \
+        ninja-build \
+        patch \
+        glibc-devel glibc-static \
+        libxml2-devel \
+        autoconf \
+        automake \
+        texinfo \
+        libtool \
+        llvm14-static llvm14-devel"
+
+# # Build static ncurses/tinfo library
+RUN /hbb_exe/activate-exec bash -c "source /opt/rh/gcc-toolset-11/enable && \
+    cd /tmp && \
+    wget -q https://ftp.gnu.org/gnu/ncurses/ncurses-6.3.tar.gz -O ncurses.tar.gz && \
+    mkdir ncurses && \
+    tar -xzf ncurses.tar.gz --strip-components=1 -C ncurses && \
+    cd ncurses && \
+    ./configure --prefix=/usr --libdir=/usr/lib64 --enable-static --disable-shared --without-cxx-binding --without-ada --without-manpages --without-progs --without-tests && \
+    make -j${BUILD_CORES} && \
+    make install && \
+    [ -f /usr/lib64/libncurses.a ] && ln -sf /usr/lib64/libncurses.a /usr/lib64/libtinfo.a || \
+    [ -f /usr/lib/libncurses.a ] && cp /usr/lib/libncurses.a /usr/lib64/libtinfo.a || \
+    ar rcs /usr/lib64/libtinfo.a && \
+    cd /tmp && \
+    rm -rf ncurses ncurses.tar.gz"
+
+# Install Conan and CMake
+RUN /hbb_exe/activate-exec pip3 install "conan==1.66.0" && \
+    /hbb_exe/activate-exec wget -q https://github.com/Kitware/CMake/releases/download/v3.25.3/cmake-3.25.3-linux-x86_64.tar.gz -O cmake.tar.gz && \
+    mkdir cmake && \
+    tar -xzf cmake.tar.gz --strip-components=1 -C cmake && \
+    rm cmake.tar.gz
+
+# # Install Boost 1.86.0
+RUN /hbb_exe/activate-exec bash -c "cd /tmp && \
+    wget -q https://archives.boost.io/release/1.86.0/source/boost_1_86_0.tar.gz -O boost.tar.gz && \
+    mkdir boost && \
+    tar -xzf boost.tar.gz --strip-components=1 -C boost && \
+    cd boost && \
+    ./bootstrap.sh && \
+    ./b2 link=static -j${BUILD_CORES} && \
+    ./b2 install && \
+    cd /tmp && \
+    rm -rf boost_1_86_0 boost_1_86_0.tar.gz"
+
+ENV BOOST_ROOT=/usr/local/src/boost_1_86_0
+ENV Boost_LIBRARY_DIRS=/usr/local/lib
+ENV BOOST_INCLUDEDIR=/usr/local/src/boost_1_86_0
+
+ENV CMAKE_CXX_FLAGS='-D_GLIBCXX_USE_CXX11_ABI=1'
+ENV CMAKE_EXE_LINKER_FLAGS='-static-libgcc -static-libstdc++ -lstdc++ -lm'
+
+ENV LLVM_DIR=/usr/lib64/llvm14/lib/cmake/llvm
+ENV WasmEdge_LIB=/usr/local/lib64/libwasmedge.a
+
+ENV CC='ccache gcc'
+ENV CXX='ccache g++'
+ENV CFLAGS='-D_GLIBCXX_USE_CXX11_ABI=0'
+ENV CXXFLAGS='-D_GLIBCXX_USE_CXX11_ABI=0'
+ENV LDFLAGS='-static-libgcc -static-libstdc++ -lstdc++ -lm'
+
+RUN /hbb_exe/activate-exec bash -c "source /opt/rh/gcc-toolset-11/enable && \
+    cd /tmp && \
+    wget -q https://github.com/llvm/llvm-project/releases/download/llvmorg-14.0.3/lld-14.0.3.src.tar.xz && \
+    wget -q https://github.com/llvm/llvm-project/releases/download/llvmorg-14.0.3/libunwind-14.0.3.src.tar.xz && \
+    tar -xf lld-14.0.3.src.tar.xz && \
+    tar -xf libunwind-14.0.3.src.tar.xz && \
+    cp -r libunwind-14.0.3.src/include libunwind-14.0.3.src/src lld-14.0.3.src/ && \
+    cd lld-14.0.3.src && \
+    mkdir -p build && cd build && \
+    cmake .. \
+        -DLLVM_LIBRARY_DIR=/usr/lib64/llvm14/lib/ \
+        -DCMAKE_INSTALL_PREFIX=/usr/lib64/llvm14/ \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_CXX_FLAGS=\"\$CMAKE_CXX_FLAGS\" \
+        -DCMAKE_EXE_LINKER_FLAGS=\"\$CMAKE_EXE_LINKER_FLAGS\" && \
+    make -j\${BUILD_CORES} install && \
+    ln -s /usr/lib64/llvm14/lib/include/lld /usr/include/lld && \
+    cp /usr/lib64/llvm14/lib/liblld*.a /usr/local/lib/ && \
+    cd /tmp && rm -rf lld-* libunwind-*"
+
+RUN /hbb_exe/activate-exec bash -c "source /opt/rh/gcc-toolset-11/enable && \
+    cd /tmp && \
+    wget -q https://ftp.gnu.org/gnu/binutils/binutils-2.38.tar.gz -O binutils.tar.gz && \
+    mkdir binutils && \
+    tar -xzf binutils.tar.gz --strip-components=1 -C binutils && \
+    cd binutils && \
+    ./configure --prefix=/usr/local --disable-shared --enable-static && \
+    make -j\${BUILD_CORES} && \
+    make install && \
+    ln -sf /usr/local/bin/ar /usr/bin/ar" && \
+    cd /tmp && \
+    rm -rf binutils binutils.tar.gz"
+
+# Build and install WasmEdge
+RUN cd /tmp && \
+    ( wget -nc -q https://github.com/WasmEdge/WasmEdge/archive/refs/tags/0.11.2.zip; unzip -o 0.11.2.zip; ) && \
+    cd WasmEdge-0.11.2 && \
+    ( mkdir -p build; echo "" ) && \
+    cd build && \
+    /hbb_exe/activate-exec bash -c "source /opt/rh/gcc-toolset-11/enable && \
+    cmake .. \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_INSTALL_PREFIX=/usr/local \
+        -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+        -DWASMEDGE_BUILD_SHARED_LIB=OFF \
+        -DWASMEDGE_BUILD_STATIC_LIB=ON \
+        -DWASMEDGE_BUILD_AOT_RUNTIME=ON \
+        -DWASMEDGE_FORCE_DISABLE_LTO=ON \
+        -DWASMEDGE_LINK_LLVM_STATIC=ON \
+        -DWASMEDGE_BUILD_PLUGINS=OFF \
+        -DWASMEDGE_LINK_TOOLS_STATIC=ON \
+        -DBoost_NO_BOOST_CMAKE=ON \
+        -DCMAKE_CXX_FLAGS=\"\$CMAKE_CXX_FLAGS\" \
+        -DCMAKE_EXE_LINKER_FLAGS=\"\$CMAKE_EXE_LINKER_FLAGS\" \
+        && \
+    make -j${BUILD_CORES} install" && \
+    cp -r include/api/wasmedge /usr/include/ && \
+    cd /tmp && rm -rf WasmEdge* 0.11.2.zip
+
+# Set environment variables
+ENV PATH=/usr/local/bin:$PATH
+
+# Configure ccache and Conan
+RUN /hbb_exe/activate-exec bash -c "ccache -M 10G && \
+    ccache -o cache_dir=/cache/ccache && \
+    conan config set storage.path=/cache/conan && \
+    (conan profile new default --detect || true) && \
+    conan profile update settings.compiler.cppstd=20 default"
+
+DOCKERFILE_EOF
+)
+
+  # Build custom Docker image
+  IMAGE_NAME="xahaud-builder:latest"
+  echo "Building custom Docker image with dependencies..."
+  echo "$DOCKERFILE_CONTENT" | docker build --build-arg BUILD_CORES="$BUILD_CORES" -t "$IMAGE_NAME" - || exit 1
+
   if [[ "$GITHUB_REPOSITORY" == "" ]]; then
     # Non GH, local building
     echo "Non-GH runner, local building, temp container"
-    docker run -i --user 0:$(id -g) --rm -v /data/builds:/data/builds -v `pwd`:/io --network host ghcr.io/foobarwidget/holy-build-box-x64 /hbb_exe/activate-exec bash -x /io/build-full.sh "$GITHUB_REPOSITORY" "$GITHUB_SHA" "$BUILD_CORES" "$GITHUB_RUN_NUMBER"
+    docker run -i --user 0:$(id -g) --rm -v /data/builds:/data/builds -v `pwd`:/io -v cache-volume:/cache --network host "$IMAGE_NAME" /hbb_exe/activate-exec bash -c "source /opt/rh/gcc-toolset-11/enable && bash -x /io/build-full.sh '$GITHUB_REPOSITORY' '$GITHUB_SHA' '$BUILD_CORES' '$GITHUB_RUN_NUMBER'"
   else
     # GH Action, runner
     echo "GH Action, runner, clean & re-create create persistent container"
     docker rm -f $CONTAINER_NAME
     echo "echo 'Stopping container: $CONTAINER_NAME'" >> "$JOB_CLEANUP_SCRIPT"
     echo "docker stop --time=15 \"$CONTAINER_NAME\" || echo 'Failed to stop container or container not running'" >> "$JOB_CLEANUP_SCRIPT"
-    docker run -di --user 0:$(id -g) --name $CONTAINER_NAME -v /data/builds:/data/builds -v `pwd`:/io --network host ghcr.io/foobarwidget/holy-build-box-x64 /hbb_exe/activate-exec bash
-    docker exec -i $CONTAINER_NAME /hbb_exe/activate-exec bash -x /io/build-full.sh "$GITHUB_REPOSITORY" "$GITHUB_SHA" "$BUILD_CORES" "$GITHUB_RUN_NUMBER"
+    docker run -di --user 0:$(id -g) --name $CONTAINER_NAME -v /data/builds:/data/builds -v `pwd`:/io -v cache-volume:/cache --network host "$IMAGE_NAME" /hbb_exe/activate-exec bash
+    docker exec -i $CONTAINER_NAME /hbb_exe/activate-exec bash -c "source /opt/rh/gcc-toolset-11/enable && bash -x /io/build-full.sh '$GITHUB_REPOSITORY' '$GITHUB_SHA' '$BUILD_CORES' '$GITHUB_RUN_NUMBER'"
     docker stop $CONTAINER_NAME
   fi
 fi
