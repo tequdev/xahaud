@@ -78,5 +78,7 @@ cd ..;
 
 mv src/xrpld/net/detail/RegisterSSLCerts.cpp.old src/xrpld/net/detail/RegisterSSLCerts.cpp;
 mv cmake/deps/WasmEdge.old cmake/deps/WasmEdge.cmake;
+rm src/certs/certbundle.h;
+git checkout src/libxrpl/protocol/BuildInfo.cpp
 
 echo "END INSIDE CONTAINER - CORE"

@@ -85,9 +85,10 @@ RUN /hbb_exe/activate-exec bash -c "dnf install -y epel-release && \
         automake \
         texinfo \
         libtool \
-        llvm14-static llvm14-devel"
+        llvm14-static llvm14-devel && \
+    dnf clean all"
 
-# # Build static ncurses/tinfo library
+# Build static ncurses/tinfo library
 RUN /hbb_exe/activate-exec bash -c "source /opt/rh/gcc-toolset-11/enable && \
     cd /tmp && \
     wget -q https://ftp.gnu.org/gnu/ncurses/ncurses-6.3.tar.gz -O ncurses.tar.gz && \
@@ -110,7 +111,7 @@ RUN /hbb_exe/activate-exec pip3 install "conan==1.66.0" && \
     tar -xzf cmake.tar.gz --strip-components=1 -C cmake && \
     rm cmake.tar.gz
 
-# # Install Boost 1.86.0
+# Install Boost 1.86.0
 RUN /hbb_exe/activate-exec bash -c "cd /tmp && \
     wget -q https://archives.boost.io/release/1.86.0/source/boost_1_86_0.tar.gz -O boost.tar.gz && \
     mkdir boost && \
@@ -120,7 +121,7 @@ RUN /hbb_exe/activate-exec bash -c "cd /tmp && \
     ./b2 link=static -j${BUILD_CORES} && \
     ./b2 install && \
     cd /tmp && \
-    rm -rf boost_1_86_0 boost_1_86_0.tar.gz"
+    rm -rf boost boost.tar.gz"
 
 ENV BOOST_ROOT=/usr/local/src/boost_1_86_0
 ENV Boost_LIBRARY_DIRS=/usr/local/lib
@@ -138,6 +139,7 @@ ENV CFLAGS='-D_GLIBCXX_USE_CXX11_ABI=0'
 ENV CXXFLAGS='-D_GLIBCXX_USE_CXX11_ABI=0'
 ENV LDFLAGS='-static-libgcc -static-libstdc++ -lstdc++ -lm'
 
+# Install LLD
 RUN /hbb_exe/activate-exec bash -c "source /opt/rh/gcc-toolset-11/enable && \
     cd /tmp && \
     wget -q https://github.com/llvm/llvm-project/releases/download/llvmorg-14.0.3/lld-14.0.3.src.tar.xz && \
@@ -153,14 +155,15 @@ RUN /hbb_exe/activate-exec bash -c "source /opt/rh/gcc-toolset-11/enable && \
         -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_CXX_FLAGS=\"\$CMAKE_CXX_FLAGS\" \
         -DCMAKE_EXE_LINKER_FLAGS=\"\$CMAKE_EXE_LINKER_FLAGS\" && \
-    make -j\${BUILD_CORES} install && \
+    make -j${BUILD_CORES} install && \
     ln -s /usr/lib64/llvm14/lib/include/lld /usr/include/lld && \
     cp /usr/lib64/llvm14/lib/liblld*.a /usr/local/lib/ && \
     cd /tmp && rm -rf lld-* libunwind-*"
 
+# Install Binutils
 RUN /hbb_exe/activate-exec bash -c "source /opt/rh/gcc-toolset-11/enable && \
     cd /tmp && \
-    wget -q https://ftp.gnu.org/gnu/binutils/binutils-2.38.tar.gz -O binutils.tar.gz && \
+    wget -q https://ftpmirror.gnu.org/gnu/binutils/binutils-2.38.tar.gz -O binutils.tar.gz && \
     mkdir binutils && \
     tar -xzf binutils.tar.gz --strip-components=1 -C binutils && \
     cd binutils && \
