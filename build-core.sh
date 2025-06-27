@@ -47,7 +47,7 @@ git checkout src/libxrpl/protocol/BuildInfo.cpp &&
 sed -i s/\"0.0.0\"/\"$(date +%Y).$(date +%-m).$(date +%-d)-$(git rev-parse --abbrev-ref HEAD)$(if [ -n "$4" ]; then echo "+$4"; fi)\"/g src/libxrpl/protocol/BuildInfo.cpp &&
 cd release-build &&
 conan install .. --output-folder . --build missing --settings build_type=$BUILD_TYPE &&
-cmake .. -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_TOOLCHAIN_FILE:FILEPATH=build/generators/conan_toolchain.cmake -DLLVM_DIR=$LLVM_DIR -DWasmEdge_LIB=$WasmEdge_LIB -Dxrpld=TRUE &&
+cmake .. -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_TOOLCHAIN_FILE:FILEPATH=build/generators/conan_toolchain.cmake -DLLVM_DIR=$LLVM_DIR -DWasmEdge_LIB=$WasmEdge_LIB -Dxrpld=TRUE -Dtests=TRUE &&
 ccache -z &&
 make -j$3 &&
 ccache -s &&
