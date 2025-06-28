@@ -191,7 +191,7 @@ SetAccount::preflight(PreflightContext const& ctx)
             return temMALFORMED;
 
         uint16_t scale = tx.getFieldU16(sfHookStateScale);
-        if (scale > 8)  // Max: 8 (256 * 8 = 2048 bytes)
+        if (scale == 0 || scale > 8)  // Min: 1, Max: 8 (256 * 8 = 2048 bytes)
             return temMALFORMED;
     }
 
@@ -235,16 +235,11 @@ SetAccount::preclaim(PreclaimContext const& ctx)
         uint16_t const newScale = ctx.tx.getFieldU16(sfHookStateScale);
         uint16_t const currentScale = sle->getFieldU16(sfHookStateScale);
         uint32_t const stateCount = sle->getFieldU32(sfHookStateCount);
-        printf(
-            "newScale: %d, currentScale: %d, stateCount: %d\n",
-            newScale,
-            currentScale,
-            stateCount);
         if (stateCount > 0 && newScale < currentScale)
         {
             JLOG(ctx.j.trace())
                 << "Cannot decrease HookStateScale if state count is not zero.";
-            return tecINTERNAL;
+            return tecHAS_HOOK_STATE;
         }
     }
 
@@ -624,14 +619,20 @@ SetAccount::doApply()
     if (tx.isFieldPresent(sfHookStateScale))
     {
         uint16_t const scale = tx.getFieldU16(sfHookStateScale);
-        if (scale == 0)
+        uint16_t const oldScale = sle->isFieldPresent(sfHookStateScale)
+            ? sle->getFieldU16(sfHookStateScale)
+            : 1;
+        if (scale == oldScale)
+        {
+            // do nothing
+        }
+        else if (scale == 1)
         {
             sle->makeFieldAbsent(sfHookStateScale);
         }
         else
         {
             // increase OwnerCount
-            uint16_t const oldScale = sle->getFieldU16(sfHookStateScale);
             uint32_t const stateCount = sle->getFieldU32(sfHookStateCount);
             uint32_t const oldOwnerCount = sle->getFieldU32(sfOwnerCount);
 

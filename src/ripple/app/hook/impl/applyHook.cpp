@@ -858,22 +858,6 @@ hook::computeHookStateCount(uint32_t hookStateCount)
     return hookStateCount;
 }
 
-uint32_t
-hook::computeHookStateReserves(Blob hookStateData)
-{
-    if (hookStateData.size() == 0)
-        return 1;
-    return std::floor((hookStateData.size() - 1) / 256) + 1;
-}
-
-uint32_t
-hook::computeHookStateReserves(Slice hookStateData)
-{
-    if (hookStateData.size() == 0)
-        return 1;
-    return std::floor((hookStateData.size() - 1) / 256) + 1;
-}
-
 inline int64_t
 serialize_keylet(
     ripple::Keylet& kl,
@@ -1086,9 +1070,9 @@ hook::setHookState(
         return tefINTERNAL;
 
     // if the blob is too large don't set it
-    uint16_t hookStateScale = 1;
-    if (sleAccount->isFieldPresent(sfHookStateScale))
-        hookStateScale = sleAccount->getFieldU16(sfHookStateScale);
+    uint16_t const hookStateScale = sleAccount->isFieldPresent(sfHookStateScale)
+        ? sleAccount->getFieldU16(sfHookStateScale)
+        : 1;
 
     if (data.size() > hook::maxHookStateDataSize(hookStateScale))
         return temHOOK_DATA_TOO_LARGE;
@@ -1555,8 +1539,7 @@ set_state_cache(
     auto& namespaceCount = std::get<1>(stateMap[acc]);
     auto& hookStateScale = std::get<2>(stateMap[acc]);
     auto& stateMapAcc = std::get<3>(stateMap[acc]);
-    bool const canReserveNew =
-        availableForReserves >= hook::computeHookStateReserves(data);
+    bool const canReserveNew = availableForReserves >= hookStateScale;
 
     if (stateMapAcc.find(ns) == stateMapAcc.end())
     {

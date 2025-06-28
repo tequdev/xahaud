@@ -590,24 +590,32 @@ public:
         env.enableFeature(featureExtendedHookState);
         env.close();
 
-        // set HookStateScale
-        jt[sfHookStateScale.fieldName] = 9;
-        env(jt, ter(temMALFORMED));
-        env.close();
+        // set invalid HookStateScale (0 or > 8)
+        for (uint16_t scale : {0, 9})
+        {
+            jt[sfHookStateScale.fieldName] = scale;
+            env(jt, ter(temMALFORMED));
+        }
 
+        // set HookStateScale to 1
         jt[sfHookStateScale.fieldName] = 1;
         env(jt);
         env.close();
-        BEAST_EXPECT(env.le(alice)->isFieldPresent(sfHookStateScale));
+        BEAST_EXPECT(!env.le(alice)->isFieldPresent(sfHookStateScale));
 
-        // set HookStateScale to 0
-        jt[sfHookStateScale.fieldName] = 0;
+        // set HookStateScale to 8
+        jt[sfHookStateScale.fieldName] = 8;
+        env(jt);
+        env.close();
+        BEAST_EXPECT(env.le(alice)->getFieldU16(sfHookStateScale) == 8);
+
+        // reset HookStateScale
+        jt[sfHookStateScale.fieldName] = 1;
         env(jt);
         env.close();
         BEAST_EXPECT(!env.le(alice)->isFieldPresent(sfHookStateScale));
 
         // test OwnerCount
-
         // This prevents an exception for sfMintedNFTokens when the AccountRoot
         // template is applied.
         {
@@ -635,11 +643,11 @@ public:
         applyCount(5, 10, 100);
 
         // remove, but HookStateCount exists
-        jt[sfHookStateScale.fieldName] = 0;
-        env(jt, ter(tecINTERNAL));
+        jt[sfHookStateScale.fieldName] = 1;
+        env(jt, ter(tecHAS_HOOK_STATE));
         // decrease, but HookStateCount exists
         jt[sfHookStateScale.fieldName] = 4;
-        env(jt, ter(tecINTERNAL));
+        env(jt, ter(tecHAS_HOOK_STATE));
         // increase
         jt[sfHookStateScale.fieldName] = 6;
         env(jt);

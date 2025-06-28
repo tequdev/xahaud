@@ -471,11 +471,6 @@ struct HookContext;
 uint32_t
 computeHookStateCount(uint32_t hookStateCount);
 
-uint32_t
-computeHookStateReserves(Blob hookStateData);
-uint32_t
-computeHookStateReserves(Slice hookStateData);
-
 int64_t
 computeExecutionFee(uint64_t instructionCount);
 int64_t
