@@ -1494,9 +1494,9 @@ set_state_cache(
 
         STAmount bal = accSLE->getFieldAmount(sfBalance);
 
-        uint16_t hookStateScale = 1;
-        if (accSLE->isFieldPresent(sfHookStateScale))
-            hookStateScale = accSLE->getFieldU16(sfHookStateScale);
+        uint16_t const hookStateScale = accSLE->isFieldPresent(sfHookStateScale)
+            ? accSLE->getFieldU16(sfHookStateScale)
+            : 1;
 
         int64_t availableForReserves = bal.xrp().drops() -
             fees.accountReserve(accSLE->getFieldU32(sfOwnerCount)).drops();
@@ -1680,9 +1680,9 @@ DEFINE_HOOK_FUNCTION(
     if (!sleAccount && view.rules().enabled(featureExtendedHookState))
         return tefINTERNAL;
 
-    uint16_t hookStateScale = 1;
-    if (sleAccount->isFieldPresent(sfHookStateScale))
-        hookStateScale = sleAccount->getFieldU16(sfHookStateScale);
+    uint16_t const hookStateScale = sleAccount->isFieldPresent(sfHookStateScale)
+        ? sleAccount->getFieldU16(sfHookStateScale)
+        : 1;
 
     uint32_t maxSize = hook::maxHookStateDataSize(hookStateScale);
     if (read_len > maxSize)
