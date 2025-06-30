@@ -1521,6 +1521,11 @@ set_state_cache(
 
         stateMap.modified_entry_count++;
 
+        // sanity check
+        if (view.rules().enabled(featureExtendedHookState) &&
+            availableForReserves < hookStateScale)
+            return INTERNAL_ERROR;
+
         stateMap[acc] = {
             availableForReserves - hookStateScale,
             namespaceCount,
@@ -1555,6 +1560,10 @@ set_state_cache(
                 namespaceCount++;
             }
 
+            if (view.rules().enabled(featureExtendedHookState) &&
+                availableForReserves < hookStateScale)
+                return INTERNAL_ERROR;
+
             availableForReserves -= hookStateScale;
             stateMap.modified_entry_count++;
         }
@@ -1572,6 +1581,11 @@ set_state_cache(
         {
             if (!canReserveNew)
                 return RESERVE_INSUFFICIENT;
+
+            if (view.rules().enabled(featureExtendedHookState) &&
+                availableForReserves < hookStateScale)
+                return INTERNAL_ERROR;
+
             availableForReserves -= hookStateScale;
             stateMap.modified_entry_count++;
         }
