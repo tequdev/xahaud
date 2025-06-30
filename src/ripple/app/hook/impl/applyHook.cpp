@@ -852,12 +852,6 @@ parseCurrency(uint8_t* cu_ptr, uint32_t cu_len)
         return {};
 }
 
-uint32_t
-hook::computeHookStateCount(uint32_t hookStateCount)
-{
-    return hookStateCount;
-}
-
 inline int64_t
 serialize_keylet(
     ripple::Keylet& kl,

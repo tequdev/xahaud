@@ -468,9 +468,6 @@ apply(
 
 struct HookContext;
 
-uint32_t
-computeHookStateCount(uint32_t hookStateCount);
-
 int64_t
 computeExecutionFee(uint64_t instructionCount);
 int64_t

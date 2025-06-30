@@ -45,10 +45,13 @@ maxHookParameterValueSize(void)
 }
 
 inline uint32_t
-maxHookStateDataSize(uint32_t hookStateScale)
+maxHookStateDataSize(uint16_t hookStateScale)
 {
     if (hookStateScale == 0)
+    {
+        // should not happen, but just in case
         return 256U;
+    }
     return 256U * hookStateScale;
 }
 
