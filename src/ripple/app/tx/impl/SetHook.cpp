@@ -896,7 +896,6 @@ SetHook::destroyNamespace(
 
     } while (cdirNext(view, dirKeylet.key, sleDirNode, uDirEntry, dirEntry));
 
-    uint32_t toDeleteStateCount = 0;
     // delete it!
     for (auto const& itemKey : toDelete)
     {
@@ -912,8 +911,6 @@ SetHook::destroyNamespace(
             continue;
         }
 
-        toDeleteStateCount += 1;
-
         auto const hint = (*sleItem)[sfOwnerNode];
         if (!view.dirRemove(dirKeylet, hint, itemKey, false))
         {
@@ -927,7 +924,7 @@ SetHook::destroyNamespace(
         view.erase(sleItem);
     }
 
-    uint32_t stateCount = oldStateCount - toDeleteStateCount;
+    uint32_t stateCount = oldStateCount - toDelete.size();
     if (stateCount > oldStateCount)
     {
         JLOG(ctx.j.fatal()) << "HookSet(" << hook::log::NSDELETE_COUNT << ")["
@@ -943,7 +940,7 @@ SetHook::destroyNamespace(
         sleAccount->setFieldU32(sfHookStateCount, stateCount);
 
     if (ctx.rules.enabled(fixNSDelete))
-        adjustOwnerCount(view, sleAccount, -toDeleteStateCount * scale, ctx.j);
+        adjustOwnerCount(view, sleAccount, -toDelete.size() * scale, ctx.j);
 
     if (!partialDelete && sleAccount->isFieldPresent(sfHookNamespaces))
         hook::removeHookNamespaceEntry(*sleAccount, ns);
