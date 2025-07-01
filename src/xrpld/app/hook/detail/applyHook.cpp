@@ -496,6 +496,22 @@ getTransactionalStakeHolders(STTx const& tx, ReadView const& rv)
             break;
         }
 
+        case ttCLAWBACK: {
+            auto const amount = tx.getFieldAmount(sfAmount);
+
+            if (amount.holds<MPTIssue>())
+            {
+                if (!tx.isFieldPresent(sfHolder))
+                    return {};
+                auto const holder = tx.getAccountID(sfHolder);
+                ADD_TSH(holder, tshWEAK);
+            }
+            else
+                ADD_TSH(amount.getIssuer(), tshWEAK);
+
+            break;
+        }
+
         default:
             return {};
     }
