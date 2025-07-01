@@ -511,7 +511,19 @@ getTransactionalStakeHolders(STTx const& tx, ReadView const& rv)
 
             break;
         }
-
+        case ttAMM_CREATE:
+        case ttAMM_DEPOSIT:
+        case ttAMM_WITHDRAW:
+        case ttAMM_VOTE:
+        case ttAMM_BID:
+        case ttAMM_DELETE:
+        case ttAMM_CLAWBACK: {
+            break;
+        }
+        case ttORACLE_SET:
+        case ttORACLE_DELETE: {
+            break;
+        }
         default:
             return {};
     }
