@@ -524,8 +524,62 @@ getTransactionalStakeHolders(STTx const& tx, ReadView const& rv)
         case ttORACLE_DELETE: {
             break;
         }
-        default:
-            return {};
+        case ttXCHAIN_CREATE_CLAIM_ID:
+        case ttXCHAIN_COMMIT:
+        case ttXCHAIN_CLAIM:
+        case ttXCHAIN_ACCOUNT_CREATE_COMMIT:
+        case ttXCHAIN_ADD_CLAIM_ATTESTATION:
+        case ttXCHAIN_ADD_ACCOUNT_CREATE_ATTESTATION:
+        case ttXCHAIN_MODIFY_BRIDGE:
+        case ttXCHAIN_CREATE_BRIDGE: {
+            // TODO: Implement if needed
+            break;
+        }
+        case ttDID_SET:
+        case ttDID_DELETE: {
+            // TODO: Implement if needed
+            break;
+        }
+        case ttLEDGER_STATE_FIX: {
+            // TODO: Implement if needed
+            break;
+        }
+        case ttMPTOKEN_ISSUANCE_CREATE:
+        case ttMPTOKEN_ISSUANCE_DESTROY:
+        case ttMPTOKEN_ISSUANCE_SET:
+        case ttMPTOKEN_AUTHORIZE: {
+            // TODO: Implement if needed
+            break;
+        }
+        case ttCREDENTIAL_CREATE:
+        case ttCREDENTIAL_ACCEPT:
+        case ttCREDENTIAL_DELETE: {
+            // TODO: Implement if needed
+            break;
+        }
+        case ttNFTOKEN_MODIFY: {
+            // TODO: Implement if needed
+            break;
+        }
+        case ttPERMISSIONED_DOMAIN_SET:
+        case ttPERMISSIONED_DOMAIN_DELETE: {
+            // TODO: Implement if needed
+            break;
+        }
+        case ttREMARKS_SET: {
+            break;
+        }
+        // pseudo transactions
+        case ttAMENDMENT:
+        case ttFEE:
+        case ttUNL_MODIFY:
+        case ttEMIT_FAILURE:
+        case ttUNL_REPORT: {
+            break;
+        }
+        default: {
+            UNREACHABLE("Unknown transaction type");
+        }
     }
 
     std::vector<std::pair<AccountID, bool>> ret{tshEntries.size()};
