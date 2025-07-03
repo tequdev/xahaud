@@ -2055,19 +2055,20 @@ Transactor::operator()()
         hook::HookStateMap stateMap;
         std::vector<hook::HookResult> weakResults;
 
-        if (!view().rules().enabled(featureIOUIssuerWeakTSH))
-        {
-            // before amendment enabled, we need to get TSHs after txn basic
-            // processing If the object is deleted in cancen txn, it may not be
-            // possible to obtain the appropriate TSH.
-            tsh = hook::getTransactionalStakeHolders(ctx_.tx, ctx_.view());
-        }
-        else
+        if (view().rules().enabled(featureIOUIssuerWeakTSH))
         {
             // Regardless of the transaction type, if the result changes the
             // trust line balance, add high and low accounts to weakTSH.
             ApplyViewImpl& avi = dynamic_cast<ApplyViewImpl&>(ctx_.view());
             addWeakTSHFromBalanceChanges(avi);
+        }
+
+        if (!view().rules().enabled(featureIOUIssuerWeakTSH))
+        {
+            // before amendment enabled, we need to get TSHs after txn basic
+            // processing If the object is deleted in cancen txn, it may not
+            // be possible to obtain the appropriate TSH.
+            tsh = hook::getTransactionalStakeHolders(ctx_.tx, ctx_.view());
         }
 
         doTSH(false, tsh, stateMap, weakResults, proMeta);
