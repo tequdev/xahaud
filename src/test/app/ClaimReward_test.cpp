@@ -346,6 +346,11 @@ struct ClaimReward_test : public beast::unit_test::suite
                 reward::claimCurrency(USD),
                 ter(temMALFORMED));
         }
+
+        // MPT
+        {
+            // tested in testMPTInvalidInTx() at MPToken_test.cpp
+        }
     }
 
     void

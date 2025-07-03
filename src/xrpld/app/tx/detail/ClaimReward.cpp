@@ -65,12 +65,17 @@ ClaimReward::preflight(PreflightContext const& ctx)
         if (!ctx.rules.enabled(featureIOURewardClaim))
             return temDISABLED;
 
-        auto const claimCurrency = ctx.tx[sfClaimCurrency];
-        if (claimCurrency.account == beast::zero ||
-            isXRP(claimCurrency.currency))
+        auto const claimAsset = ctx.tx[sfClaimCurrency];
+        bool const isMPT = claimAsset.holds<MPTIssue>();
+
+        if (isMPT)
             return temMALFORMED;
 
-        if (claimCurrency.account == ctx.tx.getAccountID(sfAccount))
+        auto const claimIssue = claimAsset.get<Issue>();
+        if (claimIssue.account == beast::zero || isXRP(claimIssue.currency))
+            return temMALFORMED;
+
+        if (claimIssue.account == ctx.tx.getAccountID(sfAccount))
             return temMALFORMED;
 
         if (ctx.tx.isFieldPresent(sfIssuer))
@@ -111,8 +116,15 @@ ClaimReward::preclaim(PreclaimContext const& ctx)
     if (ctx.tx.isFieldPresent(sfClaimCurrency))
     {
         auto const claimCurrency = ctx.tx[sfClaimCurrency];
-        if (!ctx.view.exists(keylet::line(
-                id, claimCurrency.account, claimCurrency.currency)))
+        bool const isMPT = claimCurrency.holds<MPTIssue>();
+
+        if (isMPT)
+            return tecINTERNAL;
+
+        auto const claimIssue = claimCurrency.get<Issue>();
+
+        if (!ctx.view.exists(
+                keylet::line(id, claimIssue.account, claimIssue.currency)))
             return tecNO_LINE;
     }
     return tesSUCCESS;
@@ -143,9 +155,16 @@ ClaimReward::doApply()
     if (ctx_.tx.isFieldPresent(sfClaimCurrency))
     {
         auto const claimCurrency = ctx_.tx[sfClaimCurrency];
-        auto lineSle = view().peek(keylet::line(
-            account_, claimCurrency.account, claimCurrency.currency));
-        bool const isHigh = account_ > claimCurrency.account;
+        bool const isMPT = claimCurrency.holds<MPTIssue>();
+
+        if (isMPT)
+            return tecINTERNAL;
+
+        auto const claimIssue = claimCurrency.get<Issue>();
+
+        auto lineSle = view().peek(
+            keylet::line(account_, claimIssue.account, claimIssue.currency));
+        bool const isHigh = account_ > claimIssue.account;
         auto const& rewardField = isHigh ? sfHighReward : sfLowReward;
         auto const& rewardAccumulatorField =
             lineSle->getFieldAmount(isHigh ? sfHighLimit : sfLowLimit).zeroed();
