@@ -72,7 +72,6 @@ getTransactionalStakeHolders(STTx const& tx, ReadView const& rv)
 
     bool const fixV1 = rv.rules().enabled(fixXahauV1);
     bool const fixV2 = rv.rules().enabled(fixXahauV2);
-    bool const iouIssuerWeakTSH = rv.rules().enabled(featureIOUIssuerWeakTSH);
 
     switch (tt)
     {
@@ -112,21 +111,6 @@ getTransactionalStakeHolders(STTx const& tx, ReadView const& rv)
                     }
                 }
             }
-
-            if (iouIssuerWeakTSH && tx.isFieldPresent(sfAmounts))
-            {
-                STArray const& sEntries(tx.getFieldArray(sfAmounts));
-                for (STObject const& sEntry : sEntries)
-                {
-                    STAmount const amount = sEntry.getFieldAmount(sfAmount);
-
-                    if (!isXRP(amount))
-                    {
-                        ADD_TSH(amount.getIssuer(), tshWEAK);
-                        continue;
-                    }
-                }
-            }
             break;
         }
 
@@ -147,20 +131,11 @@ getTransactionalStakeHolders(STTx const& tx, ReadView const& rv)
 
             auto const owner = ut->getAccountID(sfOwner);
             auto const issuer = ut->getAccountID(sfIssuer);
-            std::optional<STAmount> amount;
-            if (ut->isFieldPresent(sfAmount))
-                amount = ut->getFieldAmount(sfAmount);
 
             // three possible burn scenarios:
             //  the burner is the owner and issuer of the token
             //  the burner is the owner and not the issuer of the token
             //  the burner is the issuer and not the owner of the token
-
-            if (iouIssuerWeakTSH && amount)
-            {
-                if (!isXRP(*amount))
-                    ADD_TSH(amount->getIssuer(), tshWEAK);
-            }
 
             if (issuer == owner)
                 break;
@@ -222,13 +197,6 @@ getTransactionalStakeHolders(STTx const& tx, ReadView const& rv)
                     issuer,
                     (ut->getFlags() & lsfBurnable) ? tshSTRONG : tshWEAK);
 
-            if (iouIssuerWeakTSH)
-            {
-                STAmount const amount = ut->getFieldAmount(sfAmount);
-                if (!isXRP(amount))
-                    ADD_TSH(amount.getIssuer(), tshWEAK);
-            }
-
             break;
         }
 
@@ -236,13 +204,6 @@ getTransactionalStakeHolders(STTx const& tx, ReadView const& rv)
             // destination is a strong tsh
             if (fixV2 && tx.isFieldPresent(sfDestination))
                 ADD_TSH(tx.getAccountID(sfDestination), tshSTRONG);
-
-            if (iouIssuerWeakTSH && tx.isFieldPresent(sfAmount))
-            {
-                STAmount const amount = tx.getFieldAmount(sfAmount);
-                if (!isXRP(amount))
-                    ADD_TSH(amount.getIssuer(), tshWEAK);
-            }
             break;
         }
 
@@ -262,13 +223,6 @@ getTransactionalStakeHolders(STTx const& tx, ReadView const& rv)
             {
                 auto const dest = ut->getAccountID(sfDestination);
                 ADD_TSH(dest, tshWEAK);
-            }
-
-            if (iouIssuerWeakTSH && ut->isFieldPresent(sfAmount))
-            {
-                STAmount const amount = ut->getFieldAmount(sfAmount);
-                if (!isXRP(amount))
-                    ADD_TSH(amount.getIssuer(), tshWEAK);
             }
             break;
         }
@@ -294,20 +248,6 @@ getTransactionalStakeHolders(STTx const& tx, ReadView const& rv)
             // destination is a strong tsh
             if (tx.isFieldPresent(sfDestination))
                 ADD_TSH(tx.getAccountID(sfDestination), tshSTRONG);
-
-            if (iouIssuerWeakTSH)
-            {
-                if (ut->isFieldPresent(sfAmount))
-                {
-                    STAmount const prevAmount = ut->getFieldAmount(sfAmount);
-                    if (!isXRP(prevAmount))
-                        ADD_TSH(prevAmount.getIssuer(), tshWEAK);
-                }
-
-                STAmount const newAmount = tx.getFieldAmount(sfAmount);
-                if (!isXRP(newAmount))
-                    ADD_TSH(newAmount.getIssuer(), tshWEAK);
-            }
 
             break;
         }
@@ -340,17 +280,6 @@ getTransactionalStakeHolders(STTx const& tx, ReadView const& rv)
             ADD_TSH(issuer, issuerCanRollback);
             if (hasOwner)
                 ADD_TSH(owner, tshWEAK);
-
-            if (tt == ttNFTOKEN_CREATE_OFFER)
-            {
-                if (iouIssuerWeakTSH)
-                {
-                    STAmount const amount = tx.getFieldAmount(sfAmount);
-                    if (!isXRP(amount))
-                        ADD_TSH(amount.getIssuer(), tshWEAK);
-                }
-            }
-
             break;
         }
 
@@ -372,12 +301,6 @@ getTransactionalStakeHolders(STTx const& tx, ReadView const& rv)
                 ADD_TSH(bo->getAccountID(sfOwner), tshSTRONG);
                 if (bo->isFieldPresent(sfDestination))
                     ADD_TSH(bo->getAccountID(sfDestination), tshSTRONG);
-                if (iouIssuerWeakTSH)
-                {
-                    STAmount const amount = bo->getFieldAmount(sfAmount);
-                    if (!isXRP(amount))
-                        ADD_TSH(amount.getIssuer(), tshWEAK);
-                }
             }
 
             if (so)
@@ -385,20 +308,6 @@ getTransactionalStakeHolders(STTx const& tx, ReadView const& rv)
                 ADD_TSH(so->getAccountID(sfOwner), tshSTRONG);
                 if (so->isFieldPresent(sfDestination))
                     ADD_TSH(so->getAccountID(sfDestination), tshSTRONG);
-                if (iouIssuerWeakTSH)
-                {
-                    STAmount const amount = so->getFieldAmount(sfAmount);
-                    if (!isXRP(amount))
-                        ADD_TSH(amount.getIssuer(), tshWEAK);
-                }
-            }
-
-            if (iouIssuerWeakTSH)
-            {
-                STAmount const amount =
-                    (bo ? bo : so)->getFieldAmount(sfAmount);
-                if (!isXRP(amount))
-                    ADD_TSH(amount.getIssuer(), tshWEAK);
             }
 
             break;
@@ -423,12 +332,6 @@ getTransactionalStakeHolders(STTx const& tx, ReadView const& rv)
                     uint256 nid = offer->getFieldH256(sfNFTokenID);
                     auto const issuer = nft::getIssuer(nid);
                     ADD_TSH(issuer, tshWEAK);
-                    if (iouIssuerWeakTSH)
-                    {
-                        STAmount const amount = offer->getFieldAmount(sfAmount);
-                        if (!isXRP(amount))
-                            ADD_TSH(amount.getIssuer(), tshWEAK);
-                    }
                 }
             }
             break;
@@ -439,8 +342,7 @@ getTransactionalStakeHolders(STTx const& tx, ReadView const& rv)
         case ttOFFER_CANCEL:
         case ttTICKET_CREATE:
         case ttHOOK_SET:
-        case ttOFFER_CREATE:  // this is handled seperately
-        {
+        case ttOFFER_CREATE: {
             break;
         }
 
@@ -459,38 +361,14 @@ getTransactionalStakeHolders(STTx const& tx, ReadView const& rv)
         }
 
         // simple two party transactions
-        case ttPAYMENT:  // this is handled seperately
+        case ttPAYMENT:
+        case ttESCROW_CREATE:
+        case ttCHECK_CREATE:
         case ttACCOUNT_DELETE:
+        case ttPAYCHAN_CREATE:
         case ttINVOKE: {
             if (destAcc)
                 ADD_TSH(*destAcc, tshSTRONG);
-            break;
-        }
-
-        case ttESCROW_CREATE:
-        case ttPAYCHAN_CREATE: {
-            if (destAcc)
-                ADD_TSH(*destAcc, tshSTRONG);
-
-            if (iouIssuerWeakTSH)
-            {
-                auto const amount = tx.getFieldAmount(sfAmount);
-                if (!isXRP(amount))
-                    ADD_TSH(amount.getIssuer(), tshWEAK);
-            }
-            break;
-        }
-
-        case ttCHECK_CREATE: {
-            if (destAcc)
-                ADD_TSH(*destAcc, tshSTRONG);
-
-            if (iouIssuerWeakTSH)
-            {
-                auto const amount = tx.getFieldAmount(sfSendMax);
-                if (!isXRP(amount))
-                    ADD_TSH(amount.getIssuer(), tshWEAK);
-            }
             break;
         }
 
@@ -542,13 +420,6 @@ getTransactionalStakeHolders(STTx const& tx, ReadView const& rv)
                 if (src != dst)
                     ADD_TSH(dst, tt == ttESCROW_FINISH ? tshSTRONG : tshWEAK);
 
-                if (iouIssuerWeakTSH)
-                {
-                    auto const amount = escrow->getFieldAmount(sfAmount);
-                    if (!isXRP(amount))
-                        ADD_TSH(amount.getIssuer(), tshWEAK);
-                }
-
                 break;
             }
             // old logic
@@ -567,13 +438,6 @@ getTransactionalStakeHolders(STTx const& tx, ReadView const& rv)
                 ADD_TSH(
                     escrow->getAccountID(sfDestination),
                     tt == ttESCROW_FINISH ? tshSTRONG : tshWEAK);
-
-                if (iouIssuerWeakTSH)
-                {
-                    auto const amount = escrow->getFieldAmount(sfAmount);
-                    if (!isXRP(amount))
-                        ADD_TSH(amount.getIssuer(), tshWEAK);
-                }
                 break;
             }
         }
@@ -589,13 +453,6 @@ getTransactionalStakeHolders(STTx const& tx, ReadView const& rv)
 
             ADD_TSH(chan->getAccountID(sfAccount), tshSTRONG);
             ADD_TSH(chan->getAccountID(sfDestination), tshWEAK);
-
-            if (iouIssuerWeakTSH)
-            {
-                auto const amount = chan->getFieldAmount(sfAmount);
-                if (!isXRP(amount))
-                    ADD_TSH(amount.getIssuer(), tshWEAK);
-            }
             break;
         }
 
@@ -610,15 +467,6 @@ getTransactionalStakeHolders(STTx const& tx, ReadView const& rv)
 
             ADD_TSH(check->getAccountID(sfAccount), tshSTRONG);
             ADD_TSH(check->getAccountID(sfDestination), tshWEAK);
-
-            if (iouIssuerWeakTSH)
-            {
-                // ttCHECK_CASH have sfAmount optionally but only check
-                // check object
-                auto const amount = check->getFieldAmount(sfSendMax);
-                if (!isXRP(amount))
-                    ADD_TSH(amount.getIssuer(), tshWEAK);
-            }
             break;
         }
 

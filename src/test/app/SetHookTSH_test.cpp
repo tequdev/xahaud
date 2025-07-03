@@ -1009,53 +1009,6 @@ private:
             // verify tsh hook triggered
             testTSHStrongWeak(env, tshSTRONG, __LINE__);
         }
-
-        // otxn: account
-        // tsh amount issuer
-        // w/s: weak
-        for (bool const testStrong : {true, false})
-        {
-            test::jtx::Env env{
-                *this,
-                network::makeNetworkConfig(21337, "10", "1000000", "200000"),
-                features};
-
-            bool const withIOUIssuerWeakTSH =
-                env.current()->rules().enabled(featureIOUIssuerWeakTSH);
-
-            auto const account = Account("alice");
-            auto const dest = Account("bob");
-            auto const gw = Account("gw");
-            auto const USD = gw["USD"];
-            env.fund(XRP(1000), account, dest, gw);
-            env.close();
-
-            // create check
-            uint256 const checkId{getCheckIndex(account, env.seq(account))};
-            env(check::create(account, dest, USD(100)), ter(tesSUCCESS));
-            env.close();
-
-            // set tsh collect
-            if (!testStrong)
-                addWeakTSH(env, gw);
-
-            // set tsh hook
-            setTSHHook(env, gw, testStrong);
-
-            // cancel check
-            env(check::cancel(account, checkId), fee(XRP(1)), ter(tesSUCCESS));
-            env.close();
-
-            // verify tsh hook triggered
-            if (withIOUIssuerWeakTSH && !testStrong)
-            {
-                testTSHStrongWeak(env, tshWEAK, __LINE__);
-            }
-            else
-            {
-                testTSHStrongWeak(env, tshNONE, __LINE__);
-            }
-        }
     }
 
     void
@@ -1128,53 +1081,6 @@ private:
 
             // verify tsh hook triggered
             testTSHStrongWeak(env, tshSTRONG, __LINE__);
-        }
-
-        // otxn: account
-        // tsh amount issuer
-        // w/s: weak
-        for (bool const testStrong : {true, false})
-        {
-            test::jtx::Env env{
-                *this,
-                network::makeNetworkConfig(21337, "10", "1000000", "200000"),
-                features};
-
-            bool const withIOUIssuerWeakTSH =
-                env.current()->rules().enabled(featureIOUIssuerWeakTSH);
-
-            auto const account = Account("alice");
-            auto const dest = Account("bob");
-            auto const gw = Account("gw");
-            auto const USD = gw["USD"];
-            env.fund(XRP(1000), account, dest, gw);
-            env.close();
-            env.trust(USD(10'000), account);
-            env.trust(USD(10'000), dest);
-            env.close();
-            env(pay(gw, account, USD(10'000)));
-            env.close();
-
-            // set tsh collect
-            if (!testStrong)
-                addWeakTSH(env, gw);
-
-            // set tsh hook
-            setTSHHook(env, gw, testStrong);
-
-            // create check
-            env(check::create(account, dest, USD(100)), ter(tesSUCCESS));
-            env.close();
-
-            // verify tsh hook triggered
-            if (withIOUIssuerWeakTSH && !testStrong)
-            {
-                testTSHStrongWeak(env, tshWEAK, __LINE__);
-            }
-            else
-            {
-                testTSHStrongWeak(env, tshNONE, __LINE__);
-            }
         }
     }
 
@@ -3213,9 +3119,10 @@ private:
             bool const withIOUIssuerWeakTSH =
                 env.current()->rules().enabled(featureIOUIssuerWeakTSH);
 
-            auto const account = Account("alice");
+            auto const account = Account("carol");
             auto const cross = Account("bob");
-            auto const gw = Account{"gateway"};
+            auto const gw = Account{"alice"};
+
             auto const USD = gw["USD"];
             env.fund(XRP(1000), account, cross, gw);
             env.close();
@@ -3225,7 +3132,7 @@ private:
             env(pay(gw, cross, USD(10000)));
             env.close();
 
-            // gw create offer
+            // cross create offer
             env(offer(cross, XRP(1000), USD(1000)));
             env.close();
 
@@ -3243,16 +3150,8 @@ private:
             env.close();
 
             // verify tsh hook triggered
-            if (withIOUIssuerWeakTSH)
-            {
-                auto const expected = testStrong ? tshNONE : tshWEAK;
-                testTSHStrongWeak(env, expected, __LINE__);
-            }
-            else
-            {
-                auto const expected = testStrong ? tshNONE : tshWEAK;
-                testTSHStrongWeak(env, expected, __LINE__);
-            }
+            auto const expected = testStrong ? tshNONE : tshWEAK;
+            testTSHStrongWeak(env, expected, __LINE__);
         }
     }
 
@@ -3381,9 +3280,6 @@ private:
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
 
-            bool const withIOUIssuerWeakTSH =
-                env.current()->rules().enabled(featureIOUIssuerWeakTSH);
-
             auto const account = Account("alice");
             auto const cross = Account("bob");
             auto const dest = Account("carol");
@@ -3410,16 +3306,8 @@ private:
             env.close();
 
             // verify tsh hook triggered
-            if (withIOUIssuerWeakTSH)
-            {
-                auto const expected = testStrong ? tshNONE : tshWEAK;
-                testTSHStrongWeak(env, expected, __LINE__);
-            }
-            else
-            {
-                auto const expected = testStrong ? tshNONE : tshWEAK;
-                testTSHStrongWeak(env, expected, __LINE__);
-            }
+            auto const expected = testStrong ? tshNONE : tshWEAK;
+            testTSHStrongWeak(env, expected, __LINE__);
         }
     }
 
@@ -4507,58 +4395,6 @@ private:
                        : (testStrong ? tshNONE : tshNONE));
             testTSHStrongWeak(env, expected, __LINE__);
         }
-
-        // otxn: issuer
-        // flag: burnable
-        // tsh amount issuer
-        // w/s: strong
-        for (bool const testStrong : {true, false})
-        {
-            test::jtx::Env env{
-                *this,
-                network::makeNetworkConfig(21337, "10", "1000000", "200000"),
-                features};
-
-            bool const withIOUIssuerWeakTSH =
-                env.current()->rules().enabled(featureIOUIssuerWeakTSH);
-
-            auto const issuer = Account("alice");
-            auto const buyer = Account("carol");
-            auto const gw = Account("gw");
-            auto const USD = gw["USD"];
-            env.fund(XRP(1000), issuer, buyer, gw);
-            env.close();
-
-            std::string const uri(2, '?');
-            auto const tid = uritoken::tokenid(issuer, uri);
-            std::string const hexid{strHex(tid)};
-
-            // set tsh collect
-            if (!testStrong)
-                addWeakTSH(env, gw);
-
-            // set tsh hook
-            setTSHHook(env, gw, testStrong);
-
-            // mint uritoken
-            env(uritoken::mint(issuer, uri),
-                uritoken::dest(buyer),
-                uritoken::amt(USD(1)),
-                fee(XRP(1)),
-                txflags(tfBurnable),
-                ter(tesSUCCESS));
-            env.close();
-
-            // verify tsh hook triggered
-            if (withIOUIssuerWeakTSH && !testStrong)
-            {
-                testTSHStrongWeak(env, tshWEAK, __LINE__);
-            }
-            else
-            {
-                testTSHStrongWeak(env, tshNONE, __LINE__);
-            }
-        }
     }
 
     void
@@ -4885,60 +4721,6 @@ private:
 
             // verify tsh hook triggered
             testTSHStrongWeak(env, tshSTRONG, __LINE__);
-        }
-
-        // otxn: issuer
-        // flag: not burnable
-        // tsh amount issuer
-        // w/s: strong
-        for (bool const testStrong : {true, false})
-        {
-            test::jtx::Env env{
-                *this,
-                network::makeNetworkConfig(21337, "10", "1000000", "200000"),
-                features};
-
-            bool const withIOUIssuerWeakTSH =
-                env.current()->rules().enabled(featureIOUIssuerWeakTSH);
-
-            auto const issuer = Account("alice");
-            auto const owner = Account("bob");
-            auto const gw = Account("gw");
-            auto const USD = gw["USD"];
-            env.fund(XRP(1000), issuer, owner, gw);
-            env.close();
-
-            std::string const uri(2, '?');
-            auto const tid = uritoken::tokenid(issuer, uri);
-            std::string const hexid{strHex(tid)};
-
-            // mint uritoken
-            env(uritoken::mint(issuer, uri),
-                uritoken::dest(owner),
-                uritoken::amt(USD(1)),
-                ter(tesSUCCESS));
-            env.close();
-
-            // set tsh collect
-            if (!testStrong)
-                addWeakTSH(env, gw);
-
-            // set tsh hook
-            setTSHHook(env, gw, testStrong);
-
-            // ttURITOKEN_BURN
-            env(uritoken::burn(issuer, hexid), fee(XRP(1)), ter(tesSUCCESS));
-            env.close();
-
-            // verify tsh hook triggered
-            if (withIOUIssuerWeakTSH && !testStrong)
-            {
-                testTSHStrongWeak(env, tshWEAK, __LINE__);
-            }
-            else
-            {
-                testTSHStrongWeak(env, tshNONE, __LINE__);
-            }
         }
     }
 
@@ -5504,80 +5286,6 @@ private:
             // verify tsh hook triggered
             testTSHStrongWeak(env, tshSTRONG, __LINE__);
         }
-
-        // otxn: owner
-        // flag: not burnable
-        // tsh amount issuer
-        // w/s: strong
-        for (bool const testStrong : {true, false})
-        {
-            test::jtx::Env env{
-                *this,
-                network::makeNetworkConfig(21337, "10", "1000000", "200000"),
-                features};
-
-            bool const withIOUIssuerWeakTSH =
-                env.current()->rules().enabled(featureIOUIssuerWeakTSH);
-
-            auto const issuer = Account("alice");
-            auto const owner = Account("bob");
-            auto const buyer = Account("carol");
-            auto const gw = Account("gw");
-            auto const USD = gw["USD"];
-            env.fund(XRP(1000), issuer, owner, buyer, gw);
-            env.close();
-
-            env(remit::remit(gw, owner),
-                remit::amts({USD(100)}),
-                fee(XRP(1)),
-                ter(tesSUCCESS));
-            env.close();
-
-            std::string const uri(2, '?');
-            auto const tid = uritoken::tokenid(issuer, uri);
-            std::string const hexid{strHex(tid)};
-
-            // mint uritoken
-            env(uritoken::mint(issuer, uri),
-                uritoken::dest(owner),
-                uritoken::amt(USD(1)),
-                ter(tesSUCCESS));
-            env.close();
-
-            // buy uritoken
-            env(uritoken::buy(owner, hexid),
-                uritoken::amt(USD(1)),
-                ter(tesSUCCESS));
-            env.close();
-
-            // sell uritoken
-            env(uritoken::sell(owner, hexid),
-                uritoken::dest(buyer),
-                uritoken::amt(USD(1)),
-                ter(tesSUCCESS));
-            env.close();
-
-            // set tsh collect
-            if (!testStrong)
-                addWeakTSH(env, gw);
-
-            // set tsh hook
-            setTSHHook(env, gw, testStrong);
-
-            // cancel uritoken
-            env(uritoken::cancel(owner, hexid), fee(XRP(1)), ter(tesSUCCESS));
-            env.close();
-
-            // verify tsh hook triggered
-            if (withIOUIssuerWeakTSH && !testStrong)
-            {
-                testTSHStrongWeak(env, tshWEAK, __LINE__);
-            }
-            else
-            {
-                testTSHStrongWeak(env, tshNONE, __LINE__);
-            }
-        }
     }
 
     void
@@ -5907,120 +5615,6 @@ private:
 
             // verify tsh hook triggered
             testTSHStrongWeak(env, tshSTRONG, __LINE__);
-        }
-
-        // otxn: issuer
-        // flag: not burnable
-        // tsh amount issuer (prev)
-        // w/s: weak
-        for (bool const testStrong : {true, false})
-        {
-            test::jtx::Env env{
-                *this,
-                network::makeNetworkConfig(21337, "10", "1000000", "200000"),
-                features};
-
-            bool const withIOUIssuerWeakTSH =
-                env.current()->rules().enabled(featureIOUIssuerWeakTSH);
-
-            auto const issuer = Account("alice");
-            auto const owner = Account("bob");
-            auto const buyer = Account("carol");
-            auto const gw = Account("gw");
-            auto const USD = gw["USD"];
-            env.fund(XRP(1000), issuer, owner, buyer, gw);
-            env.close();
-
-            std::string const uri(2, '?');
-            auto const tid = uritoken::tokenid(issuer, uri);
-            std::string const hexid{strHex(tid)};
-
-            // mint uritoken
-            env(uritoken::mint(issuer, uri),
-                uritoken::amt(USD(1)),
-                ter(tesSUCCESS));
-            env.close();
-
-            // set tsh collect
-            if (!testStrong)
-                addWeakTSH(env, gw);
-
-            // set tsh hook
-            setTSHHook(env, gw, testStrong);
-
-            // sell uritoken
-            env(uritoken::sell(issuer, hexid),
-                uritoken::dest(buyer),
-                uritoken::amt(XRP(1)),
-                fee(XRP(1)),
-                ter(tesSUCCESS));
-            env.close();
-
-            // verify tsh hook triggere
-            if (withIOUIssuerWeakTSH && !testStrong)
-            {
-                testTSHStrongWeak(env, tshWEAK, __LINE__);
-            }
-            else
-            {
-                testTSHStrongWeak(env, tshNONE, __LINE__);
-            }
-        }
-
-        // otxn: issuer
-        // flag: not burnable
-        // tsh amount issuer (new)
-        // w/s: weak
-        for (bool const testStrong : {true, false})
-        {
-            test::jtx::Env env{
-                *this,
-                network::makeNetworkConfig(21337, "10", "1000000", "200000"),
-                features};
-
-            bool const withIOUIssuerWeakTSH =
-                env.current()->rules().enabled(featureIOUIssuerWeakTSH);
-
-            auto const issuer = Account("alice");
-            auto const owner = Account("bob");
-            auto const buyer = Account("carol");
-            auto const gw = Account("gw");
-            auto const USD = gw["USD"];
-            env.fund(XRP(1000), issuer, owner, buyer, gw);
-            env.close();
-
-            std::string const uri(2, '?');
-            auto const tid = uritoken::tokenid(issuer, uri);
-            std::string const hexid{strHex(tid)};
-
-            // mint uritoken
-            env(uritoken::mint(issuer, uri), ter(tesSUCCESS));
-            env.close();
-
-            // set tsh collect
-            if (!testStrong)
-                addWeakTSH(env, gw);
-
-            // set tsh hook
-            setTSHHook(env, gw, testStrong);
-
-            // sell uritoken
-            env(uritoken::sell(issuer, hexid),
-                uritoken::dest(buyer),
-                uritoken::amt(USD(1)),
-                fee(XRP(1)),
-                ter(tesSUCCESS));
-            env.close();
-
-            // verify tsh hook triggere
-            if (withIOUIssuerWeakTSH && !testStrong)
-            {
-                testTSHStrongWeak(env, tshWEAK, __LINE__);
-            }
-            else
-            {
-                testTSHStrongWeak(env, tshNONE, __LINE__);
-            }
         }
     }
 

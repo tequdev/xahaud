@@ -1477,15 +1477,15 @@ Transactor::doHookCallback(
 }
 
 void
-Transactor::addWeakTSHFromSandbox(detail::ApplyViewBase const& pv)
+Transactor::addWeakTSHFromBalanceChanges(detail::ApplyViewBase const& pv)
 {
     // If Hooks are enabled then non-issuers who have their TL balance
-    // modified by the execution of the path have the opportunity to have their
-    // weak hooks executed.
+    // modified by the execution of the transaction have the opportunity to have
+    // their weak hooks executed.
     if (ctx_.view().rules().enabled(featureHooks))
     {
-        // anyone whose balance changed as a result of this Pathing is a weak
-        // TSH
+        // anyone whose balance changed as a result of transaction processing is
+        // a weak TSH
         auto bc = pv.balanceChanges(view());
 
         for (auto const& entry : bc)
@@ -1497,18 +1497,8 @@ Transactor::addWeakTSHFromSandbox(detail::ApplyViewBase const& pv)
 
             AccountID const& lowAcc = std::get<0>(tpl);
             AccountID const& highAcc = std::get<1>(tpl);
-
             STAmount const& amt = entry.second;
-            AccountID const& acc1 = amt >= beast::zero ? lowAcc : highAcc;
-            AccountID const& acc2 = amt >= beast::zero ? highAcc : lowAcc;
-
-            // amt represents the difference in balance, so it cannot be used to
-            // determine the issuer/holder.
-            // featureIOUIssuerWeakTSH resolves this issue by treating both as
-            // weakTSH.
-            additionalWeakTSH_.emplace(acc1);
-            if (ctx_.view().rules().enabled(featureIOUIssuerWeakTSH))
-                additionalWeakTSH_.emplace(acc2);
+            additionalWeakTSH_.emplace(amt >= beast::zero ? lowAcc : highAcc);
         }
     }
 }
@@ -2071,6 +2061,13 @@ Transactor::operator()()
             // processing If the object is deleted in cancen txn, it may not be
             // possible to obtain the appropriate TSH.
             tsh = hook::getTransactionalStakeHolders(ctx_.tx, ctx_.view());
+        }
+        else
+        {
+            // Regardless of the transaction type, if the result changes the
+            // trust line balance, add high and low accounts to weakTSH.
+            ApplyViewImpl& avi = dynamic_cast<ApplyViewImpl&>(ctx_.view());
+            addWeakTSHFromBalanceChanges(avi);
         }
 
         doTSH(false, tsh, stateMap, weakResults, proMeta);

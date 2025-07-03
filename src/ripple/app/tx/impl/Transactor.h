@@ -214,7 +214,7 @@ protected:
         std::shared_ptr<STObject const> const& provisionalMeta);
 
     void
-    addWeakTSHFromSandbox(detail::ApplyViewBase const& pv);
+    addWeakTSHFromBalanceChanges(detail::ApplyViewBase const& pv);
 
     // hooks amendment fields, these are unpopulated and unused unless
     // featureHooks is enabled
