@@ -65,7 +65,7 @@ then
     sed -i "s/#include <ripple\/net\/RegisterSSLCerts.h>/\0\n#include <certs\/certbundle.h>/g" src/ripple/net/impl/RegisterSSLCerts.cpp
 fi
 # Environment setup moved to Dockerfile in release-builder.sh
-source /opt/rh/gcc-toolset-10/enable
+source /opt/rh/gcc-toolset-11/enable
 export PATH=/usr/local/bin:$PATH
 export CC='ccache gcc' &&
 export CXX='ccache g++' &&

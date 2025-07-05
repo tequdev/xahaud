@@ -38,14 +38,18 @@ add_library (wasmedge::wasmedge ALIAS wasmedge)
 message(\"WasmEdge DONE\")
 " > Builds/CMake/deps/WasmEdge.cmake &&
 
+export LDFLAGS="-static-libgcc -static-libstdc++ -lstdc++ -lm"
+export CMAKE_EXE_LINKER_FLAGS="-static-libgcc -static-libstdc++ -lstdc++ -lm"
+export CMAKE_SHARED_LINKER_FLAGS="-static-libgcc -static-libstdc++ -lstdc++ -lm"
+
 git config --global --add safe.directory /io &&
 git checkout src/ripple/protocol/impl/BuildInfo.cpp &&
 sed -i s/\"0.0.0\"/\"$(date +%Y).$(date +%-m).$(date +%-d)-$(git rev-parse --abbrev-ref HEAD)$(if [ -n "$4" ]; then echo "+$4"; fi)\"/g src/ripple/protocol/impl/BuildInfo.cpp &&
 cd release-build &&
 conan install .. --output-folder . --build missing --settings build_type=$BUILD_TYPE &&
-cmake .. -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_TOOLCHAIN_FILE:FILEPATH=build/generators/conan_toolchain.cmake -DLLVM_DIR=$LLVM_DIR -DWasmEdge_LIB=$WasmEdge_LIB &&
+cmake .. -G Ninja -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_TOOLCHAIN_FILE:FILEPATH=build/generators/conan_toolchain.cmake -DLLVM_DIR=$LLVM_DIR -DWasmEdge_LIB=$WasmEdge_LIB -Dxrpld=TRUE -Dtests=TRUE &&
 ccache -z &&
-make -j$3 &&
+ninja -j $3 &&
 ccache -s &&
 strip -s rippled &&	
 mv rippled xahaud &&
@@ -74,5 +78,7 @@ cd ..;
 
 mv src/ripple/net/impl/RegisterSSLCerts.cpp.old src/ripple/net/impl/RegisterSSLCerts.cpp;
 mv Builds/CMake/deps/WasmEdge.old Builds/CMake/deps/WasmEdge.cmake;
+rm src/certs/certbundle.h;
+git checkout src/ripple/protocol/impl/BuildInfo.cpp
 
 echo "END INSIDE CONTAINER - CORE"
