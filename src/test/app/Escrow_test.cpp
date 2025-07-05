@@ -4021,7 +4021,87 @@ struct Escrow_test : public beast::unit_test::suite
                 fee(1500));
             env.close();
         }
+
+        // test Deep Freeze
+        {
+            // Env Setup
+            Env env{*this, features};
+            auto const baseFee = env.current()->fees().base;
+            env.fund(XRP(10'000), alice, bob, gw);
+            // env(fset(gw, asfAllowTrustLineLocking));
+            env.close();
+            env(trust(alice, USD(100'000)));
+            env(trust(bob, USD(100'000)));
+            env.close();
+            env(pay(gw, alice, USD(10'000)));
+            env(pay(gw, bob, USD(10'000)));
+            env.close();
+
+            // set freeze on alice trustline
+            env(trust(gw, USD(10'000), alice, tfSetFreeze | tfSetDeepFreeze));
+            env.close();
+
+            // setup transaction
+            auto seq1 = env.seq(alice);
+            auto const delta = USD(125);
+
+            // create escrow fails - frozen trustline
+            env(escrow(alice, bob, delta),
+                condition(cb1),
+                finish_time(env.now() + 1s),
+                fee(baseFee * 150),
+                ter(tecFROZEN));
+            env.close();
+
+            // clear freeze on alice trustline
+            env(trust(
+                gw, USD(10'000), alice, tfClearFreeze | tfClearDeepFreeze));
+            env.close();
+
+            // create escrow success
+            seq1 = env.seq(alice);
+            env(escrow(alice, bob, delta),
+                condition(cb1),
+                finish_time(env.now() + 1s),
+                fee(baseFee * 150));
+            env.close();
+
+            // set freeze on bob trustline
+            env(trust(gw, USD(10'000), bob, tfSetFreeze | tfSetDeepFreeze));
+            env.close();
+
+            // bob finish escrow fails because of deep frozen assets
+            env(finish(bob, alice, seq1),
+                condition(cb1),
+                fulfillment(fb1),
+                fee(baseFee * 150),
+                ter(tecFROZEN));
+            env.close();
+
+            // reset freeze on alice and bob trustline
+            env(trust(
+                gw, USD(10'000), alice, tfClearFreeze | tfClearDeepFreeze));
+            env(trust(gw, USD(10'000), bob, tfClearFreeze | tfClearDeepFreeze));
+            env.close();
+
+            // create escrow success
+            seq1 = env.seq(alice);
+            env(escrow(alice, bob, delta),
+                condition(cb1),
+                cancel_time(env.now() + 1s),
+                fee(baseFee * 150));
+            env.close();
+
+            // set freeze on bob trustline
+            env(trust(gw, USD(10'000), bob, tfSetFreeze | tfSetDeepFreeze));
+            env.close();
+
+            // bob cancel escrow fails because of deep frozen assets
+            env(cancel(bob, alice, seq1), fee(baseFee), ter(tesSUCCESS));
+            env.close();
+        }
     }
+
     void
     testIOUTLINSF(FeatureBitset features)
     {
@@ -4419,7 +4499,7 @@ struct Escrow_test : public beast::unit_test::suite
     }
 
     void
-    testCredentials()
+    testCredentials(FeatureBitset features)
     {
         testcase("Test with credentials");
 
@@ -4435,7 +4515,7 @@ struct Escrow_test : public beast::unit_test::suite
 
         {
             // Credentials amendment not enabled
-            Env env(*this, supported_amendments() - featureCredentials);
+            Env env(*this, features - featureCredentials);
             env.fund(XRP(5000), alice, bob);
             env.close();
 
@@ -4453,7 +4533,7 @@ struct Escrow_test : public beast::unit_test::suite
         }
 
         {
-            Env env(*this);
+            Env env(*this, features);
 
             env.fund(XRP(5000), alice, bob, carol, dillon, zelda);
             env.close();
@@ -4505,7 +4585,7 @@ struct Escrow_test : public beast::unit_test::suite
             testcase("Escrow with credentials without depositPreauth");
             using namespace std::chrono;
 
-            Env env(*this);
+            Env env(*this, features);
 
             env.fund(XRP(5000), alice, bob, carol, dillon, zelda);
             env.close();
@@ -4606,12 +4686,12 @@ public:
     run() override
     {
         using namespace test::jtx;
-        FeatureBitset const all{supported_amendments()};
+        FeatureBitset const all{supported_amendments() | featureCredentials};
         testWithFeats(all - featurePaychanAndEscrowForTokens);
         testWithFeats(all);
         testIOUWithFeats(all);
         testEscrowID(all);
-        testCredentials();
+        testCredentials(all);
     }
 };
 

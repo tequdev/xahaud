@@ -1917,7 +1917,7 @@ hook::finalizeHookResult(
     auto const& j = applyCtx.app.journal("View");
 
     // open views do not modify add/remove ledger entries
-    if (applyCtx.view().open())
+    if (applyCtx.view().open() && !(applyCtx.flags() & tapDRY_RUN))
         return tesSUCCESS;
 
     // RH TODO: this seems hacky... and also maybe there's a way this cast might

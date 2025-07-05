@@ -751,7 +751,7 @@ public:
 
         using namespace test::jtx;
 
-        Env env(*this);
+        Env env(*this, supported_amendments() | featureCredentials);
         Account const issuer{"issuer"};
         Account const alice{"alice"};
         Account const bob{"bob"};
@@ -1080,7 +1080,7 @@ public:
 
         using namespace test::jtx;
 
-        Env env(*this);
+        Env env(*this, supported_amendments() | featureCredentials);
         Account const issuer{"issuer"};
         Account const alice{"alice"};
         Account const bob{"bob"};
@@ -2792,7 +2792,7 @@ public:
         testcase("ledger_entry Request DID");
         using namespace test::jtx;
         using namespace std::literals::chrono_literals;
-        Env env{*this};
+        Env env{*this, supported_amendments() | featureDID};
         Account const alice{"alice"};
 
         env.fund(XRP(10000), alice);
@@ -3643,7 +3643,7 @@ public:
         testcase("ledger_entry Request MPT");
         using namespace test::jtx;
         using namespace std::literals::chrono_literals;
-        Env env{*this};
+        Env env{*this, supported_amendments() | featureMPTokensV1};
         Account const alice{"alice"};
         Account const bob("bob");
 
@@ -3744,7 +3744,10 @@ public:
 
         using namespace test::jtx;
 
-        Env env(*this, supported_amendments() | featurePermissionedDomains);
+        Env env(
+            *this,
+            supported_amendments() | featureCredentials |
+                featurePermissionedDomains);
         Account const issuer{"issuer"};
         Account const alice{"alice"};
         Account const bob{"bob"};
