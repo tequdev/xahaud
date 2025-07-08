@@ -93,7 +93,11 @@ runs:
       shell: bash
       run: |
         cd ${{ inputs.build_dir }}
-        cmake --build . --config ${{ inputs.configuration }} --parallel $(nproc)
+        if [ "${{ inputs.generator }}" = "Ninja" ]; then
+          ninja
+        else
+          cmake --build . --config ${{ inputs.configuration }} --parallel $(nproc)
+        fi
 
     - name: Show ccache statistics
       if: inputs.ccache_enabled == 'true'
