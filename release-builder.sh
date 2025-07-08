@@ -67,11 +67,11 @@ ARG BUILD_CORES=8
 # Enable repositories and install dependencies
 RUN /hbb_exe/activate-exec bash -c "dnf install -y epel-release && \
     dnf config-manager --set-enabled powertools || dnf config-manager --set-enabled crb && \
-    dnf install -y \
+    dnf install -y --enablerepo=devel \
         wget git \
         gcc-toolset-11-gcc-c++ gcc-toolset-11-binutils gcc-toolset-11-libatomic-devel \
         lz4 lz4-devel \
-        ncurses-devel \
+        ncurses-static ncurses-devel \
         snappy snappy-devel \
         zlib zlib-devel zlib-static \
         libasan \
@@ -87,22 +87,6 @@ RUN /hbb_exe/activate-exec bash -c "dnf install -y epel-release && \
         libtool \
         llvm14-static llvm14-devel && \
     dnf clean all"
-
-# Build static ncurses/tinfo library
-RUN /hbb_exe/activate-exec bash -c "source /opt/rh/gcc-toolset-11/enable && \
-    cd /tmp && \
-    wget -q https://ftp.gnu.org/gnu/ncurses/ncurses-6.3.tar.gz -O ncurses.tar.gz && \
-    mkdir ncurses && \
-    tar -xzf ncurses.tar.gz --strip-components=1 -C ncurses && \
-    cd ncurses && \
-    ./configure --prefix=/usr --libdir=/usr/lib64 --enable-static --disable-shared --without-cxx-binding --without-ada --without-manpages --without-progs --without-tests && \
-    make -j${BUILD_CORES} && \
-    make install && \
-    [ -f /usr/lib64/libncurses.a ] && ln -sf /usr/lib64/libncurses.a /usr/lib64/libtinfo.a || \
-    [ -f /usr/lib/libncurses.a ] && cp /usr/lib/libncurses.a /usr/lib64/libtinfo.a || \
-    ar rcs /usr/lib64/libtinfo.a && \
-    cd /tmp && \
-    rm -rf ncurses ncurses.tar.gz"
 
 # Install Conan and CMake
 RUN /hbb_exe/activate-exec pip3 install "conan==1.66.0" && \
@@ -160,20 +144,6 @@ RUN /hbb_exe/activate-exec bash -c "source /opt/rh/gcc-toolset-11/enable && \
     cp /usr/lib64/llvm14/lib/liblld*.a /usr/local/lib/ && \
     cd /tmp && rm -rf lld-* libunwind-*"
 
-# Install Binutils
-RUN /hbb_exe/activate-exec bash -c "source /opt/rh/gcc-toolset-11/enable && \
-    cd /tmp && \
-    wget -q https://ftpmirror.gnu.org/gnu/binutils/binutils-2.38.tar.gz -O binutils.tar.gz && \
-    mkdir binutils && \
-    tar -xzf binutils.tar.gz --strip-components=1 -C binutils && \
-    cd binutils && \
-    ./configure --prefix=/usr/local --disable-shared --enable-static && \
-    make -j\${BUILD_CORES} && \
-    make install && \
-    ln -sf /usr/local/bin/ar /usr/bin/ar && \
-    cd /tmp && \
-    rm -rf binutils binutils.tar.gz"
-
 # Build and install WasmEdge
 RUN cd /tmp && \
     ( wget -nc -q https://github.com/WasmEdge/WasmEdge/archive/refs/tags/0.11.2.zip; unzip -o 0.11.2.zip; ) && \
@@ -181,6 +151,7 @@ RUN cd /tmp && \
     ( mkdir -p build; echo "" ) && \
     cd build && \
     /hbb_exe/activate-exec bash -c "source /opt/rh/gcc-toolset-11/enable && \
+    ln -sf /opt/rh/gcc-toolset-11/root/usr/bin/ar /usr/bin/ar && \
     cmake .. \
         -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_INSTALL_PREFIX=/usr/local \
