@@ -53,6 +53,7 @@ XRPL_FEATURE(XChainBridge,               Supported::no,  VoteBehavior::DefaultNo
 XRPL_FEATURE(AMM,                        Supported::yes, VoteBehavior::DefaultNo)
 XRPL_FEATURE(Clawback,                   Supported::yes, VoteBehavior::DefaultNo)
 XRPL_FIX    (ReducedOffersV1,            Supported::yes, VoteBehavior::DefaultNo)
+XRPL_FIX    (ProvisionalDoubleThreading, Supported::yes, VoteBehavior::DefaultYes)
 XRPL_FIX    (RewardClaimFlags,           Supported::yes, VoteBehavior::DefaultYes)
 XRPL_FEATURE(HookCanEmit,                Supported::yes, VoteBehavior::DefaultNo)
 XRPL_FIX    (20250131,                   Supported::yes, VoteBehavior::DefaultYes)
