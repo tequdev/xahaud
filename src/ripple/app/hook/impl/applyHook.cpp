@@ -342,8 +342,7 @@ getTransactionalStakeHolders(STTx const& tx, ReadView const& rv)
         case ttOFFER_CANCEL:
         case ttTICKET_CREATE:
         case ttHOOK_SET:
-        case ttOFFER_CREATE:  // this is handled seperately
-        {
+        case ttOFFER_CREATE: {
             break;
         }
 
