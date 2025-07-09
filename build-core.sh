@@ -79,6 +79,6 @@ cd ..;
 mv src/ripple/net/impl/RegisterSSLCerts.cpp.old src/ripple/net/impl/RegisterSSLCerts.cpp;
 mv Builds/CMake/deps/WasmEdge.old Builds/CMake/deps/WasmEdge.cmake;
 rm src/certs/certbundle.h;
-git checkout src/ripple/protocol/impl/BuildInfo.cpp
+git checkout src/ripple/protocol/impl/BuildInfo.cpp;
 
 echo "END INSIDE CONTAINER - CORE"
