@@ -517,6 +517,8 @@ getTransactionalStakeHolders(STTx const& tx, ReadView const& rv)
         case ttAMM_BID:
         case ttAMM_DELETE:
         case ttAMM_CLAWBACK: {
+            // The issuer or holder of tokens related to AMM is weakTSH with
+            // IOUIssuerWeakTSH Amendment.
             break;
         }
         case ttORACLE_SET:
