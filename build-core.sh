@@ -38,9 +38,9 @@ add_library (wasmedge::wasmedge ALIAS wasmedge)
 message(\"WasmEdge DONE\")
 " > Builds/CMake/deps/WasmEdge.cmake &&
 
-export LDFLAGS="-static-libgcc -static-libstdc++ -lstdc++ -lm"
-export CMAKE_EXE_LINKER_FLAGS="-static-libgcc -static-libstdc++ -lstdc++ -lm"
-export CMAKE_SHARED_LINKER_FLAGS="-static-libgcc -static-libstdc++ -lstdc++ -lm"
+export LDFLAGS="-static-libstdc++"
+export CMAKE_EXE_LINKER_FLAGS="-static-libstdc++"
+export CMAKE_STATIC_LINKER_FLAGS="-static-libstdc++"
 
 git config --global --add safe.directory /io &&
 git checkout src/ripple/protocol/impl/BuildInfo.cpp &&

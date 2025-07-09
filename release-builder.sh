@@ -111,17 +111,13 @@ ENV BOOST_ROOT=/usr/local/src/boost_1_86_0
 ENV Boost_LIBRARY_DIRS=/usr/local/lib
 ENV BOOST_INCLUDEDIR=/usr/local/src/boost_1_86_0
 
-ENV CMAKE_CXX_FLAGS='-D_GLIBCXX_USE_CXX11_ABI=1'
-ENV CMAKE_EXE_LINKER_FLAGS='-static-libgcc -static-libstdc++ -lstdc++ -lm'
+ENV CMAKE_EXE_LINKER_FLAGS="-static-libstdc++"
 
 ENV LLVM_DIR=/usr/lib64/llvm14/lib/cmake/llvm
 ENV WasmEdge_LIB=/usr/local/lib64/libwasmedge.a
 
 ENV CC='ccache gcc'
 ENV CXX='ccache g++'
-ENV CFLAGS='-D_GLIBCXX_USE_CXX11_ABI=0'
-ENV CXXFLAGS='-D_GLIBCXX_USE_CXX11_ABI=0'
-ENV LDFLAGS='-static-libgcc -static-libstdc++ -lstdc++ -lm'
 
 # Install LLD
 RUN /hbb_exe/activate-exec bash -c "source /opt/rh/gcc-toolset-11/enable && \
@@ -137,7 +133,6 @@ RUN /hbb_exe/activate-exec bash -c "source /opt/rh/gcc-toolset-11/enable && \
         -DLLVM_LIBRARY_DIR=/usr/lib64/llvm14/lib/ \
         -DCMAKE_INSTALL_PREFIX=/usr/lib64/llvm14/ \
         -DCMAKE_BUILD_TYPE=Release \
-        -DCMAKE_CXX_FLAGS=\"\$CMAKE_CXX_FLAGS\" \
         -DCMAKE_EXE_LINKER_FLAGS=\"\$CMAKE_EXE_LINKER_FLAGS\" && \
     make -j${BUILD_CORES} install && \
     ln -s /usr/lib64/llvm14/lib/include/lld /usr/include/lld && \
@@ -164,7 +159,6 @@ RUN cd /tmp && \
         -DWASMEDGE_BUILD_PLUGINS=OFF \
         -DWASMEDGE_LINK_TOOLS_STATIC=ON \
         -DBoost_NO_BOOST_CMAKE=ON \
-        -DCMAKE_CXX_FLAGS=\"\$CMAKE_CXX_FLAGS\" \
         -DCMAKE_EXE_LINKER_FLAGS=\"\$CMAKE_EXE_LINKER_FLAGS\" \
         && \
     make -j${BUILD_CORES} install" && \
