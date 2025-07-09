@@ -3116,9 +3116,6 @@ private:
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
 
-            bool const withIOUIssuerWeakTSH =
-                env.current()->rules().enabled(featureIOUIssuerWeakTSH);
-
             auto const account = Account("carol");
             auto const cross = Account("bob");
             auto const gw = Account{"alice"};
