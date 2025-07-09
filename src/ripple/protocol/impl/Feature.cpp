@@ -476,6 +476,7 @@ REGISTER_FIX    (fix20250131,                   Supported::yes, VoteBehavior::De
 REGISTER_FEATURE(HookCanEmit,                   Supported::yes, VoteBehavior::DefaultNo);
 REGISTER_FIX    (fixRewardClaimFlags,           Supported::yes, VoteBehavior::DefaultYes);
 REGISTER_FIX    (fixProvisionalDoubleThreading, Supported::yes, VoteBehavior::DefaultYes);
+REGISTER_FEATURE(DeepFreeze,                    Supported::yes, VoteBehavior::DefaultNo);
 
 // The following amendments are obsolete, but must remain supported
 // because they could potentially get enabled.
