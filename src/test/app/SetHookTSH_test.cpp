@@ -1384,6 +1384,46 @@ private:
             auto const expected = testStrong ? tshNONE : tshWEAK;
             testTSHStrongWeak(env, expected, __LINE__);
         }
+
+        // otxn: MPT issuer
+        // tsh holder
+        // w/s: weak
+        for (bool const testStrong : {true, false})
+        {
+            test::jtx::Env env{
+                *this,
+                network::makeNetworkConfig(21337, "10", "1000000", "200000"),
+                features};
+
+            auto const issuer = Account("alice");
+            auto const holder = Account("bob");
+
+            MPTTester mptIssuer(env, issuer, {.holders = {holder}});
+
+            // issuer creates issuance
+            mptIssuer.create(
+                {.ownerCount = 1, .holderCount = 0, .flags = tfMPTCanClawback});
+
+            // holder creates a MPToken
+            mptIssuer.authorize({.account = holder});
+
+            // issuer pays holder 100 tokens
+            mptIssuer.pay(issuer, holder, 100);
+
+            // set tsh collect
+            if (!testStrong)
+                addWeakTSH(env, holder);
+
+            // set tsh hook
+            setTSHHook(env, holder, testStrong);
+
+            // clawback
+            mptIssuer.claw(issuer, holder, 1);
+
+            // verify tsh hook triggered
+            auto const expected = testStrong ? tshNONE : tshWEAK;
+            testTSHStrongWeak(env, expected, __LINE__);
+        }
     }
 
     // DepositPreauth
@@ -6230,93 +6270,6 @@ private:
     }
 
     void
-    testClawbackTSH(FeatureBitset features)
-    {
-        testcase("clawback tsh");
-
-        using namespace test::jtx;
-        using namespace std::literals;
-
-        // otxn: IOU issuer
-        // tsh holder
-        // w/s: weak
-        for (bool const testStrong : {true, false})
-        {
-            test::jtx::Env env{
-                *this,
-                network::makeNetworkConfig(21337, "10", "1000000", "200000"),
-                features};
-
-            auto const issuer = Account("alice");
-            auto const holder = Account("bob");
-            env.fund(XRP(1000), issuer, holder);
-            env.close();
-
-            env(fset(issuer, asfAllowTrustLineClawback));
-            env.close();
-
-            env.trust(issuer["USD"](1000), holder);
-            env(pay(issuer, holder, issuer["USD"](1000)));
-            env.close();
-
-            // set tsh collect
-            if (!testStrong)
-                addWeakTSH(env, holder);
-
-            // set tsh hook
-            setTSHHook(env, holder, testStrong);
-
-            // clawback
-            env(claw(issuer, holder["USD"](1000)));
-            env.close();
-
-            // verify tsh hook triggered
-            auto const expected = testStrong ? tshNONE : tshWEAK;
-            testTSHStrongWeak(env, expected, __LINE__);
-        }
-
-        // otxn: MPT issuer
-        // tsh holder
-        // w/s: weak
-        for (bool const testStrong : {true, false})
-        {
-            test::jtx::Env env{
-                *this,
-                network::makeNetworkConfig(21337, "10", "1000000", "200000"),
-                features};
-
-            auto const issuer = Account("alice");
-            auto const holder = Account("bob");
-
-            MPTTester mptIssuer(env, issuer, {.holders = {holder}});
-
-            // issuer creates issuance
-            mptIssuer.create(
-                {.ownerCount = 1, .holderCount = 0, .flags = tfMPTCanClawback});
-
-            // holder creates a MPToken
-            mptIssuer.authorize({.account = holder});
-
-            // issuer pays holder 100 tokens
-            mptIssuer.pay(issuer, holder, 100);
-
-            // set tsh collect
-            if (!testStrong)
-                addWeakTSH(env, holder);
-
-            // set tsh hook
-            setTSHHook(env, holder, testStrong);
-
-            // clawback
-            mptIssuer.claw(issuer, holder, 1);
-
-            // verify tsh hook triggered
-            auto const expected = testStrong ? tshNONE : tshWEAK;
-            testTSHStrongWeak(env, expected, __LINE__);
-        }
-    }
-
-    void
     testEmissionOrdering(FeatureBitset features)
     {
         testcase("emission ordering");
@@ -6463,7 +6416,6 @@ private:
         testURITokenCancelSellOfferTSH(features);
         testURITokenCreateSellOfferTSH(features);
         testRemitTSH(features);
-        testClawbackTSH(features);
     }
 
     void
