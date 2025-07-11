@@ -101,6 +101,7 @@ jobs:
           main_branch: ${{ env.MAIN_BRANCH_NAME }}
 
       - name: Build
+        if: matrix.job_type == 'build'
         uses: ./.github/actions/xahau-ga-build
         with:
           generator: Ninja
@@ -111,8 +112,21 @@ jobs:
           compiler-id: ${{ matrix.compiler_id }}
           cache_version: ${{ env.CACHE_VERSION }}
           main_branch: ${{ env.MAIN_BRANCH_NAME }}
-          cmake-args: ${{ matrix.job_type == 'coverage' && '-Dcoverage=ON -Dcoverage_format=xml -DCODE_COVERAGE_VERBOSE=ON -DCMAKE_CXX_FLAGS="-O0" -DCMAKE_C_FLAGS="-O0"' || '' }}
-          cmake-target: ${{ matrix.job_type == 'coverage' && 'coverage' || '' }}
+
+      - name: Build (Coverage)
+        if: matrix.job_type == 'coverage'
+        uses: ./.github/actions/xahau-ga-build
+        with:
+          generator: Ninja
+          configuration: ${{ matrix.configuration }}
+          build_dir: ${{ env.build_dir }}
+          cc: ${{ matrix.cc }}
+          cxx: ${{ matrix.cxx }}
+          compiler-id: ${{ matrix.compiler_id }}
+          cache_version: ${{ env.CACHE_VERSION }}
+          main_branch: ${{ env.MAIN_BRANCH_NAME }}
+          cmake-args: '-Dcoverage=ON -Dcoverage_format=xml -DCODE_COVERAGE_VERBOSE=ON -DCMAKE_CXX_FLAGS="-O0" -DCMAKE_C_FLAGS="-O0"'
+          cmake-target: 'coverage'
 
       - name: Set artifact name
         id: set-artifact-name
