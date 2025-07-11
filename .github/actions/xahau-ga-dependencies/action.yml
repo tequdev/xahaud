@@ -77,7 +77,7 @@ runs:
           ..
 
     - name: Save Conan cache
-      if: inputs.cache_enabled == 'true' && steps.cache-restore-conan.outputs.cache-hit != 'true'
+      if: always() && inputs.cache_enabled == 'true' && steps.cache-restore-conan.outputs.cache-hit != 'true'
       uses: actions/cache/save@v4
       with:
         path: |

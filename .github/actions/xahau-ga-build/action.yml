@@ -112,7 +112,7 @@ runs:
       run: ccache -s
 
     - name: Save ccache directory
-      if: inputs.ccache_enabled == 'true'
+      if: always() && inputs.ccache_enabled == 'true'
       uses: actions/cache/save@v4
       with:
         path: ~/.ccache
