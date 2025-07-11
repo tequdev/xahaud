@@ -25,6 +25,7 @@ jobs:
           - compiler: gcc
             cc: gcc-11
             cxx: g++-11
+            gcov: gcov-11
             compiler_id: gcc-11
     env:
       build_dir: .build
@@ -123,6 +124,7 @@ jobs:
           build_dir: ${{ env.build_dir }}
           cc: ${{ matrix.cc }}
           cxx: ${{ matrix.cxx }}
+          gcov: ${{ matrix.gcov }}
           compiler-id: ${{ matrix.compiler_id }}
           cache_version: ${{ env.CACHE_VERSION }}
           main_branch: ${{ env.MAIN_BRANCH_NAME }}
@@ -158,7 +160,7 @@ jobs:
         if: matrix.job_type == 'coverage'
         shell: bash
         run: |
-          mv "${build_dir}/coverage.xml" ./
+          mv "${{ env.build_dir }}/coverage.xml" ./
 
       - name: Archive coverage report
         if: matrix.job_type == 'coverage'
