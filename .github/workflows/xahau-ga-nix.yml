@@ -85,6 +85,7 @@ jobs:
           
           # Check gcovr for coverage jobs
           if [ "${{ matrix.job_type }}" = "coverage" ]; then
+            which gcov && gcov --version || echo "gcov not found"
             which gcovr && gcovr --version || echo "gcovr not found"
           fi
           
