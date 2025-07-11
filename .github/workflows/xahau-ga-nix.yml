@@ -44,7 +44,7 @@ jobs:
           
           # Install gcovr for coverage jobs
           if [ "${{ matrix.job_type }}" = "coverage" ]; then
-            pip install "gcovr>=7,<8"
+            pip install "gcovr>=7,<9"
           fi
 
       - name: Configure ccache
