@@ -61,7 +61,7 @@ runs:
           ${{ runner.os }}-ccache-v${{ inputs.cache_version }}-
 
     - name: Restore ccache directory for current branch
-      if: inputs.ccache_enabled == 'true' && ${{ steps.safe-branch.outputs.name }} != ${{ inputs.main_branch }}
+      if: inputs.ccache_enabled == 'true' && steps.safe-branch.outputs.name != inputs.main_branch
       id: ccache-restore-current-branch
       uses: actions/cache/restore@v4
       with:
@@ -129,14 +129,14 @@ runs:
       run: ccache -s
 
     - name: Save ccache directory for default branch
-      if: always() && inputs.ccache_enabled == 'true' && ${{ steps.safe-branch.outputs.name }} == ${{ inputs.main_branch }}
+      if: always() && inputs.ccache_enabled == 'true' && steps.safe-branch.outputs.name == inputs.main_branch
       uses: actions/cache/save@v4
       with:
         path: ~/.ccache-main
         key: ${{ steps.ccache-restore.outputs.cache-primary-key }}
 
     - name: Save ccache directory for current branch
-      if: always() && inputs.ccache_enabled == 'true' && ${{ steps.safe-branch.outputs.name }} != ${{ inputs.main_branch }}
+      if: always() && inputs.ccache_enabled == 'true' && steps.safe-branch.outputs.name != inputs.main_branch
       uses: actions/cache/save@v4
       with:
         path: ~/.ccache-current
