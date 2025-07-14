@@ -77,8 +77,6 @@ jobs:
           hash_dir: true
           compiler_check: content
           is_main_branch: ${{ github.ref_name == env.MAIN_BRANCH_NAME }}
-          main_cache_dir: ~/.ccache-main
-          current_cache_dir: ~/.ccache-current
 
       - name: Check environment
         run: |
