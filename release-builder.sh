@@ -139,7 +139,13 @@ RUN /hbb_exe/activate-exec bash -c "source /opt/rh/gcc-toolset-11/enable && \
     cp /usr/lib64/llvm14/lib/liblld*.a /usr/local/lib/ && \
     cd /tmp && rm -rf lld-* libunwind-*"
 
-# Build and install WasmEdge
+# Build and install WasmEdge (static version)
+# Note: Conan only provides WasmEdge with shared library linking.
+# For a fully static build, we need to manually install:
+# * Boost: Static C++ libraries for filesystem and system operations (built from source above)
+# * LLVM: Static LLVM libraries for WebAssembly compilation (installed via llvm14-static package)
+# * LLD: Static linker to produce the final static binary (built from source above)
+# These were installed above to enable WASMEDGE_LINK_LLVM_STATIC=ON
 RUN cd /tmp && \
     ( wget -nc -q https://github.com/WasmEdge/WasmEdge/archive/refs/tags/0.11.2.zip; unzip -o 0.11.2.zip; ) && \
     cd WasmEdge-0.11.2 && \
