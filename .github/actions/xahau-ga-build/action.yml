@@ -58,7 +58,6 @@ runs:
         restore-keys: |
           ${{ runner.os }}-ccache-v${{ inputs.cache_version }}-${{ inputs.compiler-id }}-${{ inputs.configuration }}-
           ${{ runner.os }}-ccache-v${{ inputs.cache_version }}-${{ inputs.compiler-id }}-
-          ${{ runner.os }}-ccache-v${{ inputs.cache_version }}-
 
     - name: Restore ccache directory for current branch
       if: inputs.ccache_enabled == 'true' && steps.safe-branch.outputs.name != inputs.main_branch
@@ -71,7 +70,6 @@ runs:
           ${{ runner.os }}-ccache-v${{ inputs.cache_version }}-${{ inputs.compiler-id }}-${{ inputs.configuration }}-${{ inputs.main_branch }}
           ${{ runner.os }}-ccache-v${{ inputs.cache_version }}-${{ inputs.compiler-id }}-${{ inputs.configuration }}-
           ${{ runner.os }}-ccache-v${{ inputs.cache_version }}-${{ inputs.compiler-id }}-
-          ${{ runner.os }}-ccache-v${{ inputs.cache_version }}-
 
     - name: Configure project
       shell: bash
