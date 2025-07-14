@@ -88,21 +88,6 @@ runs:
           export CXX="${{ inputs.cxx }}"
         fi
         
-        # Set ccache configuration
-        mkdir -p ~/.ccache-main ~/.ccache-current
-        ccache -o compiler_check=content
-        
-        if [ "${{ steps.safe-branch.outputs.name }}" == "${{ inputs.main_branch }}" ]; then
-          # default branch: use default branch cache
-          ccache --set-config=cache_dir="$HOME/.ccache-main"
-          echo "CCACHE_DIR=$HOME/.ccache-main" >> $GITHUB_ENV
-        else
-          # feature branch: use feature branch cache
-          ccache --set-config=cache_dir="$HOME/.ccache-current"
-          # default branch cache is read-only
-          ccache --set-config=secondary_storage="file:$HOME/.ccache-main"
-          echo "CCACHE_DIR=$HOME/.ccache-current" >> $GITHUB_ENV
-        fi
         
         # Configure ccache launcher args
         CCACHE_ARGS=""
