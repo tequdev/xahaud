@@ -1020,7 +1020,7 @@ FromJSIntArrayOrHexString(JSContext* ctx, JSValueConst& v, int max_len)
         js_get_length64(ctx, &n, v);
 
         if (n == 0)
-            return {};
+            return out;
 
         if (n > max_len)
             return {};
@@ -1057,7 +1057,7 @@ FromJSIntArrayOrHexString(JSContext* ctx, JSValueConst& v, int max_len)
             return {};
 
         if (len <= 0)
-            return {};
+            return out;
 
         if (len > (max_len << 1U))
             return {};
@@ -8045,11 +8045,27 @@ DEFINE_JS_FUNCTION(
     auto cur = FromJSIntArrayOrHexString(ctx, raw_cur, 20);
     auto isu = FromJSIntArrayOrHexString(ctx, raw_isu, 20);
 
-    if (!cur.has_value() && !JS_IsUndefined(raw_cur))
-        returnJS(INVALID_ARGUMENT);
+    if (!cur.has_value())
+    {
+        if (!JS_IsUndefined(raw_cur))
+            returnJS(INVALID_ARGUMENT);
+    }
+    else
+    {
+        if (cur->size() != 3 && cur->size() != 20)
+            returnJS(INVALID_ARGUMENT);
+    }
 
-    if (!isu.has_value() && !JS_IsUndefined(raw_isu))
-        returnJS(INVALID_ARGUMENT);
+    if (!isu.has_value())
+    {
+        if (!JS_IsUndefined(raw_isu))
+            returnJS(INVALID_ARGUMENT);
+    }
+    else
+    {
+        if (isu->size() != 20)
+            returnJS(INVALID_ARGUMENT);
+    }
 
     if (any_missing(f1, fc) || !fits_u32(fc))
         returnJS(INVALID_ARGUMENT);
