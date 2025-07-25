@@ -307,6 +307,23 @@ public:
             env.close();
         }
 
+        // can't set with invalid fee
+        {
+            for (STAmount _fee : {drops(0), drops(1000001), bob["USD"](0)})
+            {
+                Json::Value iv;
+                iv[jss::HookHash] = accept_hash_str;
+                iv[jss::Fee] = _fee.getJson(JsonOptions::none);
+                jv[jss::Hooks][0U][jss::Hook] = iv;
+
+                env(jv,
+                    M("Hook Install operation must contain valid fee"),
+                    HSFEE,
+                    ter(temMALFORMED));
+                env.close();
+            }
+        }
+
         // can't set extant hook over other hook without override flag
         {
             Json::Value iv;
@@ -755,6 +772,48 @@ public:
             env.close();
         }
 
+        // fee missing
+        {
+            Json::Value iv;
+            iv[jss::CreateCode] = strHex(accept_wasm);
+            iv[jss::HookNamespace] = to_string(uint256{beast::zero});
+            iv[jss::HookApiVersion] = 1U;
+            iv[jss::HookOn] =
+                "00000000000000000000000000000000000000000000000000000000000000"
+                "00";
+            jv[jss::Hooks][0U] = Json::Value{};
+            jv[jss::Hooks][0U][jss::Hook] = iv;
+
+            env(jv,
+                M("HSO Create operation must contain fee"),
+                HSFEE,
+                ter(temMALFORMED));
+            env.close();
+        }
+
+        // invalid fee
+        {
+            for (STAmount _fee : {drops(0), drops(1000001), bob["USD"](0)})
+            {
+                Json::Value iv;
+                iv[jss::CreateCode] = strHex(accept_wasm);
+                iv[jss::HookNamespace] = to_string(uint256{beast::zero});
+                iv[jss::HookApiVersion] = 1U;
+                iv[jss::HookOn] =
+                    "0000000000000000000000000000000000000000000000000000000000"
+                    "000000";
+                iv[jss::Fee] = _fee.getJson(JsonOptions::none);
+                jv[jss::Hooks][0U] = Json::Value{};
+                jv[jss::Hooks][0U][jss::Hook] = iv;
+
+                env(jv,
+                    M("HSO Create operation must contain valid fee"),
+                    HSFEE,
+                    ter(temMALFORMED));
+                env.close();
+            }
+        }
+
         // hook hash present
         {
             Json::Value jv = ripple::test::jtx::hook(
@@ -979,6 +1038,23 @@ public:
             env.close();
         }
 
+        // fee should be set with valid fee
+        {
+            for (STAmount _fee : {drops(0), drops(1000001), bob["USD"](0)})
+            {
+                Json::Value iv;
+                iv[jss::Fee] = _fee.getJson(JsonOptions::none);
+                jv[jss::Hooks][0U] = Json::Value{};
+                jv[jss::Hooks][0U][jss::Hook] = iv;
+
+                env(jv,
+                    M("Hook Update operation must contain valid fee"),
+                    HSFEE,
+                    ter(temMALFORMED));
+                env.close();
+            }
+        }
+
         // try individually updating the various allowed fields
         {
             Json::Value params{Json::arrayValue};
@@ -998,7 +1074,8 @@ public:
                       "CAFECAFECAFECAFECAFECAFECAFECAFECAFECAFECAFECAFECAFECAFE"
                       "CAFECAFE"},
                      {jss::HookParameters, params},
-                     {jss::HookGrants, grants}})
+                     {jss::HookGrants, grants},
+                     {jss::Fee, "1000000"}})
             {
                 Json::Value iv;
                 iv[key] = value;

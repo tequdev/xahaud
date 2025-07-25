@@ -202,10 +202,37 @@ validateHookParams(SetHookCtx& ctx, STArray const& hookParams)
     return true;
 }
 
+bool
+validateJSHookFee(SetHookCtx& ctx, STObject const& hookSetObj)
+{
+    assert(hookSetObj.isFieldPresent(sfFee));
+    STAmount amt = hookSetObj.getFieldAmount(sfFee);
+    if (!isXRP(amt))
+    {
+        JLOG(ctx.j.trace())
+            << "HookSet(" << hook::log::JS_FEE_MISSING << ")[" << HS_ACC()
+            << "]: Malformed transaction: When using a JS "
+               "Hook you must specify a Fee field as a Native "
+               "amount format";
+        return false;
+    }
+    uint64_t fee = amt.xrp().drops();
+    if (amt < beast::zero || fee < 1 || fee > 1000000)
+    {
+        JLOG(ctx.j.trace())
+            << "HookSet(" << hook::log::JS_FEE_TOO_HIGH << ")[" << HS_ACC()
+            << "]: Malformed transaction: When using a "
+               "JS Hook you must include a Fee <= 1000000.";
+        return false;
+    }
+
+    return true;
+}
+
 // infer which operation the user is attempting to execute from the present and
 // absent fields
 HookSetOperation
-SetHook::inferOperation(STObject const& hookSetObj)
+SetHook::inferOperation(STObject const& hookSetObj, Rules const& rules)
 {
     uint64_t wasmByteCount = hookSetObj.isFieldPresent(sfCreateCode)
         ? hookSetObj.getFieldVL(sfCreateCode).size()
@@ -227,7 +254,8 @@ SetHook::inferOperation(STObject const& hookSetObj)
         !hookSetObj.isFieldPresent(sfHookOn) &&
         !hookSetObj.isFieldPresent(sfHookCanEmit) &&
         !hookSetObj.isFieldPresent(sfHookApiVersion) &&
-        !hookSetObj.isFieldPresent(sfFlags))
+        !hookSetObj.isFieldPresent(sfFlags) &&
+        !hookSetObj.isFieldPresent(sfFee))
         return hsoNOOP;
 
     uint32_t flags = hookSetObj.isFieldPresent(sfFlags)
@@ -249,7 +277,7 @@ SetHook::validateHookSetEntry(SetHookCtx& ctx, STObject const& hookSetObj)
         ? hookSetObj.getFieldU32(sfFlags)
         : 0;
 
-    switch (inferOperation(hookSetObj))
+    switch (inferOperation(hookSetObj, ctx.rules))
     {
         case hsoNOOP: {
             return true;
@@ -352,6 +380,10 @@ SetHook::validateHookSetEntry(SetHookCtx& ctx, STObject const& hookSetObj)
             // hookon may be present if the user so chooses
             // flags may be present if the user so chooses
 
+            if (hookSetObj.isFieldPresent(sfFee) &&
+                !validateJSHookFee(ctx, hookSetObj))
+                return false;
+
             return true;
         }
 
@@ -395,6 +427,10 @@ SetHook::validateHookSetEntry(SetHookCtx& ctx, STObject const& hookSetObj)
             // namespace may be valid, if the user so chooses
             // hookon may be present if the user so chooses
             // flags may be present if the user so chooses
+
+            if (hookSetObj.isFieldPresent(sfFee) &&
+                !validateJSHookFee(ctx, hookSetObj))
+                return false;
 
             return true;
         }
@@ -486,22 +522,10 @@ SetHook::validateHookSetEntry(SetHookCtx& ctx, STObject const& hookSetObj)
                     // RHTODO: guard or other check for js, depending on design
                     // choices
 
-                    if (hookSetObj.isFieldPresent(sfFee) &&
-                        isXRP(hookSetObj.getFieldAmount(sfFee)))
+                    if (hookSetObj.isFieldPresent(sfFee))
                     {
-                        STAmount amt = hookSetObj.getFieldAmount(sfFee);
-                        uint64_t fee = amt.xrp().drops();
-                        if (amt < beast::zero || fee < 1 || fee > 1000000)
-                        {
-                            JLOG(ctx.j.trace())
-                                << "HookSet(" << hook::log::JS_FEE_TOO_HIGH
-                                << ")[" << HS_ACC()
-                                << "]: Malformed transaction: When creating a "
-                                   "JS "
-                                   "Hook "
-                                << "you must include a Fee <= 1000000.";
+                        if (!validateJSHookFee(ctx, hookSetObj))
                             return false;
-                        }
                     }
                     else
                     {
@@ -509,9 +533,8 @@ SetHook::validateHookSetEntry(SetHookCtx& ctx, STObject const& hookSetObj)
                             << "HookSet(" << hook::log::JS_FEE_MISSING << ")["
                             << HS_ACC()
                             << "]: Malformed transaction: When creating a JS "
-                               "Hook "
-                            << "you must include a Fee field indicating the "
-                               "instruction limit.";
+                               "Hook you must include a Fee field indicating "
+                               "the instruction limit.";
                         return false;
                     }
 
@@ -536,6 +559,9 @@ SetHook::validateHookSetEntry(SetHookCtx& ctx, STObject const& hookSetObj)
 
                 if (version == 0)
                 {
+                    if (hookSetObj.isFieldPresent(sfFee))
+                        return false;
+
                     // RH NOTE: validateGuards has a generic non-rippled
                     // specific interface so it can be used in other projects
                     // (i.e. tooling). As such the calling here is a bit
@@ -704,16 +730,22 @@ SetHook::calculateBaseFee(ReadView const& view, STTx const& tx)
 TER
 SetHook::preclaim(ripple::PreclaimContext const& ctx)
 {
+    auto const id = ctx.tx[sfAccount];
     auto const& hookSets = ctx.tx.getFieldArray(sfHooks);
+    auto const& currentHookObj = ctx.view.read(keylet::hook(id));
 
+    auto hookSetNo = -1;
     for (auto const& hookSetObj : hookSets)
     {
-        if (!hookSetObj.isFieldPresent(sfHookHash))
-            continue;
+        hookSetNo++;
+        auto const op = inferOperation(hookSetObj, ctx.view.rules());
 
-        auto const& hash = hookSetObj.getFieldH256(sfHookHash);
+        auto const hasFee = hookSetObj.isFieldPresent(sfFee);
+        if (op == hsoINSTALL)
         {
-            if (!ctx.view.exists(keylet::hookDefinition(hash)))
+            auto const& hash = hookSetObj.getFieldH256(sfHookHash);
+            auto const keylet = keylet::hookDefinition(hash);
+            if (!ctx.view.exists(keylet))
             {
                 JLOG(ctx.j.trace()) << "HookSet(" << hook::log::HOOK_DEF_MISSING
                                     << ")[" << HS_ACC()
@@ -721,6 +753,27 @@ SetHook::preclaim(ripple::PreclaimContext const& ctx)
                                        "exists with the specified hash.";
                 return terNO_HOOK;
             }
+            auto const& hookDef = ctx.view.read(keylet);
+            auto const apiVersion = hookDef->getFieldU16(sfHookApiVersion);
+            if (apiVersion == 0 && hasFee)
+            {
+                return tecINVALID_HOOK_API_VERSION;
+            }
+        }
+        else if (op == hsoUPDATE)
+        {
+            if (!currentHookObj)
+                continue;
+            auto const& currentHooks = currentHookObj->getFieldArray(sfHooks);
+            if (currentHooks.size() < hookSetNo + 1)
+                continue;
+            auto const& hash = currentHooks[hookSetNo].getFieldH256(sfHookHash);
+            auto const def = ctx.view.read(keylet::hookDefinition(hash));
+            if (!def)
+                return tecINTERNAL;
+            auto const apiVersion = def->getFieldU16(sfHookApiVersion);
+            if (apiVersion == 0 && hasFee)
+                return tecINVALID_HOOK_API_VERSION;
         }
     }
 
@@ -804,6 +857,10 @@ SetHook::preflight(PreflightContext const& ctx)
         if (!ctx.rules.enabled(featureHookCanEmit) &&
             hookSetObj.isFieldPresent(sfHookCanEmit))
             return temDISABLED;
+
+        if (!ctx.rules.enabled(featureJSHooks) &&
+            hookSetObj.isFieldPresent(sfFee))
+            return temMALFORMED;
 
         for (auto const& hookSetElement : hookSetObj)
         {
@@ -1319,6 +1376,10 @@ SetHook::setHook()
         std::optional<uint256> newHookCanEmit;
         std::optional<uint256> defHookCanEmit;
 
+        std::optional<STAmount> oldFee;
+        std::optional<STAmount> newFee;
+        std::optional<STAmount> defFee;
+
         // when hsoCREATE is invoked it populates this variable in case the hook
         // definition already exists and the operation falls through into a
         // hsoINSTALL operation instead
@@ -1341,7 +1402,7 @@ SetHook::setHook()
         HookSetOperation op = hsoNOOP;
 
         if (hookSetObj)
-            op = inferOperation(hookSetObj->get());
+            op = inferOperation(hookSetObj->get(), ctx.rules);
 
         // these flags are not able to be passed onto the ledger object
         int newFlags = 0;
@@ -1387,6 +1448,14 @@ SetHook::setHook()
                 oldHookCanEmit = oldHook->get().getFieldH256(sfHookCanEmit);
             else if (defHookCanEmit)
                 oldHookCanEmit = *defHookCanEmit;
+
+            if (oldDefSLE && oldDefSLE->isFieldPresent(sfFee))
+                defFee = oldDefSLE->getFieldAmount(sfFee);
+
+            if (oldHook && oldHook->get().isFieldPresent(sfFee))
+                oldFee = oldHook->get().getFieldAmount(sfFee);
+            else if (defFee)
+                oldFee = *defFee;
         }
 
         // in preparation for three way merge populate fields if they are
@@ -1411,6 +1480,9 @@ SetHook::setHook()
                 newNamespace = hookSetObj->get().getFieldH256(sfHookNamespace);
                 newDirKeylet = keylet::hookStateDir(account_, *newNamespace);
             }
+
+            if (hookSetObj->get().isFieldPresent(sfFee))
+                newFee = hookSetObj->get().getFieldAmount(sfFee);
         }
 
         // users may destroy a namespace in any operation except NOOP and
@@ -1524,6 +1596,9 @@ SetHook::setHook()
                     newHook.setFieldH256(
                         sfHookNamespace,
                         oldHook->get().getFieldH256(sfHookNamespace));
+                if (oldHook->get().isFieldPresent(sfFee))
+                    newHook.setFieldAmount(
+                        sfFee, oldHook->get().getFieldAmount(sfFee));
 
                 // set the namespace if it differs from the definition namespace
                 if (newNamespace)
@@ -1560,6 +1635,17 @@ SetHook::setHook()
                     }
                     else
                         newHook.setFieldH256(sfHookCanEmit, *newHookCanEmit);
+                }
+
+                if (newFee)
+                {
+                    if (oldFee.has_value() && *oldFee == *newFee)
+                    {
+                        if (newHook.isFieldPresent(sfFee))
+                            newHook.makeFieldAbsent(sfFee);
+                    }
+                    else
+                        newHook.setFieldAmount(sfFee, *newFee);
                 }
 
                 // parameters
@@ -1726,10 +1812,7 @@ SetHook::setHook()
                     // override instruction count with fee for js
                     if (hookApiVersion == 1)
                     {
-                        uint64_t fee = hookSetObj->get()
-                                           .getFieldAmount(sfFee)
-                                           .xrp()
-                                           .drops();
+                        uint64_t fee = newFee->xrp().drops();
                         maxInstrCountHook = fee;
                         maxInstrCountCbak =
                             fee;  // RH TODO: add a second fee for cbak?
@@ -1848,6 +1931,9 @@ SetHook::setHook()
                     !(defHookCanEmit.has_value() &&
                       *defHookCanEmit == *newHookCanEmit))
                     newHook.setFieldH256(sfHookCanEmit, *newHookCanEmit);
+
+                if (newFee && *defFee != *newFee)
+                    newHook.setFieldAmount(sfFee, *newFee);
 
                 // parameters
                 TER result = updateHookParameters(
