@@ -6839,6 +6839,8 @@ public:
             }
             }
             var sfInvoiceID = 327697
+            var TOO_BIG = -3
+            var TOO_SMALL = -4
             var INVALID_ARGUMENT = -7
             var a = [
             1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
@@ -6864,28 +6866,28 @@ public:
             1, 1, 1, 1,
             ]
             var Hook = (arg) => {
-            ASSERT(state_foreign_set(a, [], a, aa) === INVALID_ARGUMENT, 1)
-            ASSERT(state_foreign_set(a, '', a, aa) === INVALID_ARGUMENT, 2)
-            // ASSERT(state_foreign_set(a, a, ba, aa) === INVALID_ARGUMENT, 3) // tequ: https://github.com/Xahau/xahaud/issues/445
+            ASSERT(state_foreign_set(a, [], a, aa) === TOO_SMALL, 1)
+            ASSERT(state_foreign_set(a, '', a, aa) === TOO_SMALL, 2)
+            ASSERT(state_foreign_set(a, a, ba, aa) === INVALID_ARGUMENT, 3)
             ASSERT(state_foreign_set(a, a, sa, aa) === INVALID_ARGUMENT, 4)
-            // ASSERT(state_foreign_set(a, a, a, ba) === INVALID_ARGUMENT, 5) // tequ: shoud uncomment state_foreign_set undefined check
+            ASSERT(state_foreign_set(a, a, a, ba) === INVALID_ARGUMENT, 5)
             ASSERT(state_foreign_set(a, a, a, sa) === INVALID_ARGUMENT, 6)
-            // ASSERT(state_foreign_set(a, a, null, aa) === INVALID_ARGUMENT, 7) // tequ: shoud uncomment state_foreign_set undefined check
-            // ASSERT(state_foreign_set(a, a, 0, aa) === INVALID_ARGUMENT, 8) // tequ: shoud uncomment state_foreign_set undefined check
+            ASSERT(state_foreign_set(a, a, null, aa) === INVALID_ARGUMENT, 7)
+            ASSERT(state_foreign_set(a, a, 0, aa) === INVALID_ARGUMENT, 8)
             ASSERT(state_foreign_set(a, a, void 0, hook_account()) === 32, 9)
-            // ASSERT(state_foreign_set(a, a, [], aa) === INVALID_ARGUMENT, 10) // tequ: shoud uncomment state_foreign_set undefined check
-            // ASSERT(state_foreign_set(a, a, '', aa) === INVALID_ARGUMENT, 11) // tequ: shoud uncomment state_foreign_set undefined check
-            // ASSERT(state_foreign_set(a, a, a, null) === INVALID_ARGUMENT, 12) // tequ: shoud uncomment state_foreign_set undefined check
-            // ASSERT(state_foreign_set(a, a, a, 0) === INVALID_ARGUMENT, 13) // tequ: shoud uncomment state_foreign_set undefined check
+            ASSERT(state_foreign_set(a, a, [], aa) === INVALID_ARGUMENT, 10)
+            ASSERT(state_foreign_set(a, a, '', aa) === INVALID_ARGUMENT, 11)
+            ASSERT(state_foreign_set(a, a, a, null) === INVALID_ARGUMENT, 12)
+            ASSERT(state_foreign_set(a, a, a, 0) === INVALID_ARGUMENT, 13)
             ASSERT(state_foreign_set(a, a, a, void 0) === 32, 14)
-            // ASSERT(state_foreign_set(a, a, a, []) === INVALID_ARGUMENT, 15) // tequ: shoud uncomment state_foreign_set undefined check
-            // ASSERT(state_foreign_set(a, a, a, '') === INVALID_ARGUMENT, 16) // tequ: shoud uncomment state_foreign_set undefined check
-            ASSERT(state_foreign_set(null, a, a, hook_account()) === 0, 17)
-            ASSERT(state_foreign_set(0, a, a, hook_account()) === 0, 18)
+            ASSERT(state_foreign_set(a, a, a, []) === INVALID_ARGUMENT, 15)
+            ASSERT(state_foreign_set(a, a, a, '') === INVALID_ARGUMENT, 16)
+            ASSERT(state_foreign_set(null, a, a, hook_account()) === INVALID_ARGUMENT, 17)
+            ASSERT(state_foreign_set(0, a, a, hook_account()) === INVALID_ARGUMENT, 18)
             ASSERT(state_foreign_set(void 0, a, a, hook_account()) === 0, 19)
             ASSERT(state_foreign_set('', a, a, hook_account()) === 0, 20)
             ASSERT(state_foreign_set([], a, a, hook_account()) === 0, 21)
-            ASSERT(state_foreign_set(ha, a, a, hook_account()) === 0, 22)
+            ASSERT(state_foreign_set(ha, a, a, hook_account()) === TOO_BIG, 22)
             const txn = otxn_id(0)
             ASSERT(txn.length === 32, 23)
             const grantor = otxn_field(sfInvoiceID)
@@ -7315,6 +7317,7 @@ public:
                     rollback(x.toString(), line)
                 }
                 }
+                var TOO_BIG = -3
                 var INVALID_ARGUMENT = -7
                 var a = [
                 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
@@ -7348,8 +7351,8 @@ public:
                 191, 85, 140, 117, 146, 172, 51, 251, 1, 141,
                 ]
                 var Hook = (arg) => {
-                ASSERT(state_set(a, ba) === INVALID_ARGUMENT, 11)
-                ASSERT(state_set(a, ha) === INVALID_ARGUMENT, 12)
+                ASSERT(state_set(a, ba) === TOO_BIG, 11)
+                ASSERT(state_set(a, ha) === TOO_BIG, 12)
                 const key = [
                     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                     0, 0, 0, 0, 0, 0, 0,
