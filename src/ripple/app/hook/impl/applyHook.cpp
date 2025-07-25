@@ -8862,13 +8862,13 @@ DEFINE_JS_FUNCTION(
     auto param_key =
         FromJSIntArrayOrHexString(ctx, key, hook::maxHookParameterKeySize());
     auto param_val =
-        FromJSIntArrayOrHexString(ctx, val, hook::maxHookParameterValueSize());
+        FromJSIntArrayOrHexString(ctx, val, hook::maxHookParameterValueSize())
+            .value_or(std::vector<uint8_t>{});
     auto param_hash = FromJSIntArrayOrHexString(ctx, hhash, 32);
 
     if (!param_key.has_value() || param_key->empty() ||
         param_key->size() > hook::maxHookParameterKeySize() ||
-        !param_val.has_value() ||
-        param_val->size() > hook::maxHookParameterValueSize() ||
+        param_val.size() > hook::maxHookParameterValueSize() ||
         !param_hash.has_value() || param_hash->size() != 32)
         returnJS(INVALID_ARGUMENT);
 
@@ -8878,7 +8878,7 @@ DEFINE_JS_FUNCTION(
         returnJS(TOO_MANY_PARAMS);
 
     returnJS(
-        __hook_param_set(hookCtx, applyCtx, j, hash, *param_key, *param_val));
+        __hook_param_set(hookCtx, applyCtx, j, hash, *param_key, param_val));
 
     JS_HOOK_TEARDOWN();
 }
