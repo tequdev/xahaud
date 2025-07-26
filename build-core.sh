@@ -38,9 +38,9 @@ add_library (wasmedge::wasmedge ALIAS wasmedge)
 message(\"WasmEdge DONE\")
 " > cmake/deps/WasmEdge.cmake &&
 
-export LDFLAGS="-static-libgcc -static-libstdc++ -lstdc++ -lm"
-export CMAKE_EXE_LINKER_FLAGS="-static-libgcc -static-libstdc++ -lstdc++ -lm"
-export CMAKE_SHARED_LINKER_FLAGS="-static-libgcc -static-libstdc++ -lstdc++ -lm"
+export LDFLAGS="-static-libstdc++"
+export CMAKE_EXE_LINKER_FLAGS="-static-libstdc++"
+export CMAKE_STATIC_LINKER_FLAGS="-static-libstdc++"
 
 git config --global --add safe.directory /io &&
 git checkout src/libxrpl/protocol/BuildInfo.cpp &&
@@ -79,6 +79,6 @@ cd ..;
 mv src/xrpld/net/detail/RegisterSSLCerts.cpp.old src/xrpld/net/detail/RegisterSSLCerts.cpp;
 mv cmake/deps/WasmEdge.old cmake/deps/WasmEdge.cmake;
 rm src/certs/certbundle.h;
-git checkout src/libxrpl/protocol/BuildInfo.cpp
+git checkout src/libxrpl/protocol/BuildInfo.cpp;
 
 echo "END INSIDE CONTAINER - CORE"

@@ -67,11 +67,11 @@ ARG BUILD_CORES=8
 # Enable repositories and install dependencies
 RUN /hbb_exe/activate-exec bash -c "dnf install -y epel-release && \
     dnf config-manager --set-enabled powertools || dnf config-manager --set-enabled crb && \
-    dnf install -y \
+    dnf install -y --enablerepo=devel \
         wget git \
         gcc-toolset-11-gcc-c++ gcc-toolset-11-binutils gcc-toolset-11-libatomic-devel \
         lz4 lz4-devel \
-        ncurses-devel \
+        ncurses-static ncurses-devel \
         snappy snappy-devel \
         zlib zlib-devel zlib-static \
         libasan \
@@ -87,22 +87,6 @@ RUN /hbb_exe/activate-exec bash -c "dnf install -y epel-release && \
         libtool \
         llvm14-static llvm14-devel && \
     dnf clean all"
-
-# Build static ncurses/tinfo library
-RUN /hbb_exe/activate-exec bash -c "source /opt/rh/gcc-toolset-11/enable && \
-    cd /tmp && \
-    wget -q https://ftp.gnu.org/gnu/ncurses/ncurses-6.3.tar.gz -O ncurses.tar.gz && \
-    mkdir ncurses && \
-    tar -xzf ncurses.tar.gz --strip-components=1 -C ncurses && \
-    cd ncurses && \
-    ./configure --prefix=/usr --libdir=/usr/lib64 --enable-static --disable-shared --without-cxx-binding --without-ada --without-manpages --without-progs --without-tests && \
-    make -j${BUILD_CORES} && \
-    make install && \
-    [ -f /usr/lib64/libncurses.a ] && ln -sf /usr/lib64/libncurses.a /usr/lib64/libtinfo.a || \
-    [ -f /usr/lib/libncurses.a ] && cp /usr/lib/libncurses.a /usr/lib64/libtinfo.a || \
-    ar rcs /usr/lib64/libtinfo.a && \
-    cd /tmp && \
-    rm -rf ncurses ncurses.tar.gz"
 
 # Install Conan and CMake
 RUN /hbb_exe/activate-exec pip3 install "conan==1.66.0" && \
@@ -127,17 +111,13 @@ ENV BOOST_ROOT=/usr/local/src/boost_1_86_0
 ENV Boost_LIBRARY_DIRS=/usr/local/lib
 ENV BOOST_INCLUDEDIR=/usr/local/src/boost_1_86_0
 
-ENV CMAKE_CXX_FLAGS='-D_GLIBCXX_USE_CXX11_ABI=1'
-ENV CMAKE_EXE_LINKER_FLAGS='-static-libgcc -static-libstdc++ -lstdc++ -lm'
+ENV CMAKE_EXE_LINKER_FLAGS="-static-libstdc++"
 
 ENV LLVM_DIR=/usr/lib64/llvm14/lib/cmake/llvm
 ENV WasmEdge_LIB=/usr/local/lib64/libwasmedge.a
 
 ENV CC='ccache gcc'
 ENV CXX='ccache g++'
-ENV CFLAGS='-D_GLIBCXX_USE_CXX11_ABI=0'
-ENV CXXFLAGS='-D_GLIBCXX_USE_CXX11_ABI=0'
-ENV LDFLAGS='-static-libgcc -static-libstdc++ -lstdc++ -lm'
 
 # Install LLD
 RUN /hbb_exe/activate-exec bash -c "source /opt/rh/gcc-toolset-11/enable && \
@@ -153,34 +133,26 @@ RUN /hbb_exe/activate-exec bash -c "source /opt/rh/gcc-toolset-11/enable && \
         -DLLVM_LIBRARY_DIR=/usr/lib64/llvm14/lib/ \
         -DCMAKE_INSTALL_PREFIX=/usr/lib64/llvm14/ \
         -DCMAKE_BUILD_TYPE=Release \
-        -DCMAKE_CXX_FLAGS=\"\$CMAKE_CXX_FLAGS\" \
         -DCMAKE_EXE_LINKER_FLAGS=\"\$CMAKE_EXE_LINKER_FLAGS\" && \
     make -j${BUILD_CORES} install && \
     ln -s /usr/lib64/llvm14/lib/include/lld /usr/include/lld && \
     cp /usr/lib64/llvm14/lib/liblld*.a /usr/local/lib/ && \
     cd /tmp && rm -rf lld-* libunwind-*"
 
-# Install Binutils
-RUN /hbb_exe/activate-exec bash -c "source /opt/rh/gcc-toolset-11/enable && \
-    cd /tmp && \
-    wget -q https://ftpmirror.gnu.org/gnu/binutils/binutils-2.38.tar.gz -O binutils.tar.gz && \
-    mkdir binutils && \
-    tar -xzf binutils.tar.gz --strip-components=1 -C binutils && \
-    cd binutils && \
-    ./configure --prefix=/usr/local --disable-shared --enable-static && \
-    make -j\${BUILD_CORES} && \
-    make install && \
-    ln -sf /usr/local/bin/ar /usr/bin/ar && \
-    cd /tmp && \
-    rm -rf binutils binutils.tar.gz"
-
-# Build and install WasmEdge
+# Build and install WasmEdge (static version)
+# Note: Conan only provides WasmEdge with shared library linking.
+# For a fully static build, we need to manually install:
+# * Boost: Static C++ libraries for filesystem and system operations (built from source above)
+# * LLVM: Static LLVM libraries for WebAssembly compilation (installed via llvm14-static package)
+# * LLD: Static linker to produce the final static binary (built from source above)
+# These were installed above to enable WASMEDGE_LINK_LLVM_STATIC=ON
 RUN cd /tmp && \
     ( wget -nc -q https://github.com/WasmEdge/WasmEdge/archive/refs/tags/0.11.2.zip; unzip -o 0.11.2.zip; ) && \
     cd WasmEdge-0.11.2 && \
     ( mkdir -p build; echo "" ) && \
     cd build && \
     /hbb_exe/activate-exec bash -c "source /opt/rh/gcc-toolset-11/enable && \
+    ln -sf /opt/rh/gcc-toolset-11/root/usr/bin/ar /usr/bin/ar && \
     cmake .. \
         -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_INSTALL_PREFIX=/usr/local \
@@ -193,7 +165,6 @@ RUN cd /tmp && \
         -DWASMEDGE_BUILD_PLUGINS=OFF \
         -DWASMEDGE_LINK_TOOLS_STATIC=ON \
         -DBoost_NO_BOOST_CMAKE=ON \
-        -DCMAKE_CXX_FLAGS=\"\$CMAKE_CXX_FLAGS\" \
         -DCMAKE_EXE_LINKER_FLAGS=\"\$CMAKE_EXE_LINKER_FLAGS\" \
         && \
     make -j${BUILD_CORES} install" && \
@@ -206,6 +177,7 @@ ENV PATH=/usr/local/bin:$PATH
 # Configure ccache and Conan
 RUN /hbb_exe/activate-exec bash -c "ccache -M 10G && \
     ccache -o cache_dir=/cache/ccache && \
+    ccache -o compiler_check=content && \
     conan config set storage.path=/cache/conan && \
     (conan profile new default --detect || true) && \
     conan profile update settings.compiler.cppstd=20 default"
