@@ -2316,25 +2316,41 @@ DEFINE_JS_FUNCTION(
 {
     JS_HOOK_SETUP();
 
-    auto val =
-        FromJSIntArrayOrHexString(ctx, raw_val, hook::maxHookStateDataSize());
-    auto key_in = FromJSIntArrayOrHexString(ctx, raw_key, 32);
-    auto ns_in = FromJSIntArrayOrHexString(ctx, raw_ns, 32);
-    auto acc_in = FromJSIntArrayOrHexString(ctx, raw_acc, 20);
+    auto val = FromJSIntArrayOrHexString(ctx, raw_val, 0x10000);
+    auto key_in = FromJSIntArrayOrHexString(ctx, raw_key, 0x10000);
+    auto ns_in = FromJSIntArrayOrHexString(ctx, raw_ns, 0x10000);
+    auto acc_in = FromJSIntArrayOrHexString(ctx, raw_acc, 0x10000);
 
-    // if (!val.has_value() && !JS_IsUndefined(raw_val))
-    //     returnJS(INVALID_ARGUMENT);
+    if (!val.has_value() && !JS_IsUndefined(raw_val))
+        returnJS(INVALID_ARGUMENT);
 
-    // if (!ns_in.has_value() && !JS_IsUndefined(raw_ns))
-    //     returnJS(INVALID_ARGUMENT);
+    if (!ns_in.has_value() && !JS_IsUndefined(raw_ns))
+        returnJS(INVALID_ARGUMENT);
 
-    // if (!acc_in.has_value() && !JS_IsUndefined(raw_acc))
-    //     returnJS(INVALID_ARGUMENT);
+    if (!acc_in.has_value() && !JS_IsUndefined(raw_acc))
+        returnJS(INVALID_ARGUMENT);
 
     // val may be populated and empty, this is a delete operation...
 
-    if (!key_in.has_value() || key_in->empty())
+    if (val.has_value())
+    {
+        if (val->size() > hook::maxHookStateDataSize())
+            returnJS(TOO_BIG);
+    }
+
+    if (key_in.has_value())
+    {
+        if (key_in->size() > 32)
+            returnJS(TOO_BIG);
+
+        if (key_in->size() < 1)
+            // FromJSIntArrayOrHexString() does not return data of length 0.
+            returnJS(TOO_SMALL);
+    }
+    else
+    {
         returnJS(INVALID_ARGUMENT);
+    }
 
     if (ns_in.has_value() && ns_in->size() != 32)
         returnJS(INVALID_ARGUMENT);
