@@ -67,8 +67,8 @@ fi
 # Environment setup moved to Dockerfile in release-builder.sh
 source /opt/rh/gcc-toolset-11/enable
 export PATH=/usr/local/bin:$PATH
-export CC='ccache gcc' &&
-export CXX='ccache g++' &&
+export CC='/usr/lib64/ccache/gcc' &&
+export CXX='/usr/lib64/ccache/g++' &&
 echo "-- Build Rippled --" &&
 pwd &&
 

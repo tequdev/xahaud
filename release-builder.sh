@@ -78,6 +78,7 @@ RUN /hbb_exe/activate-exec bash -c "dnf install -y epel-release && \
         python3 python3-pip \
         ccache \
         ninja-build \
+        mold \
         patch \
         glibc-devel glibc-static \
         libxml2-devel \
@@ -115,9 +116,6 @@ ENV CMAKE_EXE_LINKER_FLAGS="-static-libstdc++"
 
 ENV LLVM_DIR=/usr/lib64/llvm14/lib/cmake/llvm
 ENV WasmEdge_LIB=/usr/local/lib64/libwasmedge.a
-
-ENV CC='ccache gcc'
-ENV CXX='ccache g++'
 
 # Install LLD
 RUN /hbb_exe/activate-exec bash -c "source /opt/rh/gcc-toolset-11/enable && \
@@ -175,12 +173,14 @@ RUN cd /tmp && \
 ENV PATH=/usr/local/bin:$PATH
 
 # Configure ccache and Conan
-RUN /hbb_exe/activate-exec bash -c "ccache -M 10G && \
+RUN /hbb_exe/activate-exec bash -c "ccache -M 20G && \
     ccache -o cache_dir=/cache/ccache && \
     ccache -o compiler_check=content && \
     conan config set storage.path=/cache/conan && \
     (conan profile new default --detect || true) && \
-    conan profile update settings.compiler.cppstd=20 default"
+    conan profile update settings.compiler.cppstd=20 default && \
+    ln -s ../../bin/ccache /usr/lib64/ccache/g++ && \
+    ln -s ../../bin/ccache /usr/lib64/ccache/c++"
 
 DOCKERFILE_EOF
 )
