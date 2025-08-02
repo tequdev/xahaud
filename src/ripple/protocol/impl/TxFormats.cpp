@@ -466,6 +466,14 @@ TxFormats::TxFormats()
             {sfRemarks, soeREQUIRED},
         },
         commonFields);
+
+    add(jss::Clawback,
+        ttCLAWBACK,
+        {
+            {sfAmount, soeREQUIRED},
+            {sfTicketSequence, soeOPTIONAL},
+        },
+        commonFields);
 }
 
 TxFormats const&

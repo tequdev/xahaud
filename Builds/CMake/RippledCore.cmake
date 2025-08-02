@@ -444,6 +444,7 @@ target_sources (rippled PRIVATE
   src/ripple/app/tx/impl/CashCheck.cpp
   src/ripple/app/tx/impl/Change.cpp
   src/ripple/app/tx/impl/ClaimReward.cpp
+  src/ripple/app/tx/impl/Clawback.cpp
   src/ripple/app/tx/impl/CreateCheck.cpp
   src/ripple/app/tx/impl/CreateOffer.cpp
   src/ripple/app/tx/impl/CreateTicket.cpp
@@ -726,6 +727,7 @@ if (tests)
     src/test/app/BaseFee_test.cpp
     src/test/app/Check_test.cpp
     src/test/app/ClaimReward_test.cpp
+    src/test/app/Clawback_test.cpp
     src/test/app/CrossingLimits_test.cpp
     src/test/app/DeliverMin_test.cpp
     src/test/app/DepositAuth_test.cpp
@@ -756,6 +758,7 @@ if (tests)
     src/test/app/Path_test.cpp
     src/test/app/PayChan_test.cpp
     src/test/app/PayStrand_test.cpp
+    src/test/app/PreviousTxn_test.cpp
     src/test/app/PseudoTx_test.cpp
     src/test/app/RCLCensorshipDetector_test.cpp
     src/test/app/RCLValidations_test.cpp
@@ -919,6 +922,7 @@ if (tests)
     src/test/jtx/impl/seq.cpp
     src/test/jtx/impl/sig.cpp
     src/test/jtx/impl/tag.cpp
+    src/test/jtx/impl/TestHelpers.cpp
     src/test/jtx/impl/ticket.cpp
     src/test/jtx/impl/token.cpp
     src/test/jtx/impl/trust.cpp

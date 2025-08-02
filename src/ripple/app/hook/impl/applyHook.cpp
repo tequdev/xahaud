@@ -344,8 +344,7 @@ getTransactionalStakeHolders(STTx const& tx, ReadView const& rv)
         case ttOFFER_CANCEL:
         case ttTICKET_CREATE:
         case ttHOOK_SET:
-        case ttOFFER_CREATE:  // this is handled seperately
-        {
+        case ttOFFER_CREATE: {
             break;
         }
 
@@ -495,6 +494,12 @@ getTransactionalStakeHolders(STTx const& tx, ReadView const& rv)
                     }
                 }
             }
+            break;
+        }
+
+        case ttCLAWBACK: {
+            auto const amount = tx.getFieldAmount(sfAmount);
+            ADD_TSH(amount.getIssuer(), tshWEAK);
             break;
         }
 
