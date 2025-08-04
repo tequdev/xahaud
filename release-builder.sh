@@ -13,7 +13,7 @@ BUILD_CORES=$(echo "scale=0 ; `nproc` / 1.337" | bc)
 
 if [[ "$GITHUB_REPOSITORY" == "" ]]; then
   #Default
-  BUILD_CORES=8
+  BUILD_CORES=${BUILD_CORES:-8} 
 fi
 
 # Ensure still works outside of GH Actions by setting these to /dev/null
@@ -45,6 +45,8 @@ fi
 
 STATIC_CONTAINER=$(docker ps -a | grep $CONTAINER_NAME |wc -l)
 
+CACHE_VOLUME_NAME="xahau-release-builder-cache"
+
 # if [[ "$STATIC_CONTAINER" -gt "0" && "$GITHUB_REPOSITORY" != "" ]]; then
 if false; then
   echo "Static container, execute in static container to have max. cache"
@@ -56,7 +58,7 @@ else
   rm -rf release-build;
   mkdir -p release-build;
 
-  docker volume create cache-volume
+  docker volume create $CACHE_VOLUME_NAME
 
   # Create inline Dockerfile with environment setup for build-full.sh
   DOCKERFILE_CONTENT=$(cat <<'DOCKERFILE_EOF'
@@ -193,14 +195,14 @@ DOCKERFILE_EOF
   if [[ "$GITHUB_REPOSITORY" == "" ]]; then
     # Non GH, local building
     echo "Non-GH runner, local building, temp container"
-    docker run -i --user 0:$(id -g) --rm -v /data/builds:/data/builds -v `pwd`:/io -v cache-volume:/cache --network host "$IMAGE_NAME" /hbb_exe/activate-exec bash -c "source /opt/rh/gcc-toolset-11/enable && bash -x /io/build-full.sh '$GITHUB_REPOSITORY' '$GITHUB_SHA' '$BUILD_CORES' '$GITHUB_RUN_NUMBER'"
+    docker run -i --user 0:$(id -g) --rm -v /data/builds:/data/builds -v `pwd`:/io -v "$CACHE_VOLUME_NAME":/cache --network host "$IMAGE_NAME" /hbb_exe/activate-exec bash -c "source /opt/rh/gcc-toolset-11/enable && bash -x /io/build-full.sh '$GITHUB_REPOSITORY' '$GITHUB_SHA' '$BUILD_CORES' '$GITHUB_RUN_NUMBER'"
   else
     # GH Action, runner
     echo "GH Action, runner, clean & re-create create persistent container"
     docker rm -f $CONTAINER_NAME
     echo "echo 'Stopping container: $CONTAINER_NAME'" >> "$JOB_CLEANUP_SCRIPT"
     echo "docker stop --time=15 \"$CONTAINER_NAME\" || echo 'Failed to stop container or container not running'" >> "$JOB_CLEANUP_SCRIPT"
-    docker run -di --user 0:$(id -g) --name $CONTAINER_NAME -v /data/builds:/data/builds -v `pwd`:/io -v cache-volume:/cache --network host "$IMAGE_NAME" /hbb_exe/activate-exec bash
+    docker run -di --user 0:$(id -g) --name $CONTAINER_NAME -v /data/builds:/data/builds -v `pwd`:/io -v "$CACHE_VOLUME_NAME":/cache --network host "$IMAGE_NAME" /hbb_exe/activate-exec bash
     docker exec -i $CONTAINER_NAME /hbb_exe/activate-exec bash -c "source /opt/rh/gcc-toolset-11/enable && bash -x /io/build-full.sh '$GITHUB_REPOSITORY' '$GITHUB_SHA' '$BUILD_CORES' '$GITHUB_RUN_NUMBER'"
     docker stop $CONTAINER_NAME
   fi
