@@ -55,6 +55,7 @@ ninja -j $3 &&
 ccache -s &&
 strip -s rippled &&	
 mv rippled xahaud &&
+libcheck xahaud &&
 echo "Build host: `hostname`" > release.info &&
 echo "Build date: `date`" >> release.info &&
 echo "Build md5: `md5sum xahaud`" >> release.info &&
