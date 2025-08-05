@@ -182,6 +182,7 @@ RUN /hbb_exe/activate-exec bash -c "ccache -M 10G && \
     ccache -o compiler_check=content && \
     conan config set storage.path=/cache/conan && \
     (conan profile new default --detect || true) && \
+    conan profile update settings.compiler.libcxx=libstdc++11 default && \
     conan profile update settings.compiler.cppstd=20 default"
 
 DOCKERFILE_EOF
