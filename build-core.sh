@@ -38,6 +38,8 @@ add_library (wasmedge::wasmedge ALIAS wasmedge)
 message(\"WasmEdge DONE\")
 " > Builds/CMake/deps/WasmEdge.cmake &&
 
+export LDFLAGS="-static-libstdc++"
+
 git config --global --add safe.directory /io &&
 git checkout src/ripple/protocol/impl/BuildInfo.cpp &&
 sed -i s/\"0.0.0\"/\"$(date +%Y).$(date +%-m).$(date +%-d)-$(git rev-parse --abbrev-ref HEAD)$(if [ -n "$4" ]; then echo "+$4"; fi)\"/g src/ripple/protocol/impl/BuildInfo.cpp &&
