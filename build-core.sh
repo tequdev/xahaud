@@ -38,10 +38,6 @@ add_library (wasmedge::wasmedge ALIAS wasmedge)
 message(\"WasmEdge DONE\")
 " > Builds/CMake/deps/WasmEdge.cmake &&
 
-export LDFLAGS="-static-libstdc++"
-export CMAKE_EXE_LINKER_FLAGS="-static-libstdc++"
-export CMAKE_STATIC_LINKER_FLAGS="-static-libstdc++"
-
 git config --global --add safe.directory /io &&
 git checkout src/ripple/protocol/impl/BuildInfo.cpp &&
 sed -i s/\"0.0.0\"/\"$(date +%Y).$(date +%-m).$(date +%-d)-$(git rev-parse --abbrev-ref HEAD)$(if [ -n "$4" ]; then echo "+$4"; fi)\"/g src/ripple/protocol/impl/BuildInfo.cpp &&
@@ -49,7 +45,14 @@ conan export external/snappy snappy/1.1.10@ &&
 conan export external/soci soci/4.0.3@ &&
 cd release-build &&
 conan install .. --output-folder . --build missing --settings build_type=$BUILD_TYPE &&
-cmake .. -G Ninja -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_TOOLCHAIN_FILE:FILEPATH=build/generators/conan_toolchain.cmake -DLLVM_DIR=$LLVM_DIR -DWasmEdge_LIB=$WasmEdge_LIB -Dxrpld=TRUE -Dtests=TRUE &&
+cmake .. -G Ninja \
+  -DCMAKE_BUILD_TYPE=$BUILD_TYPE \
+  -DCMAKE_TOOLCHAIN_FILE:FILEPATH=build/generators/conan_toolchain.cmake \
+  -DCMAKE_EXE_LINKER_FLAGS="-static-libstdc++" \
+  -DLLVM_DIR=$LLVM_DIR \
+  -DWasmEdge_LIB=$WasmEdge_LIB \
+  -Dxrpld=TRUE \
+  -Dtests=TRUE &&
 ccache -z &&
 ninja -j $3 &&
 ccache -s &&
