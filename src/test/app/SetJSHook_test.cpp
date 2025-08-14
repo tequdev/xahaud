@@ -5003,8 +5003,8 @@ public:
             }
 
             // "delete" the checker entry" for when the checker runs
-            // TEQU: https://github.com/Xahau/xahaud/issues/444
-            // ASSERT(hook_param_set('', toHex('checker'), checker_hash) == 0)
+            ASSERT(hook_param_set('', toHex('checker'), checker_hash) == 0)
+            ASSERT(hook_param_set(undefined, toHex('checker'), checker_hash) == 0)
 
             // add a parameter that did not previously exist
             ASSERT(hook_param_set(toHex('world'), toHex('hello'), checker_hash) == 5)
