@@ -8086,6 +8086,12 @@ DEFINE_JS_FUNCTION(
     if (any_missing(f1, fc) || !fits_u32(fc))
         returnJS(INVALID_ARGUMENT);
 
+    if (cur.has_value() && cur->size() != 20 && cur->size() != 3)
+        returnJS(INVALID_ARGUMENT);
+
+    if (isu.has_value() && isu->size() != 20)
+        returnJS(INVALID_ARGUMENT);
+
     std::optional<Currency> currency;
     std::optional<AccountID> issuer;
     if (cur.has_value())
