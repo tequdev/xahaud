@@ -576,6 +576,21 @@ public:
             env.close();
         }
 
+        // can't set with fee (apiVersion=0)
+        {
+            Json::Value iv;
+            iv[jss::HookHash] = accept_hash_str;
+            iv[jss::Fee] = "1000000";
+            jv[jss::Hooks][0U][jss::Hook] = iv;
+            env(jv,
+                M("Hook Install operation cannot set fee when apiVersion=0"),
+                HSFEE,
+                env.current()->rules().enabled(featureJSHooks)
+                    ? ter(tecINVALID_HOOK_API_VERSION)
+                    : ter(temMALFORMED));
+            env.close();
+        }
+
         // can set extant hook
         {
             Json::Value iv;
@@ -1326,6 +1341,20 @@ public:
             env.close();
         }
 
+        // can't set with fee (apiVersion=0)
+        {
+            Json::Value jv =
+                ripple::test::jtx::hook(alice, {{hso(accept_wasm)}}, 0);
+            Json::Value iv = jv[jss::Hooks][0U];
+            iv[jss::Hook][jss::Fee] = "1000000";
+            jv[jss::Hooks][0U] = iv;
+            env(jv,
+                M("Cannot have Fee when apiVersion=0"),
+                HSFEE,
+                ter(temMALFORMED));
+            env.close();
+        }
+
         // correctly formed
         {
             Json::Value jv =
@@ -1540,6 +1569,20 @@ public:
                 HSFEE,
                 ter(temMALFORMED));
             env.close();
+        }
+
+        // can't set with fee (apiVersion=0)
+        {
+            Json::Value iv;
+            iv[jss::Fee] = "1000000";
+            jv[jss::Hooks][0U] = Json::Value{};
+            jv[jss::Hooks][0U][jss::Hook] = iv;
+            env(jv,
+                M("Cannot have Fee when apiVersion=0"),
+                HSFEE,
+                env.current()->rules().enabled(featureJSHooks)
+                    ? ter(tecINVALID_HOOK_API_VERSION)
+                    : ter(temMALFORMED));
         }
 
         // try individually updating the various allowed fields
@@ -2076,25 +2119,29 @@ public:
     testInferHookSetOperation()
     {
         testcase("Test operation inference");
+        using namespace jtx;
+
+        Env env{*this, supported_amendments()};
+        auto const rules = env.current()->rules();
 
         // hsoNOOP
         {
             STObject hso{sfHook};
-            BEAST_EXPECT(SetHook::inferOperation(hso) == hsoNOOP);
+            BEAST_EXPECT(SetHook::inferOperation(hso, rules) == hsoNOOP);
         }
 
         // hsoCREATE
         {
             STObject hso{sfHook};
             hso.setFieldVL(sfCreateCode, {1});  // non-empty create code
-            BEAST_EXPECT(SetHook::inferOperation(hso) == hsoCREATE);
+            BEAST_EXPECT(SetHook::inferOperation(hso, rules) == hsoCREATE);
         }
 
         // hsoDELETE
         {
             STObject hso{sfHook};
             hso.setFieldVL(sfCreateCode, ripple::Blob{});  // empty create code
-            BEAST_EXPECT(SetHook::inferOperation(hso) == hsoDELETE);
+            BEAST_EXPECT(SetHook::inferOperation(hso, rules) == hsoDELETE);
         }
 
         // hsoINSTALL
@@ -2102,7 +2149,7 @@ public:
             STObject hso{sfHook};
             hso.setFieldH256(
                 sfHookHash, uint256{beast::zero});  // all zeros hook hash
-            BEAST_EXPECT(SetHook::inferOperation(hso) == hsoINSTALL);
+            BEAST_EXPECT(SetHook::inferOperation(hso, rules) == hsoINSTALL);
         }
 
         // hsoNSDELETE
@@ -2111,14 +2158,14 @@ public:
             hso.setFieldH256(
                 sfHookNamespace, uint256{beast::zero});  // all zeros hook hash
             hso.setFieldU32(sfFlags, hsfNSDELETE);
-            BEAST_EXPECT(SetHook::inferOperation(hso) == hsoNSDELETE);
+            BEAST_EXPECT(SetHook::inferOperation(hso, rules) == hsoNSDELETE);
         }
 
         // hsoUPDATE
         {
             STObject hso{sfHook};
             hso.setFieldH256(sfHookOn, UINT256_BIT[0]);
-            BEAST_EXPECT(SetHook::inferOperation(hso) == hsoUPDATE);
+            BEAST_EXPECT(SetHook::inferOperation(hso, rules) == hsoUPDATE);
         }
 
         // hsoINVALID
@@ -2127,7 +2174,7 @@ public:
             hso.setFieldVL(sfCreateCode, {1});  // non-empty create code
             hso.setFieldH256(
                 sfHookHash, uint256{beast::zero});  // all zeros hook hash
-            BEAST_EXPECT(SetHook::inferOperation(hso) == hsoINVALID);
+            BEAST_EXPECT(SetHook::inferOperation(hso, rules) == hsoINVALID);
         }
     }
 
@@ -12831,14 +12878,16 @@ public:
         using namespace test::jtx;
         static FeatureBitset const all{supported_amendments()};
 
-        static std::array<FeatureBitset, 6> const feats{
+        static std::array<FeatureBitset, 7> const feats{
             all,
             all - fixXahauV2,
             all - fixXahauV1 - fixXahauV2,
             all - fixXahauV1 - fixXahauV2 - fixNSDelete,
             all - fixXahauV1 - fixXahauV2 - fixNSDelete - fixPageCap,
             all - fixXahauV1 - fixXahauV2 - fixNSDelete - fixPageCap -
-                featureHookCanEmit};
+                featureHookCanEmit,
+            all - featureJSHooks,
+        };
 
         if (BEAST_EXPECT(instance < feats.size()))
         {
@@ -13005,7 +13054,8 @@ SETHOOK_TEST(1, false)
 SETHOOK_TEST(2, false)
 SETHOOK_TEST(3, false)
 SETHOOK_TEST(4, false)
-SETHOOK_TEST(5, true)
+SETHOOK_TEST(5, false)
+SETHOOK_TEST(6, true)
 
 BEAST_DEFINE_TESTSUITE_PRIO(SetHook0, app, ripple, 2);
 BEAST_DEFINE_TESTSUITE_PRIO(SetHook1, app, ripple, 2);
@@ -13013,6 +13063,7 @@ BEAST_DEFINE_TESTSUITE_PRIO(SetHook2, app, ripple, 2);
 BEAST_DEFINE_TESTSUITE_PRIO(SetHook3, app, ripple, 2);
 BEAST_DEFINE_TESTSUITE_PRIO(SetHook4, app, ripple, 2);
 BEAST_DEFINE_TESTSUITE_PRIO(SetHook5, app, ripple, 2);
+BEAST_DEFINE_TESTSUITE_PRIO(SetHook6, app, ripple, 2);
 }  // namespace test
 }  // namespace ripple
 #undef M
