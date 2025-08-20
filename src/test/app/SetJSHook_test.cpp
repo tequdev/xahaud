@@ -5841,7 +5841,7 @@ public:
             ASSERT(slot_subfield(1, sfTransactionType, 2) === 2, 2)
             // Get the value of slot 2 into variable
             const tt = slot(2, true)
-            ASSERT(tt === otxn_type(), 0)
+            ASSERT(Number(tt) === otxn_type(), 0)
             accept('', 0)
             }
         )[test.hook]"];
@@ -6082,7 +6082,7 @@ public:
             ASSERT(sto_validate(buf) === 1, 10)
             ASSERT(sto_subfield(buf, sfBalance) > 0, 11)
             ASSERT(slot_subfield(slot_no, sfBalance, 200) === 200, 12)
-            ASSERT(slot(200, true) > 0, 13)
+            ASSERT(slot(200, true) > 0n, 13)
             accept('', 0)
             }
         )[test.hook]"];
