@@ -960,6 +960,7 @@ FromJSInt(JSContext* ctx, JSValueConst& v)
 }
 
 #define returnJS(X) return JS_NewInt64(ctx, X)
+#define returnJSBigInt(X) return JS_NewBigInt64(ctx, X)
 #define returnJSXFL(X) return JS_NewBigInt64(ctx, X)
 
 template <typename T>
@@ -3432,7 +3433,10 @@ DEFINE_JS_FUNCTION(JSValue, slot, JSValue raw_slot_no)
     if (argc == 2 && !!JS_ToBool(ctx, argv[1]))
     {
         JS_FreeValue(ctx, *out);
-        returnJS(data_as_int64(ptr, len));
+        int64_t data = data_as_int64(ptr, len);
+        if (data == TOO_BIG)
+            returnJS(data);
+        returnJSBigInt(data);
     }
 
     return *out;
