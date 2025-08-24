@@ -217,7 +217,10 @@ validateJSHookFee(SetHookCtx& ctx, STObject const& hookSetObj)
         return false;
     }
     uint64_t fee = amt.xrp().drops();
-    if (amt < beast::zero || fee < 1 || fee > 1000000)
+
+    // If the fee is 1, JS_EvalFunction will result in InstructionLimitReached,
+    // so it is necessary to require 2 or more.
+    if (amt < beast::zero || fee < 2 || fee > 1000000)
     {
         JLOG(ctx.j.trace())
             << "HookSet(" << hook::log::JS_FEE_TOO_HIGH << ")[" << HS_ACC()
@@ -1639,7 +1642,7 @@ SetHook::setHook()
 
                 if (newFee)
                 {
-                    if (oldFee.has_value() && *oldFee == *newFee)
+                    if (defFee && *defFee == *newFee)
                     {
                         if (newHook.isFieldPresent(sfFee))
                             newHook.makeFieldAbsent(sfFee);

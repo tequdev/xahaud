@@ -347,6 +347,7 @@ enum ExitType : uint8_t {
     JSVM_ERROR = 4,
     LEDGER_ERROR =
         5,  // if the ledger contained for example a nonsense hookapi number
+    INSTRUCTION_LIMIT_REACHED = 6,
 };
 
 enum CodeType : uint8_t {
