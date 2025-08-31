@@ -223,9 +223,9 @@ validateJSHookFee(SetHookCtx& ctx, STObject const& hookSetObj)
     if (amt < beast::zero || fee < 2 || fee > 1000000)
     {
         JLOG(ctx.j.trace())
-            << "HookSet(" << hook::log::JS_FEE_TOO_HIGH << ")[" << HS_ACC()
+            << "HookSet(" << hook::log::JS_FEE_OUT_OF_RANGE << ")[" << HS_ACC()
             << "]: Malformed transaction: When using a "
-               "JS Hook you must include a Fee <= 1000000.";
+               "JS Hook you must include a Fee >= 2 and <= 1000000.";
         return false;
     }
 
