@@ -321,7 +321,7 @@ public:
             HSFEE,
             ter(temMALFORMED));
 
-        env(ripple::test::jtx::hook(alice, {{}}, 0),
+        env(ripple::test::jtx::hook(alice, std::vector<Json::Value>{}, 0),
             M("Must have a non-empty hooks field"),
             HSFEE,
             ter(temMALFORMED));
@@ -2463,7 +2463,7 @@ public:
     void
     test_emit(FeatureBitset features)
     {
-        testcase("Test float_emit");
+        testcase("Test emit");
         using namespace jtx;
         Env env{*this, features};
 
