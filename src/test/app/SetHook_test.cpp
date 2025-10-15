@@ -326,7 +326,7 @@ public:
             HSFEE,
             ter(temMALFORMED));
 
-        env(ripple::test::jtx::hook(alice, {{}}, 0),
+        env(ripple::test::jtx::hook(alice, std::vector<Json::Value>{}, 0),
             M("Must have a non-empty hooks field"),
             HSFEE,
             ter(temMALFORMED));
@@ -365,6 +365,35 @@ public:
                 M("Hooks Array must contain Hook objects"),
                 HSFEE,
                 ter(temMALFORMED));
+            env.close();
+        }
+    }
+
+    void
+    testInvalidTxFlags(FeatureBitset features)
+    {
+        testcase("Checks invalid tx flags");
+        using namespace jtx;
+
+        for (bool const withFixInvalidTxFlags : {false, true})
+        {
+            Env env{
+                *this,
+                withFixInvalidTxFlags ? features
+                                      : features - fixInvalidTxFlags};
+
+            auto const alice = Account{"alice"};
+            env.fund(XRP(10000), alice);
+            env.close();
+
+            Json::Value jv =
+                ripple::test::jtx::hook(alice, {{{hso_delete()}}}, 0);
+            jv[jss::Flags] = tfUniversalMask;
+
+            env(jv,
+                M("Invalid SetHook flags"),
+                HSFEE,
+                withFixInvalidTxFlags ? ter(temINVALID_FLAG) : ter(tesSUCCESS));
             env.close();
         }
     }
@@ -2814,7 +2843,7 @@ public:
     void
     test_emit(FeatureBitset features)
     {
-        testcase("Test float_emit");
+        testcase("Test emit");
         using namespace jtx;
         Env env{*this, features};
 
@@ -13117,6 +13146,7 @@ public:
         testHooksOwnerDir(features);
         testHooksDisabled(features);
         testTxStructure(features);
+        testInvalidTxFlags(features);
         testInferHookSetOperation();
         testParams(features);
         testGrants(features);

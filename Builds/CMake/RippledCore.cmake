@@ -50,6 +50,12 @@ target_sources (xrpl_core PRIVATE
   src/ripple/beast/utility/src/beast_Journal.cpp
   src/ripple/beast/utility/src/beast_PropertyStream.cpp)
 
+# Conditionally add enhanced logging source when BEAST_ENHANCED_LOGGING is enabled
+if(DEFINED BEAST_ENHANCED_LOGGING AND BEAST_ENHANCED_LOGGING)
+  target_sources(xrpl_core PRIVATE
+    src/ripple/beast/utility/src/beast_EnhancedLogging.cpp)
+endif()
+
 #[===============================[
     core sources
 #]===============================]
@@ -155,6 +161,13 @@ target_link_libraries (xrpl_core
     ed25519::ed25519
     date::date
     Ripple::opts)
+
+# Link date-tz library when enhanced logging is enabled
+if(DEFINED BEAST_ENHANCED_LOGGING AND BEAST_ENHANCED_LOGGING)
+  if(TARGET date::date-tz)
+    target_link_libraries(xrpl_core PUBLIC date::date-tz)
+  endif()
+endif()
 #[=================================[
    main/core headers installation
 #]=================================]
@@ -548,7 +561,6 @@ target_sources (rippled PRIVATE
   src/ripple/nodestore/backend/CassandraFactory.cpp
   src/ripple/nodestore/backend/RWDBFactory.cpp
   src/ripple/nodestore/backend/MemoryFactory.cpp
-  src/ripple/nodestore/backend/FlatmapFactory.cpp
   src/ripple/nodestore/backend/NuDBFactory.cpp
   src/ripple/nodestore/backend/NullFactory.cpp
   src/ripple/nodestore/backend/RocksDBFactory.cpp
@@ -997,6 +1009,11 @@ if (tests)
     src/test/resource/Logic_test.cpp
     #[===============================[
        test sources:
+         subdir: rdb
+    #]===============================]
+    src/test/rdb/RelationalDatabase_test.cpp
+    #[===============================[
+       test sources:
          subdir: rpc
     #]===============================]
     src/test/rpc/AccountCurrencies_test.cpp
@@ -1068,6 +1085,11 @@ target_link_libraries (rippled
   Ripple::opts
   Ripple::libs
   Ripple::xrpl_core
+  # Workaround for a Conan 1.x bug that prevents static linking of libstdc++
+  # when a dependency (snappy) modifies system_libs. See the comment in
+  # external/snappy/conanfile.py for a full explanation.
+  # This is likely not strictly necessary, but listed explicitly as a good practice.
+  m
   )
 exclude_if_included (rippled)
 # define a macro for tests that might need to
