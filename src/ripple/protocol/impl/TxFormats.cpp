@@ -102,6 +102,8 @@ TxFormats::TxFormats()
         },
         commonFields);
 
+    addAlias(jss::RegularKeySet, ttREGULAR_KEY_SET);
+
     add(jss::Payment,
         ttPAYMENT,
         {
@@ -326,6 +328,8 @@ TxFormats::TxFormats()
         },
         commonFields);
 
+    addAlias(jss::HookSet, ttHOOK_SET);
+
     add(jss::ClaimReward,
         ttCLAIM_REWARD,
         {
@@ -464,6 +468,8 @@ TxFormats::TxFormats()
             {sfRemarks, soeREQUIRED},
         },
         commonFields);
+
+    addAlias(jss::RemarksSet, ttREMARKS_SET);
 
     add(jss::Clawback,
         ttCLAWBACK,
