@@ -33,17 +33,17 @@ sed -n '/enum hook_return_code/,/};/p' "$ENUM_FILE" |
             line = $0
             if (line ~ /enum[[:space:]]+hook_return_code/)
                 next
-            if (line ~ /^\s*\{/)
+            if (line ~ /^[[:space:]]*\{/)
                 next
 
             sub(/\/\/.*$/, "", line)
 
-            if (line ~ /^\s*\};/) {
+            if (line ~ /^[[:space:]]*\};/) {
                 emit(buffer)
                 exit
             }
 
-            if (line ~ /^\s*$/)
+            if (line ~ /^[[:space:]]*$/)
                 next
 
             buffer = buffer line " "
