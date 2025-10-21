@@ -81,15 +81,16 @@ SetCron::preflight(PreflightContext const& ctx)
         if (!hasStartTime)
         {
             JLOG(j.debug())
-                << "SetCron: StartTime must be specified to create a cron.";
+                << "SetCron: StartTime is required. Use StartTime=0 for "
+                   "immediate execution, or specify a future timestamp.";
             return temMALFORMED;
         }
 
         if ((!hasDelay && hasRepeat) || (hasDelay && !hasRepeat))
         {
             JLOG(j.debug())
-                << "SetCron: both or neither of DelaySeconds and RepeatCount "
-                   "must be specified create a cron.";
+                << "SetCron: DelaySeconds and RepeatCount must both be present "
+                   "for recurring crons, or both absent for one-off crons.";
             return temMALFORMED;
         }
 
@@ -112,8 +113,10 @@ SetCron::preflight(PreflightContext const& ctx)
             auto recur = tx.getFieldU32(sfRepeatCount);
             if (recur == 0)
             {
-                JLOG(j.debug()) << "SetCron: RepeatCount must be greater than "
-                                   "0 to create a cron.";
+                JLOG(j.debug())
+                    << "SetCron: RepeatCount must be greater than 0."
+                       "For one-time execution, omit DelaySeconds and "
+                       "RepeatCount.";
                 return temMALFORMED;
             }
             if (recur > 256)
@@ -143,7 +146,8 @@ SetCron::preclaim(PreclaimContext const& ctx)
 
         if (startTime < parentCloseTime)
         {
-            JLOG(ctx.j.debug()) << "SetCron: StartTime is in the past.";
+            JLOG(ctx.j.debug()) << "SetCron: StartTime must be in the future "
+                                   "(or 0 for immediate execution)";
             return tecEXPIRED;
         }
 
