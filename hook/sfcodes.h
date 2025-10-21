@@ -62,6 +62,7 @@
 #define sfEmitGeneration ((2U << 16U) + 46U)
 #define sfLockCount ((2U << 16U) + 49U)
 #define sfFirstNFTokenSequence ((2U << 16U) + 50U)
+#define sfStartTime ((2U << 16U) + 93U)
 #define sfRepeatCount ((2U << 16U) + 94U)
 #define sfDelaySeconds ((2U << 16U) + 95U)
 #define sfXahauActivationLgrSeq ((2U << 16U) + 96U)
