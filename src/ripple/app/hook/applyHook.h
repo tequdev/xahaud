@@ -30,9 +30,9 @@ isEmittedTxn(ripple::STTx const& tx);
 class HookStateMap : public std::map<
                          ripple::AccountID,  // account that owns the state
                          std::tuple<
-                             int64_t,  // remaining available ownercount
-                             int64_t,  // total namespace count
-                             int16_t,  // hook state scale
+                             int64_t,   // remaining available ownercount
+                             int64_t,   // total namespace count
+                             uint16_t,  // hook state scale
                              std::map<
                                  ripple::uint256,  // namespace
                                  std::map<
