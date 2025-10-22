@@ -680,8 +680,8 @@ SetAccount::doApply()
                 (oldScale * stateCount) + (newScale * stateCount);
 
             // sanity check
-            // if stateCount == 0, then newOwnerCount == oldOwnerCount
-            assert(newOwnerCount >= oldOwnerCount);
+            if (newOwnerCount < oldOwnerCount)
+                return tecINTERNAL;
 
             if (newOwnerCount != oldOwnerCount)
             {
