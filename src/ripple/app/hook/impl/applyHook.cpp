@@ -75,6 +75,11 @@ getTransactionalStakeHolders(STTx const& tx, ReadView const& rv)
 
     switch (tt)
     {
+        case ttCRON: {
+            ADD_TSH(tx.getAccountID(sfOwner), tshWEAK);
+            break;
+        }
+
         case ttREMIT: {
             if (destAcc)
                 ADD_TSH(*destAcc, tshSTRONG);
@@ -3609,7 +3614,7 @@ DEFINE_HOOK_FUNCTION(
     {
         JLOG(j.trace()) << "HookEmit[" << HC_ACC()
                         << "]: Transaction preflight failure: "
-                        << preflightResult.ter;
+                        << transHuman(preflightResult.ter);
         return EMISSION_FAILURE;
     }
 

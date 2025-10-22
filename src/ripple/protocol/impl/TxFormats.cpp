@@ -473,6 +473,23 @@ TxFormats::TxFormats()
             {sfTicketSequence, soeOPTIONAL},
         },
         commonFields);
+
+    add(jss::Cron,
+        ttCRON,
+        {
+            {sfOwner, soeREQUIRED},
+            {sfLedgerSequence, soeREQUIRED},
+        },
+        commonFields);
+
+    add(jss::CronSet,
+        ttCRON_SET,
+        {
+            {sfDelaySeconds, soeOPTIONAL},
+            {sfRepeatCount, soeOPTIONAL},
+            {sfStartTime, soeOPTIONAL},
+        },
+        commonFields);
 }
 
 TxFormats const&
