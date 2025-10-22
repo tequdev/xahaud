@@ -373,9 +373,9 @@ extern uint256 const fixProvisionalDoubleThreading;
 extern uint256 const featureClawback;
 extern uint256 const featureDeepFreeze;
 extern uint256 const featureIOUIssuerWeakTSH;
-extern uint256 const featureExtendedHookState;
 extern uint256 const featureCron;
 extern uint256 const fixInvalidTxFlags;
+extern uint256 const featureExtendedHookState;
 
 }  // namespace ripple
 
