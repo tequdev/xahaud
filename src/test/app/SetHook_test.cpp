@@ -13454,6 +13454,7 @@ SETHOOK_TEST(4, false)
 SETHOOK_TEST(5, false)
 SETHOOK_TEST(6, true)
 
+BEAST_DEFINE_TESTSUITE_PRIO(SetHook0, app, ripple, 2);
 BEAST_DEFINE_TESTSUITE_PRIO(SetHook1, app, ripple, 2);
 BEAST_DEFINE_TESTSUITE_PRIO(SetHook2, app, ripple, 2);
 BEAST_DEFINE_TESTSUITE_PRIO(SetHook3, app, ripple, 2);

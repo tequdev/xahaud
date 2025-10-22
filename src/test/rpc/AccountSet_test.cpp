@@ -597,8 +597,8 @@ public:
         env.enableFeature(featureExtendedHookState);
         env.close();
 
-        // set invalid HookStateScale (0 or > 8)
-        for (uint16_t scale : {0, 9})
+        // set invalid HookStateScale (0 or > 16)
+        for (uint16_t scale : {0, 17})
         {
             jt[sfHookStateScale.fieldName] = scale;
             env(jt, ter(temMALFORMED));
@@ -610,11 +610,11 @@ public:
         env.close();
         BEAST_EXPECT(!env.le(alice)->isFieldPresent(sfHookStateScale));
 
-        // set HookStateScale to 8
-        jt[sfHookStateScale.fieldName] = 8;
+        // set HookStateScale to 16
+        jt[sfHookStateScale.fieldName] = 16;
         env(jt);
         env.close();
-        BEAST_EXPECT(env.le(alice)->getFieldU16(sfHookStateScale) == 8);
+        BEAST_EXPECT(env.le(alice)->getFieldU16(sfHookStateScale) == 16);
 
         // reset HookStateScale
         jt[sfHookStateScale.fieldName] = 1;

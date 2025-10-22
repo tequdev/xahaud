@@ -191,7 +191,8 @@ SetAccount::preflight(PreflightContext const& ctx)
             return temMALFORMED;
 
         uint16_t scale = tx.getFieldU16(sfHookStateScale);
-        if (scale == 0 || scale > 8)  // Min: 1, Max: 8 (256 * 8 = 2048 bytes)
+        if (scale == 0 ||
+            scale > 16)  // Min: 1, Max: 16 (256 * 16 = 4096 bytes)
             return temMALFORMED;
     }
 
