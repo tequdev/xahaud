@@ -683,15 +683,17 @@ SetAccount::doApply()
             // if stateCount == 0, then newOwnerCount == oldOwnerCount
             assert(newOwnerCount >= oldOwnerCount);
 
-            STAmount const balance = STAmount((*sle)[sfBalance]).xrp();
-            XRPAmount const reserve =
-                view().fees().accountReserve(newOwnerCount);
-            if (balance < reserve)
-                return tecINSUFFICIENT_RESERVE;
-
             if (newOwnerCount != oldOwnerCount)
+            {
+                STAmount const balance = STAmount((*sle)[sfBalance]).xrp();
+                XRPAmount const reserve =
+                    view().fees().accountReserve(newOwnerCount);
+                if (balance < reserve)
+                    return tecINSUFFICIENT_RESERVE;
+
                 adjustOwnerCount(
                     view(), sle, newOwnerCount - oldOwnerCount, j_);
+            }
 
             sle->setFieldU16(sfHookStateScale, newScale);
         }
