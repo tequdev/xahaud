@@ -658,15 +658,15 @@ SetAccount::doApply()
     // HookStateScale
     if (tx.isFieldPresent(sfHookStateScale))
     {
-        uint16_t const scale = tx.getFieldU16(sfHookStateScale);
+        uint16_t const newScale = tx.getFieldU16(sfHookStateScale);
         uint16_t const oldScale = sle->isFieldPresent(sfHookStateScale)
             ? sle->getFieldU16(sfHookStateScale)
             : 1;
-        if (scale == oldScale)
+        if (newScale == oldScale)
         {
             // do nothing
         }
-        else if (scale == 1)
+        else if (newScale == 1)
         {
             sle->makeFieldAbsent(sfHookStateScale);
         }
@@ -676,8 +676,12 @@ SetAccount::doApply()
             uint32_t const stateCount = sle->getFieldU32(sfHookStateCount);
             uint32_t const oldOwnerCount = sle->getFieldU32(sfOwnerCount);
 
-            uint32_t const newOwnerCount =
-                oldOwnerCount - (oldScale * stateCount) + (scale * stateCount);
+            uint32_t const newOwnerCount = oldOwnerCount -
+                (oldScale * stateCount) + (newScale * stateCount);
+
+            // sanity check
+            // if stateCount == 0, then newOwnerCount == oldOwnerCount
+            assert(newOwnerCount >= oldOwnerCount);
 
             STAmount const balance = STAmount((*sle)[sfBalance]).xrp();
             XRPAmount const reserve =
@@ -689,7 +693,7 @@ SetAccount::doApply()
                 adjustOwnerCount(
                     view(), sle, newOwnerCount - oldOwnerCount, j_);
 
-            sle->setFieldU16(sfHookStateScale, scale);
+            sle->setFieldU16(sfHookStateScale, newScale);
         }
     }
 
