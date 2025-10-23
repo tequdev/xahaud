@@ -425,6 +425,7 @@ private:
         addFlagsToJson<NFTokenMintFlags>(ret, "NFTokenMint");
         addFlagsToJson<NFTokenCreateOfferFlags>(ret, "NFTokenCreateOffer");
         addFlagsToJson<ClaimRewardFlags>(ret, "ClaimReward");
+        addFlagsToJson<CronSetFlags>(ret, "CronSet");
         struct FlagData
         {
             std::string name;
