@@ -610,11 +610,17 @@ public:
         env.close();
         BEAST_EXPECT(!env.le(alice)->isFieldPresent(sfHookStateScale));
 
-        // set HookStateScale to 16
+        // increase HookStateScale to 16
         jt[sfHookStateScale.fieldName] = 16;
         env(jt);
         env.close();
         BEAST_EXPECT(env.le(alice)->getFieldU16(sfHookStateScale) == 16);
+
+        // decrease HookStateScale to 8
+        jt[sfHookStateScale.fieldName] = 8;
+        env(jt);
+        env.close();
+        BEAST_EXPECT(env.le(alice)->getFieldU16(sfHookStateScale) == 8);
 
         // reset HookStateScale
         jt[sfHookStateScale.fieldName] = 1;
@@ -657,10 +663,15 @@ public:
         env(jt, ter(tecHAS_HOOK_STATE));
         // increase
         jt[sfHookStateScale.fieldName] = 6;
-        env(jt);
+        env(jt, ter(tesSUCCESS));
         BEAST_EXPECT(env.le(alice)->getFieldU16(sfHookStateScale) == 6);
         BEAST_EXPECT(env.le(alice)->getFieldU32(sfHookStateCount) == 10);
         BEAST_EXPECT(env.le(alice)->getFieldU32(sfOwnerCount) == 110);
+
+        // check InsufficientReserve
+        applyCount(1, 100, 200);
+        jt[sfHookStateScale.fieldName] = 16;
+        env(jt, ter(tecINSUFFICIENT_RESERVE));
     }
 
     void
