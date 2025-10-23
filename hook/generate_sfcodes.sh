@@ -29,6 +29,8 @@ cat "$RIPPLED_ROOT/protocol/impl/SField.cpp" | grep -E '^CONSTRUCT_' |
     sed 's/UINT192,/21,/g' |
     sed 's/UINT384,/22,/g' |
     sed 's/UINT512,/23,/g' |
+    sed 's/DATA,/24,/g' |
+    sed 's/DATATYPE,/25,/g' |
     grep -Eo '"([^"]+)", *([0-9]+), *([0-9]+)' |
     sed 's/"//g' | sed 's/ *//g' | sed 's/,/ /g' |
     awk '{print ("#define sf"$1" (("$2"U << 16U) + "$3"U)")}'
