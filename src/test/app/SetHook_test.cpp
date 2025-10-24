@@ -11209,6 +11209,9 @@ public:
                 // Test min size
                 ASSERT(util_keylet((uint32_t)buf, 33, KEYLET_SKIP, 0,0,0,0,0,0) == TOO_SMALL);
 
+                // Invalid keylet type
+                ASSERT(util_keylet((uint32_t)buf, 34, 0, 0,0,0,0,0,0) == INVALID_ARGUMENT);
+                ASSERT(util_keylet((uint32_t)buf, 34, 0x99999999, 0,0,0,0,0,0) == INVALID_ARGUMENT);
 
                 // Test one of each type
                 ASSERT(34 == (e=util_keylet(buf, 34, KEYLET_HOOK,
