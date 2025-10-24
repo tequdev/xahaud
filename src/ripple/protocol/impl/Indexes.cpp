@@ -72,7 +72,7 @@ enum class LedgerNameSpace : std::uint16_t {
     URI_TOKEN = 'U',
     IMPORT_VLSEQ = 'I',
     UNL_REPORT = 'R',
-    CRON = 'A',
+    CRON = 'L',
 
     // No longer used or supported. Left here to reserve the space
     // to avoid accidental reuse.
