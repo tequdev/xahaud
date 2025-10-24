@@ -2903,17 +2903,6 @@ DEFINE_HOOK_FUNCTION(
     if (write_len < 34)
         return TOO_SMALL;
 
-    bool const v1 = applyCtx.view().rules().enabled(featureHooksUpdate1);
-
-    if (keylet_type == 0)
-        return INVALID_ARGUMENT;
-
-    auto const last =
-        v1 ? keylet_code::LAST_KLTYPE_V1 : keylet_code::LAST_KLTYPE_V0;
-
-    if (keylet_type > last)
-        return INVALID_ARGUMENT;
-
     try
     {
         switch (keylet_type)
@@ -3105,6 +3094,9 @@ DEFINE_HOOK_FUNCTION(
             }
 
             case keylet_code::HOOK_STATE_DIR: {
+                if (!applyCtx.view().rules().enabled(featureHooksUpdate1))
+                    return INVALID_ARGUMENT;
+
                 if (a == 0 || b == 0 || c == 0 || d == 0)
                     return INVALID_ARGUMENT;
 
@@ -3279,7 +3271,7 @@ DEFINE_HOOK_FUNCTION(
         return INTERNAL_ERROR;
     }
 
-    return NO_SUCH_KEYLET;
+    return INVALID_ARGUMENT;
 
     HOOK_TEARDOWN();
 }
