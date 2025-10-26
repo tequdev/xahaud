@@ -2571,6 +2571,74 @@ public:
     }
 
     void
+    testGuardCost(FeatureBitset features)
+    {
+        testcase("Test guard cost");
+        using namespace jtx;
+
+        auto const alice = Account{"alice"};
+        auto const bob = Account{"bob"};
+
+        for (auto withCost : {true, false})
+        {
+            Env env{
+                *this,
+                withCost ? features | featureHookFeeV2
+                         : features - featureHookFeeV2};
+
+            env.fund(XRP(10000), alice);
+            env.fund(XRP(10000), bob);
+            TestHook hook_wasm = wasm[R"[test.hook](
+            #include <stdint.h>
+            extern int32_t _g       (uint32_t id, uint32_t maxiter);
+            #define GUARD(maxiter) _g((1ULL << 31U) + __LINE__, (maxiter)+1)
+            extern int64_t accept   (uint32_t read_ptr, uint32_t read_len, int64_t error_code);
+            extern int64_t hook_account (uint32_t, uint32_t);
+            int64_t hook(uint32_t reserved)
+            {
+                uint8_t acc[20];
+                for (int i = 0; i < 10; ++i)
+                {
+                    _g(1, 11);
+                    for (int j = 0; j < 2; ++j)
+                    {
+                        _g(2, 30);
+                        for (int k = 0;  k < 5; ++k)
+                        {
+                            _g(3, 120);
+                            hook_account(acc, 20);
+                        }
+                        for (int k = 0;  k < 5; ++k)
+                        {
+                            _g(4, 120);
+                            hook_account(acc, 20);
+                        }
+                    }
+                }
+                return accept(0,0,2);
+            }
+            )[test.hook]"];
+
+            HASH_WASM(hook);
+
+            env(ripple::test::jtx::hook(
+                    alice, {{hso(hook_wasm, overrideFlag)}}, 0),
+                HSFEE);
+            env.close();
+
+            auto const hookDef = env.le(hook_keylet);
+
+            BEAST_EXPECT(hookDef);
+            auto const hookFee = hookDef->getFieldAmount(sfFee);
+
+            if (withCost)
+                BEAST_EXPECT(hookFee == XRPAmount{449});
+            else
+                BEAST_EXPECT(hookFee == XRPAmount{1944});
+        }
+    }
+
+    void
     test_emit(FeatureBitset features)
     {
         testcase("Test emit");
@@ -13180,6 +13248,7 @@ public:
         test_rollback(features);
 
         testGuards(features);
+        testGuardCost(features);
 
         test_emit(features);  //
         // test_etxn_burden(features);       // tested above

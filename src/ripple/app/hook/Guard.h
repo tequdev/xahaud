@@ -145,6 +145,7 @@ struct WasmBlkInf
     uint32_t sanity_check;
     uint32_t iteration_bound;
     uint32_t instruction_count;
+    uint32_t execution_cost;
     WasmBlkInf* parent;
     std::vector<WasmBlkInf*> children;
     uint32_t start_byte;
@@ -194,7 +195,7 @@ struct WasmBlkInf
                 level,                                                         \
                 "                                                            " \
                 "                      ",                                      \
-                worst_case_execution,                                          \
+                instruction_count,                                             \
                 blk->start_byte,                                               \
                 blk->instruction_count,                                        \
                 blk->iteration_bound,                                          \
@@ -203,20 +204,20 @@ struct WasmBlkInf
                 &(blk->parent));                                               \
     }
 // compute worst case execution time
-inline uint64_t
+inline std::pair<uint64_t, uint64_t>
 compute_wce(const WasmBlkInf* blk, int level, bool* recursion_limit_reached)
 {
     if (level > 16)
     {
         *recursion_limit_reached = true;
-        return 0;
+        return {0, 0};
     }
 
     if (blk->sanity_check != 0x1234ABCDU)
     {
         printf("!!! sanity check failed\n");
         *recursion_limit_reached = true;
-        return (uint64_t)-1;
+        return {(uint64_t)-1, (uint64_t)-1};
     }
 
     WasmBlkInf const* parent = blk->parent;
@@ -225,23 +226,28 @@ compute_wce(const WasmBlkInf* blk, int level, bool* recursion_limit_reached)
     {
         printf("!!! parent sanity check failed\n");
         *recursion_limit_reached = true;
-        return (uint64_t)-1;
+        return {(uint64_t)-1, (uint64_t)-1};
     }
 
-    uint64_t worst_case_execution = blk->instruction_count;
+    uint64_t instruction_count = blk->instruction_count;
+    uint64_t execution_cost = blk->execution_cost;
     double multiplier = 1.0;
 
     if (blk->children.size() > 0)
         for (auto const& child : blk->children)
-            worst_case_execution +=
+        {
+            auto [child_instruction_count, child_execution_cost] =
                 compute_wce(child, level + 1, recursion_limit_reached);
+            instruction_count += child_instruction_count;
+            execution_cost += child_execution_cost;
+        }
 
     if (parent == 0 ||
         parent->iteration_bound ==
             0)  // this condtion should never occur [defensively programmed]
     {
         PRINT_WCE(1);
-        return worst_case_execution;
+        return {instruction_count, execution_cost};
     }
 
     // if the block has a parent then the quotient of its guard and its parent's
@@ -250,12 +256,12 @@ compute_wce(const WasmBlkInf* blk, int level, bool* recursion_limit_reached)
     multiplier =
         ((double)(blk->iteration_bound)) / ((double)(parent->iteration_bound));
 
-    worst_case_execution *= multiplier;
-    if (worst_case_execution < 1.0)
-        worst_case_execution = 1.0;
+    instruction_count *= multiplier;
+    if (instruction_count < 1.0)
+        instruction_count = 1.0;
 
     PRINT_WCE(3);
-    return worst_case_execution;
+    return {instruction_count, execution_cost};
 };
 
 // checks the WASM binary for the appropriate required _g guard calls and
@@ -263,12 +269,15 @@ compute_wce(const WasmBlkInf* blk, int level, bool* recursion_limit_reached)
 // expr under analysis begins and end_offset is where it ends returns {worst
 // case instruction count} if valid or {} if invalid may throw overflow_error,
 // length_error
-inline std::optional<uint64_t>
+inline std::optional<
+    std::pair<uint64_t, uint64_t>>  // {instruction count, execution cost}
 check_guard(
     std::vector<uint8_t> const& wasm,
     int codesec,
     int start_offset,
     int end_offset,
+    std::map<int, std::pair<std::map<int, std::string>, uint32_t>>
+        import_type_map,
     int guard_func_idx,
     int last_import_idx,
     GuardLog guardLog,
@@ -333,6 +342,7 @@ check_guard(
         ADVANCE(1);
 
         current->instruction_count++;
+        current->execution_cost++;
 
         // unreachable and nop instructions
         if (instr == 0x00U ||  // unreachable
@@ -511,6 +521,9 @@ check_guard(
                 if (guard_count++ > MAX_GUARD_CALLS)
                     GUARD_ERROR("Too many guard calls! Limit is 1024");
             }
+
+            uint32_t cost = import_type_map[callee_idx].second;
+            current->execution_cost += cost;
 
             continue;
         }
@@ -788,7 +801,8 @@ check_guard(
     }
 
     bool recursion_limit_reached = false;
-    uint64_t wce = compute_wce(&(*root), 0, &recursion_limit_reached);
+    auto [instruction_count, execution_cost] =
+        compute_wce(&(*root), 0, &recursion_limit_reached);
     if (recursion_limit_reached)
     {
         GUARDLOG(hook::log::NESTING_LIMIT)
@@ -800,9 +814,9 @@ check_guard(
 
     GUARDLOG(hook::log::INSTRUCTION_COUNT)
         << "GuardCheck "
-        << "Total worse-case execution count: " << wce << "\n";
+        << "Total worse-case execution count: " << instruction_count << "\n";
 
-    if (wce >= 0xFFFFU)
+    if (instruction_count >= 0xFFFFU)
     {
         GUARDLOG(hook::log::INSTRUCTION_EXCESS)
             << "GuardCheck "
@@ -812,7 +826,7 @@ check_guard(
             << "\n";
         return {};
     }
-    return wce;
+    return std::pair<uint64_t, uint64_t>{instruction_count, execution_cost};
 }
 
 // RH TODO: reprogram this function to use REQUIRE/ADVANCE
@@ -826,6 +840,7 @@ validateGuards(
     std::vector<uint8_t> const& wasm,
     GuardLog guardLog,
     std::string guardLogAccStr,
+    bool returnCost,
     /* RH NOTE:
      * rules version is a bit field, so rule update 1 is 0x01, update 2 is 0x02
      * and update 3 is 0x04 ideally at rule version 3 all bits so far are set
@@ -875,7 +890,9 @@ validateGuards(
     std::map<int, int> func_type_map;
     std::map<
         int /* type idx */,
-        std::map<int /* import index */, std::string /* api name */>>
+        std::pair<
+            std::map<int /* import index */, std::string /* api name */>,
+            uint32_t /* cost */>>
         import_type_map;
 
     // now we check for guards... first check if _g is imported
@@ -1020,40 +1037,47 @@ validateGuards(
                 int type_idx = parseLeb128(wasm, i, &i);
                 CHECK_SHORT_HOOK();
 
-                if (import_name == "_g")
+                uint32_t cost = 0;
+
+                auto merged_import_whitelist = hook_api::import_whitelist;
+                if (rulesVersion > 0)
                 {
-                    guard_import_number = func_upto;
+                    merged_import_whitelist.insert(
+                        hook_api::import_whitelist_1.begin(),
+                        hook_api::import_whitelist_1.end());
                 }
-                else if (
-                    hook_api::import_whitelist.find(import_name) ==
-                    hook_api::import_whitelist.end())
+
+                auto it = merged_import_whitelist.find(import_name);
+                auto it_end = merged_import_whitelist.end();
+                bool found_in_whitelist = (it != it_end);
+
+                if (import_name == "_g")
+                    guard_import_number = func_upto;
+
+                if (found_in_whitelist)
+                    cost = it->second.second;
+                else
                 {
-                    if (rulesVersion > 0 &&
-                        hook_api::import_whitelist_1.find(import_name) !=
-                            hook_api::import_whitelist_1.end())
-                    {
-                        // PASS, this is a version 1 api
-                    }
-                    else
-                    {
-                        GUARDLOG(hook::log::IMPORT_ILLEGAL)
-                            << "Malformed transaction. "
-                            << "Hook attempted to import a function that does "
-                               "not "
-                            << "appear in the hook_api function set: `"
-                            << import_name << "`"
-                            << "\n";
-                        return {};
-                    }
+                    GUARDLOG(hook::log::IMPORT_ILLEGAL)
+                        << "Malformed transaction. "
+                        << "Hook attempted to import a function that does "
+                           "not "
+                        << "appear in the hook_api function set: `"
+                        << import_name << "`"
+                        << "\n";
+                    return {};
                 }
 
                 // add to import map
                 if (import_type_map.find(type_idx) == import_type_map.end())
                     import_type_map[type_idx] = {
-                        {func_upto, std::move(import_name)}};
+                        {{func_upto, std::move(import_name)}}, cost};
                 else
-                    import_type_map[type_idx].emplace(
+                {
+                    import_type_map[type_idx].first.emplace(
                         func_upto, std::move(import_name));
+                    import_type_map[type_idx].second = cost;
+                }
 
                 func_upto++;
             }
@@ -1256,14 +1280,16 @@ validateGuards(
                 if (auto const& usage = import_type_map.find(j);
                     usage != import_type_map.end())
                 {
-                    for (auto const& [import_idx, api_name] : usage->second)
+                    for (auto const& [import_idx, api_name] :
+                         usage->second.first)
                     {
                         auto const& api_signature =
                             hook_api::import_whitelist.find(api_name) !=
                                 hook_api::import_whitelist.end()
-                            ? hook_api::import_whitelist.find(api_name)->second
+                            ? hook_api::import_whitelist.find(api_name)
+                                  ->second.first
                             : hook_api::import_whitelist_1.find(api_name)
-                                  ->second;
+                                  ->second.first;
 
                         if (!first_signature)
                         {
@@ -1502,6 +1528,7 @@ validateGuards(
                     j,
                     i,
                     code_end,
+                    import_type_map,
                     guard_import_number,
                     last_import_number,
                     guardLog,
@@ -1512,9 +1539,15 @@ validateGuards(
                     return {};
 
                 if (hook_func_idx && *hook_func_idx == j)
-                    maxInstrCountHook = *valid;
+                    if (!returnCost)
+                        maxInstrCountHook = valid->first;
+                    else
+                        maxInstrCountHook = valid->second;
                 else if (cbak_func_idx && *cbak_func_idx == j)
-                    maxInstrCountCbak = *valid;
+                    if (!returnCost)
+                        maxInstrCountCbak = valid->first;
+                    else
+                        maxInstrCountCbak = valid->second;
                 else
                 {
                     if (DEBUG_GUARD)

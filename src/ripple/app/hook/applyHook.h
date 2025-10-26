@@ -471,6 +471,11 @@ computeExecutionFee(uint64_t instructionCount);
 int64_t
 computeCreationFee(uint64_t byteCount);
 
+constexpr uint32_t MICRO_DROPS_PER_DROP{1'000'000};
+
+std::pair<uint64_t, uint64_t>
+computeHookInstructionCosts(std::pair<uint64_t, uint64_t> const&, Rules const&);
+
 struct HookResult
 {
     ripple::uint256 const hookSetTxnID;
@@ -597,14 +602,14 @@ gatherHookParameters(
     beast::Journal const& j_);
 
 // RH TODO: call destruct for these on rippled shutdown
-#define ADD_HOOK_FUNCTION(F, ctx)                          \
+#define ADD_HOOK_FUNCTION(F, ctx, cost)                    \
     {                                                      \
         WasmEdge_FunctionInstanceContext* hf =             \
             WasmEdge_FunctionInstanceCreate(               \
                 hook_api::WasmFunctionType##F,             \
                 hook_api::WasmFunction##F,                 \
                 (void*)(&ctx),                             \
-                0);                                        \
+                cost);                                     \
         WasmEdge_ModuleInstanceAddFunction(                \
             importObj, hook_api::WasmFunctionName##F, hf); \
     }
@@ -792,96 +797,96 @@ public:
 
         WasmEdge_LogSetDebugLevel();
 
-        ADD_HOOK_FUNCTION(_g, ctx);
-        ADD_HOOK_FUNCTION(accept, ctx);
-        ADD_HOOK_FUNCTION(rollback, ctx);
-        ADD_HOOK_FUNCTION(util_raddr, ctx);
-        ADD_HOOK_FUNCTION(util_accid, ctx);
-        ADD_HOOK_FUNCTION(util_verify, ctx);
-        ADD_HOOK_FUNCTION(util_sha512h, ctx);
-        ADD_HOOK_FUNCTION(sto_validate, ctx);
-        ADD_HOOK_FUNCTION(sto_subfield, ctx);
-        ADD_HOOK_FUNCTION(sto_subarray, ctx);
-        ADD_HOOK_FUNCTION(sto_emplace, ctx);
-        ADD_HOOK_FUNCTION(sto_erase, ctx);
-        ADD_HOOK_FUNCTION(util_keylet, ctx);
+        ADD_HOOK_FUNCTION(_g, ctx, 0);
+        ADD_HOOK_FUNCTION(accept, ctx, 0);
+        ADD_HOOK_FUNCTION(rollback, ctx, 0);
+        ADD_HOOK_FUNCTION(util_raddr, ctx, 0);
+        ADD_HOOK_FUNCTION(util_accid, ctx, 0);
+        ADD_HOOK_FUNCTION(util_verify, ctx, 0);
+        ADD_HOOK_FUNCTION(util_sha512h, ctx, 0);
+        ADD_HOOK_FUNCTION(sto_validate, ctx, 0);
+        ADD_HOOK_FUNCTION(sto_subfield, ctx, 0);
+        ADD_HOOK_FUNCTION(sto_subarray, ctx, 0);
+        ADD_HOOK_FUNCTION(sto_emplace, ctx, 0);
+        ADD_HOOK_FUNCTION(sto_erase, ctx, 0);
+        ADD_HOOK_FUNCTION(util_keylet, ctx, 0);
 
-        ADD_HOOK_FUNCTION(emit, ctx);
-        ADD_HOOK_FUNCTION(etxn_burden, ctx);
-        ADD_HOOK_FUNCTION(etxn_fee_base, ctx);
-        ADD_HOOK_FUNCTION(etxn_details, ctx);
-        ADD_HOOK_FUNCTION(etxn_reserve, ctx);
-        ADD_HOOK_FUNCTION(etxn_generation, ctx);
-        ADD_HOOK_FUNCTION(etxn_nonce, ctx);
+        ADD_HOOK_FUNCTION(emit, ctx, 0);
+        ADD_HOOK_FUNCTION(etxn_burden, ctx, 0);
+        ADD_HOOK_FUNCTION(etxn_fee_base, ctx, 0);
+        ADD_HOOK_FUNCTION(etxn_details, ctx, 0);
+        ADD_HOOK_FUNCTION(etxn_reserve, ctx, 0);
+        ADD_HOOK_FUNCTION(etxn_generation, ctx, 0);
+        ADD_HOOK_FUNCTION(etxn_nonce, ctx, 0);
 
-        ADD_HOOK_FUNCTION(float_set, ctx);
-        ADD_HOOK_FUNCTION(float_multiply, ctx);
-        ADD_HOOK_FUNCTION(float_mulratio, ctx);
-        ADD_HOOK_FUNCTION(float_negate, ctx);
-        ADD_HOOK_FUNCTION(float_compare, ctx);
-        ADD_HOOK_FUNCTION(float_sum, ctx);
-        ADD_HOOK_FUNCTION(float_sto, ctx);
-        ADD_HOOK_FUNCTION(float_sto_set, ctx);
-        ADD_HOOK_FUNCTION(float_invert, ctx);
+        ADD_HOOK_FUNCTION(float_set, ctx, 0);
+        ADD_HOOK_FUNCTION(float_multiply, ctx, 0);
+        ADD_HOOK_FUNCTION(float_mulratio, ctx, 0);
+        ADD_HOOK_FUNCTION(float_negate, ctx, 0);
+        ADD_HOOK_FUNCTION(float_compare, ctx, 0);
+        ADD_HOOK_FUNCTION(float_sum, ctx, 0);
+        ADD_HOOK_FUNCTION(float_sto, ctx, 0);
+        ADD_HOOK_FUNCTION(float_sto_set, ctx, 0);
+        ADD_HOOK_FUNCTION(float_invert, ctx, 0);
 
-        ADD_HOOK_FUNCTION(float_divide, ctx);
-        ADD_HOOK_FUNCTION(float_one, ctx);
-        ADD_HOOK_FUNCTION(float_mantissa, ctx);
-        ADD_HOOK_FUNCTION(float_sign, ctx);
-        ADD_HOOK_FUNCTION(float_int, ctx);
-        ADD_HOOK_FUNCTION(float_log, ctx);
-        ADD_HOOK_FUNCTION(float_root, ctx);
+        ADD_HOOK_FUNCTION(float_divide, ctx, 0);
+        ADD_HOOK_FUNCTION(float_one, ctx, 0);
+        ADD_HOOK_FUNCTION(float_mantissa, ctx, 0);
+        ADD_HOOK_FUNCTION(float_sign, ctx, 0);
+        ADD_HOOK_FUNCTION(float_int, ctx, 0);
+        ADD_HOOK_FUNCTION(float_log, ctx, 0);
+        ADD_HOOK_FUNCTION(float_root, ctx, 0);
 
-        ADD_HOOK_FUNCTION(otxn_burden, ctx);
-        ADD_HOOK_FUNCTION(otxn_generation, ctx);
-        ADD_HOOK_FUNCTION(otxn_field, ctx);
-        ADD_HOOK_FUNCTION(otxn_id, ctx);
-        ADD_HOOK_FUNCTION(otxn_type, ctx);
-        ADD_HOOK_FUNCTION(otxn_slot, ctx);
-        ADD_HOOK_FUNCTION(otxn_param, ctx);
+        ADD_HOOK_FUNCTION(otxn_burden, ctx, 0);
+        ADD_HOOK_FUNCTION(otxn_generation, ctx, 0);
+        ADD_HOOK_FUNCTION(otxn_field, ctx, 0);
+        ADD_HOOK_FUNCTION(otxn_id, ctx, 0);
+        ADD_HOOK_FUNCTION(otxn_type, ctx, 0);
+        ADD_HOOK_FUNCTION(otxn_slot, ctx, 0);
+        ADD_HOOK_FUNCTION(otxn_param, ctx, 0);
 
-        ADD_HOOK_FUNCTION(hook_account, ctx);
-        ADD_HOOK_FUNCTION(hook_hash, ctx);
-        ADD_HOOK_FUNCTION(hook_again, ctx);
-        ADD_HOOK_FUNCTION(fee_base, ctx);
-        ADD_HOOK_FUNCTION(ledger_seq, ctx);
-        ADD_HOOK_FUNCTION(ledger_last_hash, ctx);
-        ADD_HOOK_FUNCTION(ledger_last_time, ctx);
-        ADD_HOOK_FUNCTION(ledger_nonce, ctx);
-        ADD_HOOK_FUNCTION(ledger_keylet, ctx);
+        ADD_HOOK_FUNCTION(hook_account, ctx, 0);
+        ADD_HOOK_FUNCTION(hook_hash, ctx, 0);
+        ADD_HOOK_FUNCTION(hook_again, ctx, 0);
+        ADD_HOOK_FUNCTION(fee_base, ctx, 0);
+        ADD_HOOK_FUNCTION(ledger_seq, ctx, 0);
+        ADD_HOOK_FUNCTION(ledger_last_hash, ctx, 0);
+        ADD_HOOK_FUNCTION(ledger_last_time, ctx, 0);
+        ADD_HOOK_FUNCTION(ledger_nonce, ctx, 0);
+        ADD_HOOK_FUNCTION(ledger_keylet, ctx, 0);
 
-        ADD_HOOK_FUNCTION(hook_param, ctx);
-        ADD_HOOK_FUNCTION(hook_param_set, ctx);
-        ADD_HOOK_FUNCTION(hook_skip, ctx);
-        ADD_HOOK_FUNCTION(hook_pos, ctx);
+        ADD_HOOK_FUNCTION(hook_param, ctx, 0);
+        ADD_HOOK_FUNCTION(hook_param_set, ctx, 0);
+        ADD_HOOK_FUNCTION(hook_skip, ctx, 0);
+        ADD_HOOK_FUNCTION(hook_pos, ctx, 0);
 
-        ADD_HOOK_FUNCTION(state, ctx);
-        ADD_HOOK_FUNCTION(state_foreign, ctx);
-        ADD_HOOK_FUNCTION(state_set, ctx);
-        ADD_HOOK_FUNCTION(state_foreign_set, ctx);
+        ADD_HOOK_FUNCTION(state, ctx, 0);
+        ADD_HOOK_FUNCTION(state_foreign, ctx, 0);
+        ADD_HOOK_FUNCTION(state_set, ctx, 0);
+        ADD_HOOK_FUNCTION(state_foreign_set, ctx, 0);
 
-        ADD_HOOK_FUNCTION(slot, ctx);
-        ADD_HOOK_FUNCTION(slot_clear, ctx);
-        ADD_HOOK_FUNCTION(slot_count, ctx);
-        ADD_HOOK_FUNCTION(slot_set, ctx);
-        ADD_HOOK_FUNCTION(slot_size, ctx);
-        ADD_HOOK_FUNCTION(slot_subarray, ctx);
-        ADD_HOOK_FUNCTION(slot_subfield, ctx);
-        ADD_HOOK_FUNCTION(slot_type, ctx);
-        ADD_HOOK_FUNCTION(slot_float, ctx);
+        ADD_HOOK_FUNCTION(slot, ctx, 0);
+        ADD_HOOK_FUNCTION(slot_clear, ctx, 0);
+        ADD_HOOK_FUNCTION(slot_count, ctx, 0);
+        ADD_HOOK_FUNCTION(slot_set, ctx, 0);
+        ADD_HOOK_FUNCTION(slot_size, ctx, 0);
+        ADD_HOOK_FUNCTION(slot_subarray, ctx, 0);
+        ADD_HOOK_FUNCTION(slot_subfield, ctx, 0);
+        ADD_HOOK_FUNCTION(slot_type, ctx, 0);
+        ADD_HOOK_FUNCTION(slot_float, ctx, 0);
 
-        ADD_HOOK_FUNCTION(trace, ctx);
-        ADD_HOOK_FUNCTION(trace_num, ctx);
-        ADD_HOOK_FUNCTION(trace_float, ctx);
+        ADD_HOOK_FUNCTION(trace, ctx, 0);
+        ADD_HOOK_FUNCTION(trace_num, ctx, 0);
+        ADD_HOOK_FUNCTION(trace_float, ctx, 0);
 
-        ADD_HOOK_FUNCTION(meta_slot, ctx);
-        ADD_HOOK_FUNCTION(xpop_slot, ctx);
+        ADD_HOOK_FUNCTION(meta_slot, ctx, 0);
+        ADD_HOOK_FUNCTION(xpop_slot, ctx, 0);
 
         /*
-        ADD_HOOK_FUNCTION(str_find, ctx);
-        ADD_HOOK_FUNCTION(str_replace, ctx);
-        ADD_HOOK_FUNCTION(str_compare, ctx);
-        ADD_HOOK_FUNCTION(str_concat, ctx);
+        ADD_HOOK_FUNCTION(str_find, ctx, 0);
+        ADD_HOOK_FUNCTION(str_replace, ctx, 0);
+        ADD_HOOK_FUNCTION(str_compare, ctx, 0);
+        ADD_HOOK_FUNCTION(str_concat, ctx, 0);
         */
 
         WasmEdge_TableInstanceContext* hostTable =

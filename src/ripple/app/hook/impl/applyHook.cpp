@@ -920,6 +920,24 @@ hook::computeCreationFee(uint64_t byteCount)
     return fee;
 }
 
+std::pair<uint64_t, uint64_t>
+hook::computeHookInstructionCosts(
+    std::pair<uint64_t, uint64_t> const& instrCounts,
+    Rules const& rules)
+{
+    if (!rules.enabled(featureHookFeeV2))
+        return instrCounts;
+
+    auto const GAS_PRICE =
+        100'000;  // TODO: should be voted by validators like reserve
+
+    double const gas_cost = double(GAS_PRICE) / double(MICRO_DROPS_PER_DROP);
+
+    return {
+        uint64_t(instrCounts.first * gas_cost),
+        uint64_t(instrCounts.second * gas_cost)};
+}
+
 // many datatypes can be encoded into an int64_t
 inline int64_t
 data_as_int64(void const* ptr_raw, uint32_t len)

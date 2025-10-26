@@ -490,6 +490,7 @@ SetHook::validateHookSetEntry(SetHookCtx& ctx, STObject const& hookSetObj)
                     hook,  // wasm to verify
                     logger,
                     hsacc,
+                    ctx.rules.enabled(featureHookFeeV2),
                     (ctx.rules.enabled(featureHooksUpdate1) ? 1 : 0) +
                         (ctx.rules.enabled(fix20250131) ? 2 : 0));
 
@@ -1637,9 +1638,12 @@ SetHook::setHook()
                                 assert(false);  // should never happen
                         }
 
-                        // otherwise assign instruction counts
-                        std::tie(maxInstrCountHook, maxInstrCountCbak) =
+                        auto const instrCounts =
                             std::get<std::pair<uint64_t, uint64_t>>(valid);
+
+                        std::tie(maxInstrCountHook, maxInstrCountCbak) =
+                            hook::computeHookInstructionCosts(
+                                instrCounts, ctx.rules);
                     }
                     catch (std::exception& e)
                     {
