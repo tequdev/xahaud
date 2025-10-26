@@ -79,7 +79,9 @@ main(int argc, char** argv)
 
     close(fd);
 
-    auto result = validateGuards(hook, std::cout, "", 3);
+    uint64_t rulesVersion = 0b00000111;
+
+    auto result = validateGuards(hook, std::cout, "", rulesVersion);
 
     if (!result)
     {

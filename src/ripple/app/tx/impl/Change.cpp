@@ -601,12 +601,20 @@ Change::activateXahauGenesis()
         for (auto const& [hookOn, wasmBytes, params] : genesis_hooks)
         {
             std::ostringstream loggerStream;
+
+            uint64_t rulesVersion = 0;
+            if (ctx_.view().rules().enabled(featureHooksUpdate1))
+                rulesVersion |= 1;
+            if (ctx_.view().rules().enabled(fix20250131))
+                rulesVersion |= 2;
+            if (ctx_.view().rules().enabled(featureHooksMemoryFillCopy))
+                rulesVersion |= 4;
+
             auto result = validateGuards(
                 wasmBytes,  // wasm to verify
                 loggerStream,
                 "rHb9CJAWyB4rj91VRWn96DkukG4bwdtyTh",
-                (ctx_.view().rules().enabled(featureHooksUpdate1) ? 1 : 0) +
-                    (ctx_.view().rules().enabled(fix20250131) ? 2 : 0));
+                rulesVersion);
 
             if (!result)
             {

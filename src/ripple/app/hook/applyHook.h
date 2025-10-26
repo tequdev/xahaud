@@ -658,6 +658,8 @@ public:
             if (!conf)
                 return;
             WasmEdge_ConfigureStatisticsSetInstructionCounting(conf, true);
+            WasmEdge_ConfigureSetMaxMemoryPage(
+                conf, 16);  // 16 * 64KiB = 1024 KiB  =  1MiB = 1048576 bytes
             ctx = WasmEdge_VMCreate(conf, NULL);
         }
 
