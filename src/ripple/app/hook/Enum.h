@@ -475,5 +475,27 @@ getImportWhitelist(
 #undef HOOK_API_DEFINITION
 #undef I32
 #undef I64
+
+enum GuardRulesVersion : uint64_t {
+    GuardRuleFix20250131 = 0x00000001,
+};
+
+inline uint64_t
+getGuardRulesVersion(
+#ifndef GUARD_CHECKER_BUILD
+    Rules const& rules
+#endif
+)
+{
+    uint64_t version = 0;
+#ifndef GUARD_CHECKER_BUILD
+    if (rules.enabled(fix20250131))
+        version |= GuardRuleFix20250131;
+#else
+    version = -1;  // all bits set for guard checker
+#endif
+    return version;
+}
+
 };  // namespace hook_api
 #endif
