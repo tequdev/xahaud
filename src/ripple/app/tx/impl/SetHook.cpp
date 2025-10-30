@@ -491,8 +491,8 @@ SetHook::validateHookSetEntry(SetHookCtx& ctx, STObject const& hookSetObj)
                     logger,
                     hsacc,
                     ctx.rules.enabled(featureHookFeeV2),
-                    (ctx.rules.enabled(featureHooksUpdate1) ? 1 : 0) +
-                        (ctx.rules.enabled(fix20250131) ? 2 : 0));
+                    hook_api::getImportWhitelist(ctx.rules),
+                    (ctx.rules.enabled(fix20250131) ? 2 : 0));
 
                 if (ctx.j.trace())
                 {

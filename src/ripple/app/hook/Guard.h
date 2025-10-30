@@ -841,6 +841,7 @@ validateGuards(
     GuardLog guardLog,
     std::string guardLogAccStr,
     bool returnCost,
+    hook_api::APIWhitelist const import_whitelist,
     /* RH NOTE:
      * rules version is a bit field, so rule update 1 is 0x01, update 2 is 0x02
      * and update 3 is 0x04 ideally at rule version 3 all bits so far are set
@@ -1039,16 +1040,8 @@ validateGuards(
 
                 uint32_t cost = 0;
 
-                auto merged_import_whitelist = hook_api::import_whitelist;
-                if (rulesVersion > 0)
-                {
-                    merged_import_whitelist.insert(
-                        hook_api::import_whitelist_1.begin(),
-                        hook_api::import_whitelist_1.end());
-                }
-
-                auto it = merged_import_whitelist.find(import_name);
-                auto it_end = merged_import_whitelist.end();
+                auto it = import_whitelist.find(import_name);
+                auto it_end = import_whitelist.end();
                 bool found_in_whitelist = (it != it_end);
 
                 if (import_name == "_g")
@@ -1284,12 +1277,7 @@ validateGuards(
                          usage->second.first)
                     {
                         auto const& api_signature =
-                            hook_api::import_whitelist.find(api_name) !=
-                                hook_api::import_whitelist.end()
-                            ? hook_api::import_whitelist.find(api_name)
-                                  ->second.first
-                            : hook_api::import_whitelist_1.find(api_name)
-                                  ->second.first;
+                            import_whitelist.find(api_name)->second.first;
 
                         if (!first_signature)
                         {
