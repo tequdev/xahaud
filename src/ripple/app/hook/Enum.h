@@ -1,3 +1,7 @@
+#ifndef GUARD_CHECKER_BUILD
+#include <ripple/protocol/Feature.h>
+#include <ripple/protocol/Rules.h>
+#endif
 #include <cstdint>
 #include <map>
 #include <set>
