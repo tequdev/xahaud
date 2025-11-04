@@ -82,7 +82,12 @@ main(int argc, char** argv)
     close(fd);
 
     auto result = validateGuards(
-        hook, std::cout, "", false, hook_api::getImportWhitelist(), 3);
+        hook,
+        std::cout,
+        "",
+        false,
+        hook_api::getImportWhitelist(),
+        hook_api::getGuardRulesVersion());
 
     if (!result)
     {

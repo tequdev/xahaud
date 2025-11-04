@@ -647,7 +647,7 @@ check_guard(
             }
             else if (fc_type == 10)  // memory.copy
             {
-                if (rulesVersion & 0x02U)
+                if (rulesVersion & hook_api::GuardRuleFix20250131)
                     GUARD_ERROR("Memory.copy instruction is not allowed.");
 
                 REQUIRE(2);
@@ -655,7 +655,7 @@ check_guard(
             }
             else if (fc_type == 11)  // memory.fill
             {
-                if (rulesVersion & 0x02U)
+                if (rulesVersion & hook_api::GuardRuleFix20250131)
                     GUARD_ERROR("Memory.fill instruction is not allowed.");
 
                 ADVANCE(1);
@@ -851,7 +851,7 @@ validateGuards(
      * might have unforeseen consequences, without also rolling back further
      * changes that are fine.
      */
-    uint64_t rulesVersion = 0)
+    uint64_t rulesVersion = 0x00)
 {
     uint64_t byteCount = wasm.size();
 

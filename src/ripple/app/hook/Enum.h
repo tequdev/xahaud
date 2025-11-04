@@ -371,14 +371,6 @@ const uint8_t max_emit = 255;
 const uint8_t max_params = 16;
 const double fee_base_multiplier = 1.1f;
 
-#define I32 0x7FU
-#define I64 0x7EU
-
-#define HOOK_WRAP_PARAMS(...) __VA_ARGS__
-#define HOOK_API_DEFINITION(RETURN_TYPE, FUNCTION_NAME, PARAMS_TUPLE, COST) \
-    whitelist[FUNCTION_NAME] = {                                            \
-        {RETURN_TYPE, HOOK_WRAP_PARAMS PARAMS_TUPLE}, COST};
-
 using APIWhitelist =
     std::map<std::string, std::pair<std::vector<uint8_t>, uint32_t>>;
 
@@ -393,93 +385,68 @@ getImportWhitelist(
 )
 {
     APIWhitelist whitelist;
-    // clang-format off
-    // TODO: update costs for each API
-    HOOK_API_DEFINITION(I32, "_g", (I32, I32), 100)
-    HOOK_API_DEFINITION(I64, "accept", (I32, I32, I64), 100)
-    HOOK_API_DEFINITION(I64, "rollback", (I32, I32, I64), 100)
-    HOOK_API_DEFINITION(I64, "util_raddr", (I32, I32, I32, I32), 100)
-    HOOK_API_DEFINITION(I64, "util_accid", (I32, I32, I32, I32), 100)
-    HOOK_API_DEFINITION(I64, "util_verify", (I32, I32, I32, I32, I32, I32), 100)
-    HOOK_API_DEFINITION(I64, "util_sha512h", (I32, I32, I32, I32), 100)
-    HOOK_API_DEFINITION(I64, "util_keylet", (I32, I32, I32, I32, I32, I32, I32, I32, I32), 100)
-    HOOK_API_DEFINITION(I64, "sto_validate", (I32, I32), 100)
-    HOOK_API_DEFINITION(I64, "sto_subfield", (I32, I32, I32), 100)
-    HOOK_API_DEFINITION(I64, "sto_subarray", (I32, I32, I32), 100)
-    HOOK_API_DEFINITION(I64, "sto_emplace", (I32, I32, I32, I32, I32, I32, I32), 100)
-    HOOK_API_DEFINITION(I64, "sto_erase", (I32, I32, I32, I32, I32), 100)
-    HOOK_API_DEFINITION(I64, "etxn_burden", (), 100)
-    HOOK_API_DEFINITION(I64, "etxn_details", (I32, I32), 100)
-    HOOK_API_DEFINITION(I64, "etxn_fee_base", (I32, I32), 100)
-    HOOK_API_DEFINITION(I64, "etxn_reserve", (I32), 100)
-    HOOK_API_DEFINITION(I64, "etxn_generation", (), 100)
-    HOOK_API_DEFINITION(I64, "etxn_nonce", (I32, I32), 100)
-    HOOK_API_DEFINITION(I64, "emit", (I32, I32, I32, I32), 100)
-    HOOK_API_DEFINITION(I64, "float_set", (I32, I64),0)
-    HOOK_API_DEFINITION(I64, "float_multiply", (I64, I64), 100)
-    HOOK_API_DEFINITION(I64, "float_mulratio", (I64, I32, I32, I32), 100)
-    HOOK_API_DEFINITION(I64, "float_negate", (I64), 100)
-    HOOK_API_DEFINITION(I64, "float_compare", (I64, I64, I32), 100)
-    HOOK_API_DEFINITION(I64, "float_sum", (I64, I64), 100)
-    HOOK_API_DEFINITION(I64, "float_sto", (I32, I32, I32, I32, I32, I32, I64, I32), 100)
-    HOOK_API_DEFINITION(I64, "float_sto_set", (I32, I32), 100)
-    HOOK_API_DEFINITION(I64, "float_invert", (I64), 100)
-    HOOK_API_DEFINITION(I64, "float_divide", (I64, I64), 100)
-    HOOK_API_DEFINITION(I64, "float_one", (), 100)
-    HOOK_API_DEFINITION(I64, "float_mantissa", (I64), 100)
-    HOOK_API_DEFINITION(I64, "float_sign", (I64), 100)
-    HOOK_API_DEFINITION(I64, "float_int", (I64, I32, I32), 100)
-    HOOK_API_DEFINITION(I64, "float_log", (I64), 100)
-    HOOK_API_DEFINITION(I64, "float_root", (I64, I32), 100)
-    HOOK_API_DEFINITION(I64, "fee_base", (), 100)
-    HOOK_API_DEFINITION(I64, "ledger_seq", (), 100)
-    HOOK_API_DEFINITION(I64, "ledger_last_time", (), 100)
-    HOOK_API_DEFINITION(I64, "ledger_last_hash", (I32, I32), 100)
-    HOOK_API_DEFINITION(I64, "ledger_nonce", (I32, I32), 100)
-    HOOK_API_DEFINITION(I64, "ledger_keylet", (I32, I32, I32, I32, I32, I32), 100)
-    HOOK_API_DEFINITION(I64, "hook_account", (I32, I32), 100)
-    HOOK_API_DEFINITION(I64, "hook_hash", (I32, I32, I32), 100)
-    HOOK_API_DEFINITION(I64, "hook_param_set", (I32, I32, I32, I32, I32, I32), 100)
-    HOOK_API_DEFINITION(I64, "hook_param", (I32, I32, I32, I32), 100)
-    HOOK_API_DEFINITION(I64, "hook_again", (), 100)
-    HOOK_API_DEFINITION(I64, "hook_skip", (I32, I32, I32), 100)
-    HOOK_API_DEFINITION(I64, "hook_pos", (), 100)
-    HOOK_API_DEFINITION(I64, "slot", (I32, I32, I32), 100)
-    HOOK_API_DEFINITION(I64, "slot_clear", (I32), 100)
-    HOOK_API_DEFINITION(I64, "slot_count", (I32), 100)
-    HOOK_API_DEFINITION(I64, "slot_set", (I32, I32, I32), 100)
-    HOOK_API_DEFINITION(I64, "slot_size", (I32), 100)
-    HOOK_API_DEFINITION(I64, "slot_subarray", (I32, I32, I32), 100)
-    HOOK_API_DEFINITION(I64, "slot_subfield", (I32, I32, I32), 100)
-    HOOK_API_DEFINITION(I64, "slot_type", (I32, I32), 100)
-    HOOK_API_DEFINITION(I64, "slot_float", (I32), 100)
-    HOOK_API_DEFINITION(I64, "state_set", (I32, I32, I32, I32), 100)
-    HOOK_API_DEFINITION(I64, "state_foreign_set", (I32, I32, I32, I32, I32, I32, I32, I32), 100)
-    HOOK_API_DEFINITION(I64, "state", (I32, I32, I32, I32), 100)
-    HOOK_API_DEFINITION(I64, "state_foreign", (I32, I32, I32, I32, I32, I32, I32, I32), 100)
-    HOOK_API_DEFINITION(I64, "trace", (I32, I32, I32, I32, I32), 100)
-    HOOK_API_DEFINITION(I64, "trace_num", (I32, I32, I64), 100)
-    HOOK_API_DEFINITION(I64, "trace_float", (I32, I32, I64), 100)
-    HOOK_API_DEFINITION(I64, "otxn_burden", (), 100)
-    HOOK_API_DEFINITION(I64, "otxn_field", (I32, I32, I32), 100)
-    HOOK_API_DEFINITION(I64, "otxn_generation", (), 100)
-    HOOK_API_DEFINITION(I64, "otxn_id", (I32, I32, I32), 100)
-    HOOK_API_DEFINITION(I64, "otxn_type", (), 100)
-    HOOK_API_DEFINITION(I64, "otxn_slot", (I32), 100)
-    HOOK_API_DEFINITION(I64, "otxn_param", (I32, I32, I32, I32), 100)
-    HOOK_API_DEFINITION(I64, "meta_slot", (I32), 100)
+#ifndef GUARD_CHECKER_BUILD
+    std::map<std::string, uint256> amendments = {};
+#endif
 
-    #ifndef GUARD_CHECKER_BUILD
-    if (rules.enabled(featureHooksUpdate1))
-    #endif
-        HOOK_API_DEFINITION(I64, "xpop_slot", (I32, I32), 100)
+#pragma push_macro("HOOK_API_DEFINITION")
+#undef HOOK_API_DEFINITION
+
+#define int64_t 0x7EU
+#define int32_t 0x7FU
+#define uint32_t 0x7FU
+
+#define HOOK_WRAP_PARAMS(...) __VA_ARGS__
+
+#ifdef GUARD_CHECKER_BUILD
+#define HOOK_API_DEFINITION(                                   \
+    RETURN_TYPE, FUNCTION_NAME, PARAMS_TUPLE, AMENDMENT, COST) \
+    whitelist[#FUNCTION_NAME] = {                              \
+        {RETURN_TYPE, HOOK_WRAP_PARAMS PARAMS_TUPLE}, COST};
+#else
+#define HOOK_API_DEFINITION(                                   \
+    RETURN_TYPE, FUNCTION_NAME, PARAMS_TUPLE, AMENDMENT, COST) \
+    if (AMENDMENT == uint256{} || rules.enabled(AMENDMENT))    \
+        whitelist[#FUNCTION_NAME] = {                          \
+            {RETURN_TYPE, HOOK_WRAP_PARAMS PARAMS_TUPLE}, COST};
+#endif
+
+#include "hook_api.macro"
+
+#undef HOOK_API_DEFINITION
+#undef HOOK_WRAP_PARAMS
+#undef int64_t
+#undef int32_t
+#undef uint32_t
+#pragma pop_macro("HOOK_API_DEFINITION")
 
     return whitelist;
-    // clang-format on
 }
 
 #undef HOOK_API_DEFINITION
 #undef I32
 #undef I64
+
+enum GuardRulesVersion : uint64_t {
+    GuardRuleFix20250131 = 0x00000001,
+};
+
+inline uint64_t
+getGuardRulesVersion(
+#ifndef GUARD_CHECKER_BUILD
+    Rules const& rules
+#endif
+)
+{
+    uint64_t version = 0;
+#ifndef GUARD_CHECKER_BUILD
+    if (rules.enabled(fix20250131))
+        version |= GuardRuleFix20250131;
+#else
+    version = -1;  // all bits set for guard checker
+#endif
+    return version;
+}
+
 };  // namespace hook_api
 #endif

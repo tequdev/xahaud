@@ -88,18 +88,18 @@
 
 #define WASM_VAL_TYPE(T, b) CAT2(TYP_, T)
 
-#define DECLARE_HOOK_FUNCTION(R, F, ...)                      \
-    R F(hook::HookContext& hookCtx,                           \
-        WasmEdge_CallingFrameContext const& frameCtx,         \
-        __VA_ARGS__);                                         \
-    extern WasmEdge_Result WasmFunction##F(                   \
-        void* data_ptr,                                       \
-        const WasmEdge_CallingFrameContext* frameCtx,         \
-        const WasmEdge_Value* in,                             \
-        WasmEdge_Value* out);                                 \
-    extern WasmEdge_ValType WasmFunctionParams##F[];          \
-    extern WasmEdge_ValType WasmFunctionResult##F[];          \
-    extern WasmEdge_FunctionTypeContext* WasmFunctionType##F; \
+#define DECLARE_HOOK_FUNCTION(R, F, ...)                         \
+    R F(hook::HookContext& hookCtx,                              \
+        WasmEdge_CallingFrameContext const& frameCtx __VA_OPT__( \
+            , )##__VA_ARGS__);                                   \
+    extern WasmEdge_Result WasmFunction##F(                      \
+        void* data_ptr,                                          \
+        const WasmEdge_CallingFrameContext* frameCtx,            \
+        const WasmEdge_Value* in,                                \
+        WasmEdge_Value* out);                                    \
+    extern WasmEdge_ValType WasmFunctionParams##F[];             \
+    extern WasmEdge_ValType WasmFunctionResult##F[];             \
+    extern WasmEdge_FunctionTypeContext* WasmFunctionType##F;    \
     extern WasmEdge_String WasmFunctionName##F;
 
 #define DECLARE_HOOK_FUNCNARG(R, F)                           \
