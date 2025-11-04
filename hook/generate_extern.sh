@@ -5,8 +5,6 @@ SCRIPT_DIR=$(dirname "$0")
 SCRIPT_DIR=$(cd "$SCRIPT_DIR" && pwd)
 
 APPLY_HOOK="$SCRIPT_DIR/../src/ripple/app/hook/hook_api.macro"
-TMPFILE=$(mktemp)
-TMPFILE=$(cd "$(dirname "$TMPFILE")" && pwd)/$(basename "$TMPFILE")
 
 {
     echo '// For documentation please see: https://xrpl-hooks.readme.io/reference/'
@@ -50,8 +48,7 @@ TMPFILE=$(cd "$(dirname "$TMPFILE")" && pwd)/$(basename "$TMPFILE")
 
     echo '#define HOOK_EXTERN'
     echo '#endif  // HOOK_EXTERN'
-} > "$TMPFILE"
-
-cd "$SCRIPT_DIR/.."
-clang-format --style=file "$TMPFILE"
-rm "$TMPFILE"
+} | (
+    cd "$SCRIPT_DIR/.."
+    clang-format --style=file -
+)
