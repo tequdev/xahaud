@@ -23,8 +23,6 @@
 #include <ripple/json/json_writer.h>
 #include <ripple/protocol/TxFlags.h>
 #include <ripple/protocol/jss.h>
-#include "ripple/protocol/Feature.h"
-#include "ripple/protocol/TER.h"
 #include <test/app/Import_json.h>
 #include <test/app/SetHook_wasm.h>
 #include <test/jtx.h>
