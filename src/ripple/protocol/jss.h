@@ -85,8 +85,8 @@ JSS(HookCanEmit);         // field
 JSS(HookHash);            // field
 JSS(HookNamespace);       // field
 JSS(HookOn);              // field
-JSS(IncomingHookOn);      // field
-JSS(OutgoingHookOn);      // field
+JSS(HookOnIncoming);      // field
+JSS(HookOnOutgoing);      // field
 JSS(Hooks);               // field
 JSS(HookGrants);          // field
 JSS(HookParameters);      // field

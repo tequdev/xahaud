@@ -226,8 +226,8 @@ SetHook::inferOperation(STObject const& hookSetObj)
         !hookSetObj.isFieldPresent(sfHookNamespace) &&
         !hookSetObj.isFieldPresent(sfHookParameters) &&
         !(hookSetObj.isFieldPresent(sfHookOn) ||
-          (hookSetObj.isFieldPresent(sfOutgoingHookOn) &&
-           hookSetObj.isFieldPresent(sfIncomingHookOn))) &&
+          (hookSetObj.isFieldPresent(sfHookOnOutgoing) &&
+           hookSetObj.isFieldPresent(sfHookOnIncoming))) &&
         !hookSetObj.isFieldPresent(sfHookCanEmit) &&
         !hookSetObj.isFieldPresent(sfHookApiVersion) &&
         !hookSetObj.isFieldPresent(sfFlags))
@@ -263,8 +263,8 @@ SetHook::validateHookSetEntry(SetHookCtx& ctx, STObject const& hookSetObj)
             if (hookSetObj.isFieldPresent(sfHookGrants) ||
                 hookSetObj.isFieldPresent(sfHookParameters) ||
                 hookSetObj.isFieldPresent(sfHookOn) ||
-                hookSetObj.isFieldPresent(sfOutgoingHookOn) ||
-                hookSetObj.isFieldPresent(sfIncomingHookOn) ||
+                hookSetObj.isFieldPresent(sfHookOnOutgoing) ||
+                hookSetObj.isFieldPresent(sfHookOnIncoming) ||
                 hookSetObj.isFieldPresent(sfHookCanEmit) ||
                 hookSetObj.isFieldPresent(sfHookApiVersion) ||
                 !hookSetObj.isFieldPresent(sfFlags) ||
@@ -295,8 +295,8 @@ SetHook::validateHookSetEntry(SetHookCtx& ctx, STObject const& hookSetObj)
             if (hookSetObj.isFieldPresent(sfHookGrants) ||
                 hookSetObj.isFieldPresent(sfHookParameters) ||
                 hookSetObj.isFieldPresent(sfHookOn) ||
-                hookSetObj.isFieldPresent(sfOutgoingHookOn) ||
-                hookSetObj.isFieldPresent(sfIncomingHookOn) ||
+                hookSetObj.isFieldPresent(sfHookOnOutgoing) ||
+                hookSetObj.isFieldPresent(sfHookOnIncoming) ||
                 hookSetObj.isFieldPresent(sfHookCanEmit) ||
                 hookSetObj.isFieldPresent(sfHookApiVersion) ||
                 hookSetObj.isFieldPresent(sfHookNamespace) ||
@@ -455,20 +455,20 @@ SetHook::validateHookSetEntry(SetHookCtx& ctx, STObject const& hookSetObj)
             if (!hookSetObj.isFieldPresent(sfHookOn))
             {
                 if (!ctx.rules.enabled(featureHookOnV2) ||
-                    !(hookSetObj.isFieldPresent(sfOutgoingHookOn) &&
-                      hookSetObj.isFieldPresent(sfIncomingHookOn)))
+                    !(hookSetObj.isFieldPresent(sfHookOnOutgoing) &&
+                      hookSetObj.isFieldPresent(sfHookOnIncoming)))
                 {
                     JLOG(ctx.j.trace())
                         << "HookSet(" << hook::log::HOOKON_MISSING << ")["
                         << HS_ACC()
                         << "]: Malformed transaction: SetHook must include "
-                           "sfHookOn or sfOutgoingHookOn and sfIncomingHookOn "
+                           "sfHookOn or sfHookOnOutgoing and sfHookOnIncoming "
                            "when creating a new hook.";
                     return false;
                 }
 
-                auto const outgoing = hookSetObj.getFieldH256(sfOutgoingHookOn);
-                auto const incoming = hookSetObj.getFieldH256(sfIncomingHookOn);
+                auto const outgoing = hookSetObj.getFieldH256(sfHookOnOutgoing);
+                auto const incoming = hookSetObj.getFieldH256(sfHookOnIncoming);
                 if (outgoing == incoming)
                 {
                     JLOG(ctx.j.trace())
@@ -481,14 +481,14 @@ SetHook::validateHookSetEntry(SetHookCtx& ctx, STObject const& hookSetObj)
             }
             else
             {
-                if (hookSetObj.isFieldPresent(sfOutgoingHookOn) ||
-                    hookSetObj.isFieldPresent(sfIncomingHookOn))
+                if (hookSetObj.isFieldPresent(sfHookOnOutgoing) ||
+                    hookSetObj.isFieldPresent(sfHookOnIncoming))
                 {
                     JLOG(ctx.j.trace())
                         << "HookSet(" << hook::log::HOOKON_MISSING << ")["
                         << HS_ACC()
                         << "]: Malformed transaction: SetHook must "
-                           "include sfOutgoingHookOn and sfIncomingHookOn "
+                           "include sfHookOnOutgoing and sfHookOnIncoming "
                            "when "
                            "creating a new hook without sfHookOn.";
                     return false;
@@ -781,8 +781,8 @@ SetHook::preflight(PreflightContext const& ctx)
 
             if (name != sfCreateCode && name != sfHookHash &&
                 name != sfHookNamespace && name != sfHookParameters &&
-                name != sfHookOn && name != sfOutgoingHookOn &&
-                name != sfIncomingHookOn && name != sfHookGrants &&
+                name != sfHookOn && name != sfHookOnOutgoing &&
+                name != sfHookOnIncoming && name != sfHookGrants &&
                 name != sfHookApiVersion && name != sfFlags &&
                 name != sfHookCanEmit)
             {
@@ -1307,10 +1307,10 @@ SetHook::setHook()
         std::optional<uint256> newHookOn;
         std::optional<uint256> defHookOn;
 
-        std::optional<uint256> newOutgoingHookOn;
-        std::optional<uint256> newIncomingHookOn;
-        std::optional<uint256> defOutgoingHookOn;
-        std::optional<uint256> defIncomingHookOn;
+        std::optional<uint256> newHookOnOutgoing;
+        std::optional<uint256> newHookOnIncoming;
+        std::optional<uint256> defHookOnOutgoing;
+        std::optional<uint256> defHookOnIncoming;
 
         std::optional<uint256> oldHookCanEmit;
         std::optional<uint256> newHookCanEmit;
@@ -1374,12 +1374,12 @@ SetHook::setHook()
 
             if (oldDefSLE)
             {
-                if (oldDefSLE->isFieldPresent(sfOutgoingHookOn))
-                    defOutgoingHookOn =
-                        oldDefSLE->getFieldH256(sfOutgoingHookOn);
-                if (oldDefSLE->isFieldPresent(sfIncomingHookOn))
-                    defIncomingHookOn =
-                        oldDefSLE->getFieldH256(sfIncomingHookOn);
+                if (oldDefSLE->isFieldPresent(sfHookOnOutgoing))
+                    defHookOnOutgoing =
+                        oldDefSLE->getFieldH256(sfHookOnOutgoing);
+                if (oldDefSLE->isFieldPresent(sfHookOnIncoming))
+                    defHookOnIncoming =
+                        oldDefSLE->getFieldH256(sfHookOnIncoming);
             }
 
             if (oldDefSLE && oldDefSLE->isFieldPresent(sfHookCanEmit))
@@ -1405,13 +1405,13 @@ SetHook::setHook()
             if (hookSetObj->get().isFieldPresent(sfHookOn))
                 newHookOn = hookSetObj->get().getFieldH256(sfHookOn);
 
-            if (hookSetObj->get().isFieldPresent(sfOutgoingHookOn))
-                newOutgoingHookOn =
-                    hookSetObj->get().getFieldH256(sfOutgoingHookOn);
+            if (hookSetObj->get().isFieldPresent(sfHookOnOutgoing))
+                newHookOnOutgoing =
+                    hookSetObj->get().getFieldH256(sfHookOnOutgoing);
 
-            if (hookSetObj->get().isFieldPresent(sfIncomingHookOn))
-                newIncomingHookOn =
-                    hookSetObj->get().getFieldH256(sfIncomingHookOn);
+            if (hookSetObj->get().isFieldPresent(sfHookOnIncoming))
+                newHookOnIncoming =
+                    hookSetObj->get().getFieldH256(sfHookOnIncoming);
 
             if (hookSetObj->get().isFieldPresent(sfHookCanEmit))
                 newHookCanEmit = hookSetObj->get().getFieldH256(sfHookCanEmit);
@@ -1526,14 +1526,14 @@ SetHook::setHook()
                 if (oldHook->get().isFieldPresent(sfHookOn))
                     newHook.setFieldH256(
                         sfHookOn, oldHook->get().getFieldH256(sfHookOn));
-                if (oldHook->get().isFieldPresent(sfOutgoingHookOn))
+                if (oldHook->get().isFieldPresent(sfHookOnOutgoing))
                     newHook.setFieldH256(
-                        sfOutgoingHookOn,
-                        oldHook->get().getFieldH256(sfOutgoingHookOn));
-                if (oldHook->get().isFieldPresent(sfIncomingHookOn))
+                        sfHookOnOutgoing,
+                        oldHook->get().getFieldH256(sfHookOnOutgoing));
+                if (oldHook->get().isFieldPresent(sfHookOnIncoming))
                     newHook.setFieldH256(
-                        sfIncomingHookOn,
-                        oldHook->get().getFieldH256(sfIncomingHookOn));
+                        sfHookOnIncoming,
+                        oldHook->get().getFieldH256(sfHookOnIncoming));
                 if (oldHook->get().isFieldPresent(sfHookCanEmit))
                     newHook.setFieldH256(
                         sfHookCanEmit,
@@ -1567,21 +1567,21 @@ SetHook::setHook()
                         newHook.setFieldH256(sfHookOn, *newHookOn);
                 }
 
-                if (newOutgoingHookOn)
+                if (newHookOnOutgoing)
                 {
-                    if (*defOutgoingHookOn == *newOutgoingHookOn)
+                    if (*defHookOnOutgoing == *newHookOnOutgoing)
                     {
-                        if (newHook.isFieldPresent(sfOutgoingHookOn))
-                            newHook.makeFieldAbsent(sfOutgoingHookOn);
+                        if (newHook.isFieldPresent(sfHookOnOutgoing))
+                            newHook.makeFieldAbsent(sfHookOnOutgoing);
                     }
                 }
 
-                if (newIncomingHookOn)
+                if (newHookOnIncoming)
                 {
-                    if (*defIncomingHookOn == *newIncomingHookOn)
+                    if (*defHookOnIncoming == *newHookOnIncoming)
                     {
-                        if (newHook.isFieldPresent(sfIncomingHookOn))
-                            newHook.makeFieldAbsent(sfIncomingHookOn);
+                        if (newHook.isFieldPresent(sfHookOnIncoming))
+                            newHook.makeFieldAbsent(sfHookOnIncoming);
                     }
                 }
 
@@ -1747,16 +1747,16 @@ SetHook::setHook()
                     auto newHookDef = std::make_shared<SLE>(keylet);
                     newHookDef->setFieldH256(sfHookHash, *createHookHash);
 
-                    // only HookOn or (OutgoingHookOn and IncomingHookOn)
+                    // only HookOn or (HookOnOutgoing and HookOnIncoming)
                     if (!view().rules().enabled(featureHookOnV2) ||
-                        (!newOutgoingHookOn && !newIncomingHookOn))
+                        (!newHookOnOutgoing && !newHookOnIncoming))
                         newHookDef->setFieldH256(sfHookOn, *newHookOn);
                     else
                     {
                         newHookDef->setFieldH256(
-                            sfOutgoingHookOn, *newOutgoingHookOn);
+                            sfHookOnOutgoing, *newHookOnOutgoing);
                         newHookDef->setFieldH256(
-                            sfIncomingHookOn, *newIncomingHookOn);
+                            sfHookOnIncoming, *newHookOnIncoming);
                     }
 
                     if (newHookCanEmit)
@@ -1863,16 +1863,16 @@ SetHook::setHook()
                     newHook.setFieldH256(sfHookNamespace, *newNamespace);
 
                 defHookOn = newDefSLE->getFieldH256(sfHookOn);
-                defIncomingHookOn = newDefSLE->getFieldH256(sfIncomingHookOn);
-                defOutgoingHookOn = newDefSLE->getFieldH256(sfOutgoingHookOn);
+                defHookOnIncoming = newDefSLE->getFieldH256(sfHookOnIncoming);
+                defHookOnOutgoing = newDefSLE->getFieldH256(sfHookOnOutgoing);
 
                 // set the hookon field if it differs from definition
                 if (newHookOn)
                 {
                     auto const diffFromDef = defHookOn != *newHookOn;
                     auto const hasIncOutgDef =
-                        *defIncomingHookOn != *defOutgoingHookOn ||
-                        *newHookOn != *defIncomingHookOn;
+                        *defHookOnIncoming != *defHookOnOutgoing ||
+                        *newHookOn != *defHookOnIncoming;
                     if (diffFromDef || hasIncOutgDef)
                     {
                         newHook.setFieldH256(sfHookOn, *newHookOn);
@@ -1881,20 +1881,20 @@ SetHook::setHook()
 
                 // set the incoming/outgoing hookon field if it differs from
                 // definition
-                if (newIncomingHookOn || newOutgoingHookOn)
+                if (newHookOnIncoming || newHookOnOutgoing)
                 {
                     auto const diffFromDef =
-                        *defIncomingHookOn != *newIncomingHookOn ||
-                        *defOutgoingHookOn != *newOutgoingHookOn;
+                        *defHookOnIncoming != *newHookOnIncoming ||
+                        *defHookOnOutgoing != *newHookOnOutgoing;
                     auto const hasHookOnDef =
-                        *newIncomingHookOn != *defHookOn ||
-                        *newOutgoingHookOn != *defHookOn;
+                        *newHookOnIncoming != *defHookOn ||
+                        *newHookOnOutgoing != *defHookOn;
                     if (diffFromDef || hasHookOnDef)
                     {
                         newHook.setFieldH256(
-                            sfIncomingHookOn, *newIncomingHookOn);
+                            sfHookOnIncoming, *newHookOnIncoming);
                         newHook.setFieldH256(
-                            sfOutgoingHookOn, *newOutgoingHookOn);
+                            sfHookOnOutgoing, *newHookOnOutgoing);
                     }
                 }
 
@@ -1952,8 +1952,8 @@ SetHook::setHook()
         // sfHook: 1 reserve PER non-blank entry
         // sfParameters: 1 reserve PER entry
         // sfGrants are: 1 reserve PER entry
-        // sfHookHash, sfHookNamespace, sfHookOn, sfOutgoingHookOn,
-        // sfIncomingHookOn, sfHookCanEmit sfHookApiVersion, sfFlags: free
+        // sfHookHash, sfHookNamespace, sfHookOn, sfHookOnOutgoing,
+        // sfHookOnIncoming, sfHookCanEmit sfHookApiVersion, sfFlags: free
 
         // sfHookDefinition is not reserved because it is an unowned object,
         // rather the uploader is billed via fee according to the following:

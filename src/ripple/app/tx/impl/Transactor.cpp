@@ -249,7 +249,7 @@ Transactor::calculateHookChainFee(
 
         // check if the hook can fire
         uint256 hookOn = hook::getHookOn(
-            hookObj, hookDef, isOutgoing ? sfOutgoingHookOn : sfIncomingHookOn);
+            hookObj, hookDef, isOutgoing ? sfHookOnOutgoing : sfHookOnIncoming);
 
         if (hook::canHook(tx.getTxnType(), hookOn) &&
             (!collectCallsOnly || (flags & hook::hsfCOLLECT)))
@@ -1223,7 +1223,7 @@ Transactor::executeHookChain(
 
         // check if the hook can fire
         uint256 hookOn = hook::getHookOn(
-            hookObj, hookDef, isOutgoing ? sfOutgoingHookOn : sfIncomingHookOn);
+            hookObj, hookDef, isOutgoing ? sfHookOnOutgoing : sfHookOnIncoming);
 
         if (!hook::canHook(ctx_.tx.getTxnType(), hookOn))
             continue;  // skip if it can't

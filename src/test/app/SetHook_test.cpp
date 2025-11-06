@@ -715,7 +715,7 @@ public:
             env.close();
         }
 
-        // grants, parameters, hookon, incominghookon, outgoinghookon,
+        // grants, parameters, hookon, hookonincoming, hookonoutgoing,
         // hookcanemit, hookapiversion, hooknamespace keys must be absent
         for (auto const& [key, value] : JSSMap{
                  {jss::HookGrants, Json::arrayValue},
@@ -723,10 +723,10 @@ public:
                  {jss::HookOn,
                   "000000000000000000000000000000000000000000000000000000000000"
                   "0000"},
-                 {jss::IncomingHookOn,
+                 {jss::HookOnIncoming,
                   "000000000000000000000000000000000000000000000000000000000000"
                   "0000"},
-                 {jss::OutgoingHookOn,
+                 {jss::HookOnOutgoing,
                   "000000000000000000000000000000000000000000000000000000000000"
                   "0000"},
                  {jss::HookCanEmit,
@@ -744,7 +744,7 @@ public:
             jv[jss::Hooks][0U][jss::Hook] = iv;
             env(jv,
                 M("Hook DELETE operation cannot include: grants, params, "
-                  "hookon, incominghookon, outgoinghookon, hookcanemit, "
+                  "hookon, HookOnIncoming, HookOnOutgoing, hookcanemit, "
                   "apiversion, namespace"),
                 HSFEE,
                 ter(temMALFORMED));
@@ -906,10 +906,10 @@ public:
                  {jss::HookOn,
                   "000000000000000000000000000000000000000000000000000000000000"
                   "0000"},
-                 {jss::IncomingHookOn,
+                 {jss::HookOnIncoming,
                   "000000000000000000000000000000000000000000000000000000000000"
                   "0000"},
-                 {jss::OutgoingHookOn,
+                 {jss::HookOnOutgoing,
                   "000000000000000000000000000000000000000000000000000000000000"
                   "0000"},
                  {jss::HookCanEmit,
@@ -928,7 +928,7 @@ public:
             jv[jss::Hooks][0U][jss::Hook] = iv;
             env(jv,
                 M("Hook NSDELETE operation cannot include: grants, params, "
-                  "hookon, incominghookon, outgoinghookon, hookcanemit, "
+                  "hookon, hookonincoming, hookonoutgoing, hookcanemit, "
                   "apiversion"),
                 HSFEE,
                 ter(temMALFORMED));
@@ -1374,10 +1374,10 @@ public:
         {
             auto jv = hso(accept_wasm);
             jv.removeMember(jss::HookOn);
-            jv[jss::IncomingHookOn] =
+            jv[jss::HookOnIncoming] =
                 "00000000000000000000000000000000000000000000000000000000000000"
                 "01";
-            jv[jss::OutgoingHookOn] =
+            jv[jss::HookOnOutgoing] =
                 "00000000000000000000000000000000000000000000000000000000000000"
                 "02";
             // create
@@ -1444,7 +1444,7 @@ public:
             jv[jss::Flags] = hsfOVERRIDE;
             jv.removeMember(jss::HookOn);
 
-            for (auto const& key : {jss::IncomingHookOn, jss::OutgoingHookOn})
+            for (auto const& key : {jss::HookOnIncoming, jss::HookOnOutgoing})
             {
                 jv[key] =
                     "0000000000000000000000000000000000000000000000000000000000"
@@ -1467,26 +1467,26 @@ public:
                 jv.removeMember(jss::HookOn);
             }
             // Incoming == Outgoing
-            jv[jss::IncomingHookOn] =
+            jv[jss::HookOnIncoming] =
                 "0000000000000000000000000000000000000000000000000000000000"
                 "000123";
-            jv[jss::OutgoingHookOn] =
+            jv[jss::HookOnOutgoing] =
                 "0000000000000000000000000000000000000000000000000000000000"
                 "000123";
             env(ripple::test::jtx::hook(alice, {{jv}}, 0),
                 M("Incoming == Outgoing"),
                 ter(temMALFORMED));
-            jv.removeMember(jss::IncomingHookOn);
-            jv.removeMember(jss::OutgoingHookOn);
+            jv.removeMember(jss::HookOnIncoming);
+            jv.removeMember(jss::HookOnOutgoing);
 
             // HookOn and both Fields
             jv[jss::HookOn] =
                 "0000000000000000000000000000000000000000000000000000000000"
                 "000000";
-            jv[jss::IncomingHookOn] =
+            jv[jss::HookOnIncoming] =
                 "0000000000000000000000000000000000000000000000000000000000"
                 "000001";
-            jv[jss::OutgoingHookOn] =
+            jv[jss::HookOnOutgoing] =
                 "0000000000000000000000000000000000000000000000000000000000"
                 "000002";
             env(ripple::test::jtx::hook(alice, {{jv}}, 0),
@@ -1508,11 +1508,11 @@ public:
                 // HookOn from Hook Object (definition: incoming/outgoing)
                 auto jv = hso(accept_wasm);
                 jv.removeMember(jss::HookOn);
-                jv[jss::IncomingHookOn] =
+                jv[jss::HookOnIncoming] =
                     "0000000000000000000000000000000000000000000000000000000000"
                     "0000"
                     "00";
-                jv[jss::OutgoingHookOn] =
+                jv[jss::HookOnOutgoing] =
                     "0000000000000000000000000000000000000000000000000000000000"
                     "0000"
                     "01";
@@ -1534,10 +1534,10 @@ public:
             auto jv = hso(accept_wasm);
             jv.removeMember(jss::HookOn);
             jv[jss::Flags] = hsfOVERRIDE;
-            jv[jss::IncomingHookOn] =
+            jv[jss::HookOnIncoming] =
                 "fffffffffffffffffffffffffffffffffffffff7ffffffffffffffffffbfff"
                 "ff";  // Invoke high
-            jv[jss::OutgoingHookOn] =
+            jv[jss::HookOnOutgoing] =
                 "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffbfff"
                 "fe";  // Payment high
             env(ripple::test::jtx::hook(alice, {{jv}}, 0),
@@ -1578,11 +1578,11 @@ public:
             {
                 auto jv = hso(accept_wasm);
                 jv.removeMember(jss::HookOn);
-                jv[jss::IncomingHookOn] =
+                jv[jss::HookOnIncoming] =
                     "fffffffffffffffffffffffffffffffffffffff7ffffffffffffffffff"
                     "bfff"
                     "ff";  // Invoke high
-                jv[jss::OutgoingHookOn] =
+                jv[jss::HookOnOutgoing] =
                     "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
                     "bfff"
                     "fe";  // Payment high
@@ -1635,11 +1635,11 @@ public:
         {
             auto jv = hso(accept_wasm);
             jv.removeMember(jss::HookOn);
-            jv[jss::IncomingHookOn] =
+            jv[jss::HookOnIncoming] =
                 "fffffffffffffffffffffffffffffffffffffff7ffffffffffffffffff"
                 "bfff"
                 "ff";  // Invoke high
-            jv[jss::OutgoingHookOn] =
+            jv[jss::HookOnOutgoing] =
                 "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
                 "bfff"
                 "fe";  // Payment high
