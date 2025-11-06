@@ -1,3 +1,5 @@
+#define GUARD_CHECKER_BUILD
+#include "Enum.h"
 #include "Guard.h"
 #include <fcntl.h>
 #include <iostream>
@@ -79,9 +81,12 @@ main(int argc, char** argv)
 
     close(fd);
 
-    uint64_t rulesVersion = 0b00000111;
-
-    auto result = validateGuards(hook, std::cout, "", rulesVersion);
+    auto result = validateGuards(
+        hook,
+        std::cout,
+        "",
+        hook_api::getImportWhitelist(),
+        hook_api::getGuardRulesVersion());
 
     if (!result)
     {
