@@ -2983,9 +2983,6 @@ DEFINE_HOOK_FUNCTION(
     if (write_len < 34)
         return TOO_SMALL;
 
-    if (keylet_type == 0)
-        return INVALID_ARGUMENT;
-
     try
     {
         switch (keylet_type)
@@ -3095,7 +3092,8 @@ DEFINE_HOOK_FUNCTION(
                 return serialize_keylet(kl, memory, write_ptr, write_len);
             }
 
-            // keylets that take 20 byte account id, and 4 byte uint
+                // keylets that take 20 byte account id, and (4 byte uint for 32
+                // byte hash)
             case keylet_code::ORACLE: {
                 if (!applyCtx.view().rules().enabled(featurePriceOracle))
                     return INVALID_ARGUMENT;
