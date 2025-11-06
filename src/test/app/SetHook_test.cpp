@@ -1535,10 +1535,6 @@ public:
                 (import "env" "accept" (func (;1;) (type 1)))
                 (func (;2;) (type 2) (param i32) (result i64)
                     (local i64)
-                    global.get 1
-                    i32.const 42
-                    i32.const 130047
-                    memory.fill
                     i32.const 1
                     i32.const 1
                     call 0
@@ -1558,22 +1554,28 @@ public:
                 (export "hook" (func 2)))
             )[test.hook]"];
 
-            Env env{*this, features | featureHooksMemoryFillCopy};
-            env.fund(XRP(10000), alice, bob);
-            env.close();
+            for (bool withFillCopy : {true, false})
+            {
+                auto f = features;
+                if (!withFillCopy)
+                    f = f - featureHooksMemoryFillCopy;
 
-            env(ripple::test::jtx::hook(alice, {{hso(hook)}}, 0),
-                HSFEE,
-                ter(tesSUCCESS));
-            env.close();
+                Env env{*this, f};
+                env.fund(XRP(10000), alice, bob);
+                env.close();
 
-            // TODO: TEQU error handling
+                env(ripple::test::jtx::hook(alice, {{hso(hook)}}, 0),
+                    HSFEE,
+                    M("hookFill - page out of bounds"),
+                    withFillCopy ? ter(temMALFORMED) : ter(tesSUCCESS));
+                env.close();
 
-            env(pay(bob, alice, XRP(1)),
-                fee(XRP(1)),
-                M("hookFill - page out of bounds"),
-                ter(tecHOOK_REJECTED));
-            env.close();
+                if (!withFillCopy)
+                {
+                    env(pay(bob, alice, XRP(1)), fee(XRP(1)), ter(tesSUCCESS));
+                    env.close();
+                }
+            }
         }
     }
 

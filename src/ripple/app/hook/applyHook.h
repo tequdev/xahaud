@@ -313,8 +313,6 @@ public:
             if (!conf)
                 return;
             WasmEdge_ConfigureStatisticsSetInstructionCounting(conf, true);
-            // TODO: TEQU
-            WasmEdge_ConfigureSetMaxMemoryPage(conf, 2);  // 2 * 64KiB = 128KiB
             ctx = WasmEdge_VMCreate(conf, NULL);
         }
 

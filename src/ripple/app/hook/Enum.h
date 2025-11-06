@@ -246,8 +246,10 @@ enum hook_log_code : uint16_t {
     SECTIONS_OUT_OF_SEQUENCE =
         85,  // the wasm contained sections out of sequence
     CUSTOM_SECTION_DISALLOWED =
-        86,               // the wasm contained a custom section (id=0)
-    INTERNAL_ERROR = 87,  // an internal error described by the log text
+        86,                 // the wasm contained a custom section (id=0)
+    INTERNAL_ERROR = 87,    // an internal error described by the log text
+    MEMORY_MISSING = 88,    // hook did not establish any memory section
+    MEMORY_MAX_PAGES = 89,  // hook memory section maximum pages is not allowed
     // RH NOTE: only HookSet msgs got log codes, possibly all Hook log lines
     // should get a code?
 };
