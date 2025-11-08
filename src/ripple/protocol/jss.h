@@ -80,21 +80,22 @@ JSS(GenesisMint);        // tt
 JSS(GenesisMints);
 JSS(GovernanceMarks);
 JSS(GovernanceFlags);
-JSS(HookApiVersion);      // field
-JSS(HookCanEmit);         // field
-JSS(HookHash);            // field
-JSS(HookNamespace);       // field
-JSS(HookOn);              // field
-JSS(Hooks);               // field
-JSS(HookGrants);          // field
-JSS(HookParameters);      // field
-JSS(HookParameterName);   // field
-JSS(HookParameterValue);  // field
-JSS(HookParameter);       // field
-JSS(HookGrant);           // field
-JSS(isSerialized);        // out: RPC server_definitions
-JSS(isSigningField);      // out: RPC server_definitions
-JSS(isVLEncoded);         // out: RPC server_definitions
+JSS(HookApiVersion);        // field
+JSS(HookCanEmit);           // field
+JSS(HookHash);              // field
+JSS(HookNamespace);         // field
+JSS(HookOn);                // field
+JSS(Hooks);                 // field
+JSS(HookGrants);            // field
+JSS(HookParameters);        // field
+JSS(HookParameterName);     // field
+JSS(HookParameterValue);    // field
+JSS(HookParameter);         // field
+JSS(HookGrant);             // field
+JSS(HookDefinitionUpdate);  // transaction type.
+JSS(isSerialized);          // out: RPC server_definitions
+JSS(isSigningField);        // out: RPC server_definitions
+JSS(isVLEncoded);           // out: RPC server_definitions
 JSS(Import);
 JSS(ImportVLSequence);
 JSS(Invalid);                  //

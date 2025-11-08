@@ -20,7 +20,6 @@
 #include <ripple/app/tx/impl/SetHook.h>
 
 #include <ripple/app/hook/Enum.h>
-#include <ripple/app/hook/Guard.h>
 #include <ripple/app/hook/applyHook.h>
 #include <ripple/app/ledger/Ledger.h>
 #include <ripple/app/ledger/LedgerMaster.h>
@@ -470,60 +469,8 @@ SetHook::validateHookSetEntry(SetHookCtx& ctx, STObject const& hookSetObj)
 
                 Blob hook = hookSetObj.getFieldVL(sfCreateCode);
 
-                // RH NOTE: validateGuards has a generic non-rippled specific
-                // interface so it can be used in other projects (i.e. tooling).
-                // As such the calling here is a bit convoluted.
-
-                std::optional<std::reference_wrapper<std::basic_ostream<char>>>
-                    logger;
-                std::ostringstream loggerStream;
-                std::string hsacc{""};
-                if (ctx.j.trace())
-                {
-                    logger = loggerStream;
-                    std::stringstream ss;
-                    ss << HS_ACC();
-                    hsacc = ss.str();
-                }
-
-                auto result = validateGuards(
-                    hook,  // wasm to verify
-                    logger,
-                    hsacc,
-                    ctx.rules.enabled(featureHookFeeV2),
-                    hook_api::getImportWhitelist(ctx.rules),
-                    hook_api::getGuardRulesVersion(ctx.rules));
-
-                if (ctx.j.trace())
-                {
-                    // clunky but to get the stream to accept the output
-                    // correctly we will split on new line and feed each line
-                    // one by one into the trace stream beast::Journal should be
-                    // updated to inherit from basic_ostream<char> then this
-                    // wouldn't be necessary.
-
-                    // is this a needless copy or does the compiler do copy
-                    // elision here?
-                    std::string s = loggerStream.str();
-
-                    char* data = s.data();
-                    size_t len = s.size();
-
-                    char* last = data;
-                    size_t i = 0;
-                    for (; i < len; ++i)
-                    {
-                        if (data[i] == '\n')
-                        {
-                            data[i] = '\0';
-                            ctx.j.trace() << last;
-                            last = data + i;
-                        }
-                    }
-
-                    if (last < data + i)
-                        ctx.j.trace() << last;
-                }
+                auto const result =
+                    hook::doValidateGuards(ctx.tx, hook, ctx.rules, ctx.j);
 
                 if (!result)
                     return false;
@@ -1642,8 +1589,7 @@ SetHook::setHook()
                             std::get<std::pair<uint64_t, uint64_t>>(valid);
 
                         std::tie(maxInstrCountHook, maxInstrCountCbak) =
-                            hook::computeHookInstructionCosts(
-                                instrCounts, ctx.rules);
+                            instrCounts;
                     }
                     catch (std::exception& e)
                     {
@@ -1684,15 +1630,26 @@ SetHook::setHook()
                     newHookDef->setFieldH256(
                         sfHookSetTxnID, ctx.tx.getTransactionID());
                     newHookDef->setFieldU64(sfReferenceCount, 1);
-                    newHookDef->setFieldAmount(
-                        sfFee,
-                        XRPAmount{
-                            hook::computeExecutionFee(maxInstrCountHook)});
-                    if (maxInstrCountCbak > 0)
+
+                    if (view().rules().enabled(featureHookFeeV2))
+                    {
+                        newHookDef->setFieldU64(sfHookCost, maxInstrCountHook);
+                        if (maxInstrCountCbak > 0)
+                            newHookDef->setFieldU64(
+                                sfHookCallbackCost, maxInstrCountCbak);
+                    }
+                    else
+                    {
                         newHookDef->setFieldAmount(
-                            sfHookCallbackFee,
+                            sfFee,
                             XRPAmount{
-                                hook::computeExecutionFee(maxInstrCountCbak)});
+                                hook::computeExecutionFee(maxInstrCountHook)});
+                        if (maxInstrCountCbak > 0)
+                            newHookDef->setFieldAmount(
+                                sfHookCallbackFee,
+                                XRPAmount{hook::computeExecutionFee(
+                                    maxInstrCountCbak)});
+                    }
 
                     if (flags)
                         newHookDef->setFieldU32(sfFlags, newFlags);

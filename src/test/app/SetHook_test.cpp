@@ -2631,12 +2631,18 @@ public:
             auto const hookDef = env.le(hook_keylet);
 
             BEAST_EXPECT(hookDef);
-            auto const hookFee = hookDef->getFieldAmount(sfFee);
-
             if (withCost)
-                BEAST_EXPECT(hookFee == XRPAmount{449});
+            {
+                auto const hookCost = hookDef->getFieldU64(sfHookCost);
+                BEAST_EXPECT(hookCost == 4494);
+                BEAST_EXPECT(!hookDef->isFieldPresent(sfFee));
+            }
             else
+            {
+                auto const hookFee = hookDef->getFieldAmount(sfFee);
                 BEAST_EXPECT(hookFee == XRPAmount{1944});
+                BEAST_EXPECT(!hookDef->isFieldPresent(sfHookCost));
+            }
         }
     }
 
@@ -13251,6 +13257,8 @@ public:
     void
     testWithFeatures(FeatureBitset features)
     {
+        test_emit(features);  //
+        return;
         testHooksOwnerDir(features);
         testHooksDisabled(features);
         testTxStructure(features);

@@ -128,8 +128,15 @@ computeCreationFee(uint64_t byteCount);
 
 constexpr uint32_t MICRO_DROPS_PER_DROP{1'000'000};
 
-std::pair<uint64_t, uint64_t>
-computeHookInstructionCosts(std::pair<uint64_t, uint64_t> const&, Rules const&);
+XRPAmount
+hookCostToFee(uint64_t hookCost);
+
+std::optional<std::pair<uint64_t, uint64_t>>
+doValidateGuards(
+    STTx const& tx,
+    Blob const& wasm,
+    Rules const& rules,
+    beast::Journal const& j);
 
 struct HookResult
 {
