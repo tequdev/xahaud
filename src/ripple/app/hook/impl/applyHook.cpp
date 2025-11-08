@@ -1,3 +1,4 @@
+#include <ripple/app/hook/Guard.h>
 #include <ripple/app/hook/applyHook.h>
 #include <ripple/app/ledger/OpenLedger.h>
 #include <ripple/app/ledger/TransactionMaster.h>
@@ -920,22 +921,83 @@ hook::computeCreationFee(uint64_t byteCount)
     return fee;
 }
 
-std::pair<uint64_t, uint64_t>
-hook::computeHookInstructionCosts(
-    std::pair<uint64_t, uint64_t> const& instrCounts,
-    Rules const& rules)
+XRPAmount
+hook::hookCostToFee(uint64_t hookCost)
 {
-    if (!rules.enabled(featureHookFeeV2))
-        return instrCounts;
+    XRPAmount fee{0};
+    // TODO: TEQU should be voted by validators like reserve
+    auto const GAS_PRICE = 100'000;
+    double const gas_cost =
+        double(GAS_PRICE) / double(hook::MICRO_DROPS_PER_DROP);
+    fee = uint64_t(hookCost * gas_cost);
+    return fee;
+}
 
-    auto const GAS_PRICE =
-        100'000;  // TODO: should be voted by validators like reserve
+std::optional<std::pair<uint64_t, uint64_t>>
+hook::doValidateGuards(
+    STTx const& tx,
+    Blob const& wasm,
+    Rules const& rules,
+    beast::Journal const& j)
+{
+    // RH NOTE: validateGuards has a generic non-rippled specific
+    // interface so it can be used in other projects (i.e. tooling).
+    // As such the calling here is a bit convoluted.
 
-    double const gas_cost = double(GAS_PRICE) / double(MICRO_DROPS_PER_DROP);
+    std::optional<std::reference_wrapper<std::basic_ostream<char>>> logger;
+    std::ostringstream loggerStream;
+    std::string hsacc{""};
+    if (j.trace())
+    {
+        logger = loggerStream;
+        std::stringstream ss;
 
-    return {
-        uint64_t(instrCounts.first * gas_cost),
-        uint64_t(instrCounts.second * gas_cost)};
+#define HS_ACC() tx.getAccountID(sfAccount) << "-" << tx.getTransactionID()
+        ss << HS_ACC();
+#undef HS_ACC
+        hsacc = ss.str();
+    }
+
+    auto result = validateGuards(
+        wasm,  // wasm to verify
+        logger,
+        hsacc,
+        rules.enabled(featureHookFeeV2),
+        hook_api::getImportWhitelist(rules),
+        hook_api::getGuardRulesVersion(rules));
+
+    if (j.trace())
+    {
+        // clunky but to get the stream to accept the output
+        // correctly we will split on new line and feed each line
+        // one by one into the trace stream beast::Journal should be
+        // updated to inherit from basic_ostream<char> then this
+        // wouldn't be necessary.
+
+        // is this a needless copy or does the compiler do copy
+        // elision here?
+        std::string s = loggerStream.str();
+
+        char* data = s.data();
+        size_t len = s.size();
+
+        char* last = data;
+        size_t i = 0;
+        for (; i < len; ++i)
+        {
+            if (data[i] == '\n')
+            {
+                data[i] = '\0';
+                j.trace() << last;
+                last = data + i;
+            }
+        }
+
+        if (last < data + i)
+            j.trace() << last;
+    }
+
+    return result;
 }
 
 // many datatypes can be encoded into an int64_t

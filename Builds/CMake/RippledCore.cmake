@@ -463,6 +463,7 @@ target_sources (rippled PRIVATE
   src/ripple/app/tx/impl/DepositPreauth.cpp
   src/ripple/app/tx/impl/Escrow.cpp
   src/ripple/app/tx/impl/GenesisMint.cpp
+  src/ripple/app/tx/impl/HookDefinitionUpdate.cpp
   src/ripple/app/tx/impl/Import.cpp
   src/ripple/app/tx/impl/InvariantCheck.cpp
   src/ripple/app/tx/impl/Invoke.cpp

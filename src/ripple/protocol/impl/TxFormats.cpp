@@ -490,6 +490,13 @@ TxFormats::TxFormats()
             {sfStartTime, soeOPTIONAL},
         },
         commonFields);
+
+    add(jss::HookDefinitionUpdate,
+        ttHOOK_DEFINITION_UPDATE,
+        {
+            {sfHookHash, soeREQUIRED},
+        },
+        commonFields);
 }
 
 TxFormats const&

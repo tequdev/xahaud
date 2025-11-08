@@ -34,6 +34,7 @@
 #include <ripple/app/tx/impl/DepositPreauth.h>
 #include <ripple/app/tx/impl/Escrow.h>
 #include <ripple/app/tx/impl/GenesisMint.h>
+#include <ripple/app/tx/impl/HookDefinitionUpdate.h>
 #include <ripple/app/tx/impl/Import.h>
 #include <ripple/app/tx/impl/Invoke.h>
 #include <ripple/app/tx/impl/NFTokenAcceptOffer.h>
@@ -187,6 +188,8 @@ invoke_preflight(PreflightContext const& ctx)
             return invoke_preflight_helper<CronSet>(ctx);
         case ttCRON:
             return invoke_preflight_helper<Cron>(ctx);
+        case ttHOOK_DEFINITION_UPDATE:
+            return invoke_preflight_helper<HookDefinitionUpdate>(ctx);
         default:
             assert(false);
             return {temUNKNOWN, TxConsequences{temUNKNOWN}};
@@ -316,6 +319,8 @@ invoke_preclaim(PreclaimContext const& ctx)
             return invoke_preclaim<CronSet>(ctx);
         case ttCRON:
             return invoke_preclaim<Cron>(ctx);
+        case ttHOOK_DEFINITION_UPDATE:
+            return invoke_preclaim<HookDefinitionUpdate>(ctx);
         default:
             assert(false);
             return temUNKNOWN;
@@ -407,6 +412,8 @@ invoke_calculateBaseFee(ReadView const& view, STTx const& tx)
             return CronSet::calculateBaseFee(view, tx);
         case ttCRON:
             return Cron::calculateBaseFee(view, tx);
+        case ttHOOK_DEFINITION_UPDATE:
+            return HookDefinitionUpdate::calculateBaseFee(view, tx);
         default:
             return XRPAmount{0};
     }
@@ -606,6 +613,10 @@ invoke_apply(ApplyContext& ctx)
         }
         case ttCRON: {
             Cron p(ctx);
+            return p();
+        }
+        case ttHOOK_DEFINITION_UPDATE: {
+            HookDefinitionUpdate p(ctx);
             return p();
         }
         default:

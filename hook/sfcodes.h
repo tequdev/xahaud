@@ -87,6 +87,8 @@
 #define sfHookInstructionCount ((3U << 16U) + 17U)
 #define sfHookReturnCode ((3U << 16U) + 18U)
 #define sfReferenceCount ((3U << 16U) + 19U)
+#define sfHookCallbackCost ((3U << 16U) + 95U)
+#define sfHookCost ((3U << 16U) + 96U)
 #define sfTouchCount ((3U << 16U) + 97U)
 #define sfAccountIndex ((3U << 16U) + 98U)
 #define sfAccountCount ((3U << 16U) + 99U)
