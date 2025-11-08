@@ -77,6 +77,9 @@ HookDefinitionUpdate::doApply()
     auto const result =
         hook::doValidateGuards(tx, hook, view.rules(), ctx_.journal);
     if (!result)
+        // TODO: TEQU better error code
+        // For compatibility, if an already deployed HookDefinition fails with a
+        // new guard-checker, don't update/delete  it
         return tecINTERNAL;
 
     auto const [hookCost, callbackCost] = *result;
