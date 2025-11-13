@@ -93,11 +93,14 @@ Cron::doApply()
     auto& view = ctx_.view();
     auto const& tx = ctx_.tx;
 
-    if (auto const seq = tx.getFieldU32(sfLedgerSequence);
-        seq != view.info().seq)
+    if (view.rules().enabled(fixCronStacking))
     {
-        JLOG(j_.warn()) << "Cron: wrong ledger seq=" << seq;
-        return tefFAILURE;
+        if (auto const seq = tx.getFieldU32(sfLedgerSequence);
+            seq != view.info().seq)
+        {
+            JLOG(j_.warn()) << "Cron: wrong ledger seq=" << seq;
+            return tefFAILURE;
+        }
     }
 
     AccountID const& id = tx.getAccountID(sfOwner);
