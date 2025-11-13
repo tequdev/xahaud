@@ -49,7 +49,7 @@ Cron::preflight(PreflightContext const& ctx)
     auto account = ctx.tx.getAccountID(sfAccount);
     if (account != beast::zero)
     {
-        JLOG(ctx.j.warn()) << "Cron: Bad source id";
+        JLOG(ctx.j.fatal()) << "Cron: Bad source id";
         return temBAD_SRC_ACCOUNT;
     }
 
@@ -57,21 +57,21 @@ Cron::preflight(PreflightContext const& ctx)
     auto const fee = ctx.tx.getFieldAmount(sfFee);
     if (!fee.native() || fee != beast::zero)
     {
-        JLOG(ctx.j.warn()) << "Cron: invalid fee";
+        JLOG(ctx.j.fatal()) << "Cron: invalid fee";
         return temBAD_FEE;
     }
 
     if (!ctx.tx.getSigningPubKey().empty() || !ctx.tx.getSignature().empty() ||
         ctx.tx.isFieldPresent(sfSigners))
     {
-        JLOG(ctx.j.warn()) << "Cron: Bad signature";
+        JLOG(ctx.j.fatal()) << "Cron: Bad signature";
         return temBAD_SIGNATURE;
     }
 
     if (ctx.tx.getFieldU32(sfSequence) != 0 ||
         ctx.tx.isFieldPresent(sfPreviousTxnID))
     {
-        JLOG(ctx.j.warn()) << "Cron: Bad sequence";
+        JLOG(ctx.j.fatal()) << "Cron: Bad sequence";
         return temBAD_SEQUENCE;
     }
 
@@ -105,7 +105,7 @@ Cron::doApply()
 
     if (!sle->isFieldPresent(sfCron))
     {
-        JLOG(j_.warn()) << "Cron: sfCron missing from account " << id;
+        JLOG(j_.fatal()) << "Cron: sfCron missing from account " << id;
         return tefINTERNAL;
     }
 
@@ -114,7 +114,7 @@ Cron::doApply()
     auto sleCron = view.peek(klOld);
     if (!sleCron)
     {
-        JLOG(j_.warn()) << "Cron: Cron object missing for account " << id;
+        JLOG(j_.fatal()) << "Cron: Cron object missing for account " << id;
         return tesSUCCESS;
     }
 
@@ -126,7 +126,10 @@ Cron::doApply()
     // do all this sanity checking before we modify the ledger...
     uint32_t afterTime = lastStartTime + delay;
     if (afterTime < lastStartTime)
+    {
+        JLOG(j_.fatal()) << "Cron: afterTime < lastStartTime";
         return tefINTERNAL;
+    }
 
     // in all circumstances the Cron object is deleted...
     // if there are further crons to do then a new one is created at the next
@@ -134,7 +137,10 @@ Cron::doApply()
 
     if (!view.dirRemove(
             keylet::ownerDir(id), (*sleCron)[sfOwnerNode], klOld, false))
+    {
+        JLOG(j_.fatal()) << "Cron: Ownerdir bad. " << id;
         return tefBAD_LEDGER;
+    }
 
     view.erase(sleCron);
 
@@ -156,7 +162,10 @@ Cron::doApply()
     auto const page =
         view.dirInsert(keylet::ownerDir(id), klCron, describeOwnerDir(id));
     if (!page)
+    {
+        JLOG(j_.fatal()) << "Cron: Ownerdir full. " << id;
         return tecDIR_FULL;
+    }
 
     sleCron = std::make_shared<SLE>(klCron);
 
