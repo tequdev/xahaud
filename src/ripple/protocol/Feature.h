@@ -377,6 +377,7 @@ extern uint256 const featureCron;
 extern uint256 const fixInvalidTxFlags;
 extern uint256 const featureHookOnV2;
 extern uint256 const featureExtendedHookState;
+extern uint256 const fixCronStacking;
 
 }  // namespace ripple
 
