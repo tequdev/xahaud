@@ -102,18 +102,6 @@
     extern WasmEdge_FunctionTypeContext* WasmFunctionType##F;    \
     extern WasmEdge_String WasmFunctionName##F;
 
-#define DECLARE_HOOK_FUNCNARG(R, F)                           \
-    R F(hook::HookContext& hookCtx,                           \
-        WasmEdge_CallingFrameContext const& frameCtx);        \
-    extern WasmEdge_Result WasmFunction##F(                   \
-        void* data_ptr,                                       \
-        const WasmEdge_CallingFrameContext* frameCtx,         \
-        const WasmEdge_Value* in,                             \
-        WasmEdge_Value* out);                                 \
-    extern WasmEdge_ValType WasmFunctionResult##F[];          \
-    extern WasmEdge_FunctionTypeContext* WasmFunctionType##F; \
-    extern WasmEdge_String WasmFunctionName##F;
-
 #define DEFINE_HOOK_FUNCTION(R, F, ...)                             \
     WasmEdge_Result hook_api::WasmFunction##F(                      \
         void* data_ptr,                                             \
