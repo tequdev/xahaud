@@ -91,7 +91,7 @@
 #define DECLARE_HOOK_FUNCTION(R, F, ...)                         \
     R F(hook::HookContext& hookCtx,                              \
         WasmEdge_CallingFrameContext const& frameCtx __VA_OPT__( \
-            , )##__VA_ARGS__);                                   \
+            COMMA __VA_ARGS__));                                 \
     extern WasmEdge_Result WasmFunction##F(                      \
         void* data_ptr,                                          \
         const WasmEdge_CallingFrameContext* frameCtx,            \
