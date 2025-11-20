@@ -24,21 +24,9 @@
 #define VA_NARGS_IMPL(                                         \
     _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, N, ...) \
     N
-#define VA_NARGS(__drop, ...)             \
-    VA_NARGS_IMPL(                        \
-        __VA_OPT__(__VA_ARGS__ COMMA) 12, \
-        11,                               \
-        10,                               \
-        9,                                \
-        8,                                \
-        7,                                \
-        6,                                \
-        5,                                \
-        4,                                \
-        3,                                \
-        2,                                \
-        1,                                \
-        0)
+#define VA_NARGS(__drop, ...) \
+    VA_NARGS_IMPL(            \
+        __VA_OPT__(__VA_ARGS__, ) 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0)
 #define FIRST(a, b) a
 #define SECOND(a, b) b
 #define STRIP_TYPES(...) FOR_VARS(SECOND, 0, __VA_ARGS__)
@@ -142,7 +130,7 @@
     WasmEdge_FunctionTypeContext* hook_api::WasmFunctionType##F =   \
         WasmEdge_FunctionTypeCreate(                                \
             WasmFunctionParams##F,                                  \
-            VA_NARGS(NULL, __VA_ARGS__),                            \
+            VA_NARGS(NULL __VA_OPT__(, __VA_ARGS__)),               \
             WasmFunctionResult##F,                                  \
             1);                                                     \
     WasmEdge_String hook_api::WasmFunctionName##F =                 \
