@@ -21,10 +21,12 @@ jobs:
     steps:
       - name: escape double quotes
         id: escape
+        shell: bash
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
-          PR_TITLE="${{ github.event.pull_request.title }}"
           ESCAPED_PR_TITLE="${PR_TITLE//\"/\\\"}"
-          echo "::set-output name=title::$ESCAPED_PR_TITLE"
+          echo "title=${ESCAPED_PR_TITLE}" >> "$GITHUB_OUTPUT"
       - name: Generate build matrix
         id: set-matrix
         shell: python
