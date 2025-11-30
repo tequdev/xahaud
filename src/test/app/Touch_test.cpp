@@ -1401,8 +1401,9 @@ public:
     {
         using namespace test::jtx;
         auto const sa = supported_amendments();
-        testAllTxns(sa - featureTouch);
         testAllTxns(sa);
+        testAllTxns(sa - fixEtxnFeeBase);
+        testAllTxns(sa - featureTouch - fixEtxnFeeBase);
     }
 };
 
