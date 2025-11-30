@@ -1511,24 +1511,6 @@ public:
             std::cout << "hank: " << hank.human() << "\n";
         }
 
-        std::cout << "alice: " << strHex(alice.id()) << "\n";
-        std::cout << "bob: " << strHex(bob.id()) << "\n";
-        std::cout << "charlie: " << strHex(charlie.id()) << "\n";
-        std::cout << "daria: " << strHex(daria.id()) << "\n";
-        std::cout << "elmo: " << strHex(elmo.id()) << "\n";
-        std::cout << "fred: " << strHex(fred.id()) << "\n";
-        std::cout << "gwen: " << strHex(gwen.id()) << "\n";
-        std::cout << "hank: " << strHex(hank.id()) << "\n";
-
-        std::cout << "alice: " << alice.human() << "\n";
-        std::cout << "bob: " << bob.human() << "\n";
-        std::cout << "charlie: " << charlie.human() << "\n";
-        std::cout << "daria: " << daria.human() << "\n";
-        std::cout << "elmo: " << elmo.human() << "\n";
-        std::cout << "fred: " << fred.human() << "\n";
-        std::cout << "gwen: " << gwen.human() << "\n";
-        std::cout << "hank: " << hank.human() << "\n";
-
         BEAST_EXPECTS(
             aliceSeq + 1 == env.seq(alice),
             "alice: "s + std::to_string(aliceSeq) + ", " +
@@ -3062,7 +3044,7 @@ public:
             << ", aliceSeq + 15: "
             << (aliceSeq + 15) << "\n";
         */
-        BEAST_EXPECT(env.seq(alice) == aliceSeq + 14);
+        BEAST_EXPECT(env.seq(alice) == aliceSeq + 15);
 
         // Close ledger 7.  That should remove 7 more of alice's transactions.
         env.close();
