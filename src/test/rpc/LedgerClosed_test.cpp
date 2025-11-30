@@ -37,7 +37,7 @@ public:
         auto lc_result = env.rpc("ledger_closed")[jss::result];
         BEAST_EXPECT(
             lc_result[jss::ledger_hash] ==
-            "2E6983FE0D18F04568199D75E8E69503E747A24CE8814CF1FAD638CF6DF8FBDC");
+            "CCC3B3E88CCAC17F1BE6B4A648A55999411F19E3FE55EB721960EB0DF28EDDA5");
         BEAST_EXPECT(lc_result[jss::ledger_index] == 2);
 
         env.close();

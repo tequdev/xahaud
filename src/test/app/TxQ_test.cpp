@@ -1547,7 +1547,7 @@ public:
         // Which sequences get incremented may change if TxQ ordering is
         // changed
         ++aliceSeq;
-        //++bobSeq;
+        // ++bobSeq;
         // ++(++charlieSeq);
         ++dariaSeq;
         ++elmoSeq;
