@@ -292,7 +292,7 @@ public:
         using namespace test::jtx;
         Env env{
             *this,
-            supported_amendments() - featureXahauGenesis - fixEtxnFeeBase};
+            supported_amendments() - featureXahauGenesis - fixHookAPI20251128};
         Account const alice{"alice"};
         env.fund(XRP(10000), alice);
         env.close();
@@ -2173,7 +2173,7 @@ public:
                 return cfg;
             }),
             supported_amendments() - featureXahauGenesis -
-                fixProvisionalDoubleThreading - fixEtxnFeeBase};
+                fixProvisionalDoubleThreading - fixHookAPI20251128};
 
         Json::Value jv;
         jv[jss::ledger_index] = "current";

@@ -3195,7 +3195,7 @@ public:
         {
             auto f = features;
             if (!hasFix)
-                f = f - fixEtxnFeeBase;
+                f = f - fixHookAPI20251128;
 
             Env env{*this, f};
 
@@ -10392,11 +10392,11 @@ public:
                 }
             )[test.hook]"];
 
-            for (auto f : {features, features - fixStoEmplaceFieldIdCheck})
+            for (auto f : {features, features - fixHookAPI20251128})
             {
                 Env env{*this, f};
                 bool const hasFix =
-                    env.current()->rules().enabled(fixStoEmplaceFieldIdCheck);
+                    env.current()->rules().enabled(fixHookAPI20251128);
 
                 env.fund(XRP(10000), alice);
                 env.fund(XRP(10000), bob);
@@ -10676,12 +10676,12 @@ public:
                 }
             )[test.hook]"];
 
-            for (auto isFixStoSubarray : {true, false})
+            for (auto isfixHookAPI20251128 : {true, false})
             {
                 Env env{
                     *this,
-                    isFixStoSubarray ? features | fixStoSubarray
-                                     : features - fixStoSubarray};
+                    isfixHookAPI20251128 ? features | fixHookAPI20251128
+                                         : features - fixHookAPI20251128};
                 env.fund(XRP(10000), alice, bob);
                 env.close();
 
@@ -10708,7 +10708,7 @@ public:
                 BEAST_REQUIRE(hookExecution.isFieldPresent(sfHookReturnCode));
                 auto const returnCode =
                     hookExecution.getFieldU64(sfHookReturnCode);
-                if (isFixStoSubarray)
+                if (isfixHookAPI20251128)
                 {
                     auto const doesntExistError = -5;
                     auto const position = 2;
