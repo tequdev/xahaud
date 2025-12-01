@@ -4311,10 +4311,25 @@ DEFINE_HOOK_FUNCTION(
 
     // unwrap the array if it is wrapped,
     // by removing a byte from the start and end
+    // why here 0xF0?
+    // STI_ARRAY = 0xF0
+    // eg) Signers field value = 0x03 => 0xF3
+    // eg) Amounts field value = 0x5C => 0xF0, 0x5C
     if ((*upto & 0xF0U) == 0xF0U)
     {
-        upto++;
-        end--;
+        if (view.rules().enabled(fixStoSubarray) && *upto == 0xF0U)
+        {
+            // field value > 15
+            upto++;
+            upto++;
+            end--;
+        }
+        else
+        {
+            // field value <= 15
+            upto++;
+            end--;
+        }
     }
 
     if (upto >= end)
