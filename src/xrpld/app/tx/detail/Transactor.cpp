@@ -1621,7 +1621,7 @@ Transactor::doTSH(
         for (auto& weakTsh : additionalWeakTSH_)
             tsh.emplace_back(weakTsh, false);
 
-        if (view.rules().enabled(fixEtxnFeeBase))
+        if (view.rules().enabled(fixHookAPI20251128))
         {
             // if account_ is not included in tsh , add it only once
             bool found = false;
@@ -1649,7 +1649,7 @@ Transactor::doTSH(
         // blindly nominate any TSHes they find but
         // obviously we will never execute OTXN account
         // as a TSH because they already had first execution
-        if (!view.rules().enabled(fixEtxnFeeBase))
+        if (!view.rules().enabled(fixHookAPI20251128))
         {
             if (tshAccountID == account_)
                 continue;
@@ -1666,10 +1666,10 @@ Transactor::doTSH(
 
         touchAccount(view, tshAccountID);
 
-        if (view.rules().enabled(fixEtxnFeeBase))
+        if (view.rules().enabled(fixHookAPI20251128))
         {
-            // After fixEtxnFeeBase, the otxn account is prosessed as touched
-            // account
+            // After fixHookAPI20251128, the otxn account is prosessed as
+            // touched account
             if (tshAccountID == account_)
                 continue;
         }

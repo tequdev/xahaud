@@ -4317,7 +4317,7 @@ DEFINE_HOOK_FUNCTION(
     // eg) Amounts field value = 0x5C => 0xF0, 0x5C
     if ((*upto & 0xF0U) == 0xF0U)
     {
-        if (view.rules().enabled(fixStoSubarray) && *upto == 0xF0U)
+        if (view.rules().enabled(fixHookAPI20251128) && *upto == 0xF0U)
         {
             // field value > 15
             upto++;
@@ -4562,7 +4562,7 @@ DEFINE_HOOK_FUNCTION(
             return MEM_OVERLAP;
     }
 
-    if (fread_len > 0 && view.rules().enabled(fixStoEmplaceFieldIdCheck))
+    if (fread_len > 0 && view.rules().enabled(fixHookAPI20251128))
     {
         // inject field should be valid sto object and it's field id should
         // match the field_id
@@ -4826,7 +4826,7 @@ DEFINE_HOOK_FUNCTION(
         std::unique_ptr<STTx const> stpTrans;
         stpTrans = std::make_unique<STTx const>(std::ref(sitTrans));
 
-        if (!view.rules().enabled(fixEtxnFeeBase))
+        if (!view.rules().enabled(fixHookAPI20251128))
             return Transactor::calculateBaseFee(
                        *(applyCtx.app.openLedger().current()), *stpTrans)
                 .drops();
