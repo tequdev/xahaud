@@ -1513,8 +1513,26 @@ Transactor::doTSH(
 
     // add the extra TSH marked out by the specific transactor (if applicable)
     if (!strong)
+    {
         for (auto& weakTsh : additionalWeakTSH_)
             tsh.emplace_back(weakTsh, false);
+
+        if (view.rules().enabled(fixHookAPI20251128))
+        {
+            // if account_ is not included in tsh , add it only once
+            bool found = false;
+            for (auto& tshPair : tsh)
+            {
+                if (tshPair.first == account_)
+                {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found)
+                tsh.emplace_back(account_, false);
+        }
+    }
 
     // we use a vector above for order preservation
     // but we also don't want to execute any hooks
@@ -1527,8 +1545,11 @@ Transactor::doTSH(
         // blindly nominate any TSHes they find but
         // obviously we will never execute OTXN account
         // as a TSH because they already had first execution
-        if (tshAccountID == account_)
-            continue;
+        if (!view.rules().enabled(fixHookAPI20251128))
+        {
+            if (tshAccountID == account_)
+                continue;
+        }
 
         if (alreadyProcessed.find(tshAccountID) != alreadyProcessed.end())
             continue;
@@ -1540,6 +1561,14 @@ Transactor::doTSH(
             continue;
 
         touchAccount(view, tshAccountID);
+
+        if (view.rules().enabled(fixHookAPI20251128))
+        {
+            // After fixHookAPI20251128, the otxn account is prosessed as
+            // touched account
+            if (tshAccountID == account_)
+                continue;
+        }
 
         auto klTshHook = keylet::hook(tshAccountID);
 
