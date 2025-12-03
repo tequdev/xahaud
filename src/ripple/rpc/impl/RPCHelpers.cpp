@@ -570,6 +570,19 @@ getLedger(T& ledger, uint256 const& ledgerHash, Context& context)
     return Status::OK;
 }
 
+// Helper function to determine if the types are compatible for assignment
+template <typename T, typename U>
+struct is_assignable_shared_ptr : std::false_type
+{
+};
+
+template <typename T>
+struct is_assignable_shared_ptr<
+    std::shared_ptr<T>&,
+    std::shared_ptr<ReadView const>> : std::is_convertible<ReadView const*, T*>
+{
+};
+
 template <class T>
 Status
 getLedger(T& ledger, uint32_t ledgerIndex, Context& context)
@@ -579,10 +592,16 @@ getLedger(T& ledger, uint32_t ledgerIndex, Context& context)
     {
         if (context.app.config().reporting())
             return {rpcLGR_NOT_FOUND, "ledgerNotFound"};
+
         auto cur = context.ledgerMaster.getCurrentLedger();
         if (cur->info().seq == ledgerIndex)
         {
-            ledger = cur;
+            if constexpr (is_assignable_shared_ptr<
+                              decltype(ledger),
+                              decltype(cur)>::value)
+            {
+                ledger = cur;
+            }
         }
     }
 
@@ -600,6 +619,9 @@ getLedger(T& ledger, uint32_t ledgerIndex, Context& context)
 
     return Status::OK;
 }
+
+#include <iostream>
+#include <typeinfo>
 
 template <class T>
 Status
@@ -635,7 +657,15 @@ getLedger(T& ledger, LedgerShortcut shortcut, Context& context)
                 return {
                     rpcLGR_NOT_FOUND,
                     "Reporting does not track current ledger"};
-            ledger = context.ledgerMaster.getCurrentLedger();
+            auto cur = context.ledgerMaster.getCurrentLedger();
+
+            if constexpr (is_assignable_shared_ptr<
+                              decltype(ledger),
+                              decltype(cur)>::value)
+            {
+                ledger = cur;
+            }
+
             assert(ledger->open());
         }
         else if (shortcut == LedgerShortcut::CLOSED)
@@ -684,6 +714,15 @@ getLedger<>(
 
 template Status
 getLedger<>(std::shared_ptr<ReadView const>&, uint256 const&, Context&);
+
+template Status
+getLedger<>(std::shared_ptr<Ledger const>&, uint32_t, Context&);
+
+template Status
+getLedger<>(std::shared_ptr<Ledger const>&, LedgerShortcut shortcut, Context&);
+
+template Status
+getLedger<>(std::shared_ptr<Ledger const>&, uint256 const&, Context&);
 
 bool
 isValidated(
@@ -1067,31 +1106,33 @@ chooseLedgerEntryType(Json::Value const& params)
     std::pair<RPC::Status, LedgerEntryType> result{RPC::Status::OK, ltANY};
     if (params.isMember(jss::type))
     {
-        static constexpr std::array<std::pair<char const*, LedgerEntryType>, 23>
-            types{
-                {{jss::account, ltACCOUNT_ROOT},
-                 {jss::amendments, ltAMENDMENTS},
-                 {jss::check, ltCHECK},
-                 {jss::deposit_preauth, ltDEPOSIT_PREAUTH},
-                 {jss::directory, ltDIR_NODE},
-                 {jss::escrow, ltESCROW},
-                 {jss::emitted_txn, ltEMITTED_TXN},
-                 {jss::hook, ltHOOK},
-                 {jss::hooks_settings, ltHOOKS_SETTINGS},
-                 {jss::hook_definition, ltHOOK_DEFINITION},
-                 {jss::hook_state, ltHOOK_STATE},
-                 {jss::fee, ltFEE_SETTINGS},
-                 {jss::hashes, ltLEDGER_HASHES},
-                 {jss::import_vlseq, ltIMPORT_VLSEQ},
-                 {jss::offer, ltOFFER},
-                 {jss::payment_channel, ltPAYCHAN},
-                 {jss::uri_token, ltURI_TOKEN},
-                 {jss::signer_list, ltSIGNER_LIST},
-                 {jss::state, ltRIPPLE_STATE},
-                 {jss::ticket, ltTICKET},
-                 {jss::nft_offer, ltNFTOKEN_OFFER},
-                 {jss::nft_page, ltNFTOKEN_PAGE},
-                 {jss::unl_report, ltUNL_REPORT}}};
+        static constexpr std::array<std::pair<char const*, LedgerEntryType>, 24>
+            types{{
+                {jss::account, ltACCOUNT_ROOT},
+                {jss::amendments, ltAMENDMENTS},
+                {jss::check, ltCHECK},
+                {jss::deposit_preauth, ltDEPOSIT_PREAUTH},
+                {jss::directory, ltDIR_NODE},
+                {jss::escrow, ltESCROW},
+                {jss::emitted_txn, ltEMITTED_TXN},
+                {jss::hook, ltHOOK},
+                {jss::hooks_settings, ltHOOKS_SETTINGS},
+                {jss::hook_definition, ltHOOK_DEFINITION},
+                {jss::hook_state, ltHOOK_STATE},
+                {jss::fee, ltFEE_SETTINGS},
+                {jss::hashes, ltLEDGER_HASHES},
+                {jss::import_vlseq, ltIMPORT_VLSEQ},
+                {jss::offer, ltOFFER},
+                {jss::payment_channel, ltPAYCHAN},
+                {jss::uri_token, ltURI_TOKEN},
+                {jss::signer_list, ltSIGNER_LIST},
+                {jss::state, ltRIPPLE_STATE},
+                {jss::ticket, ltTICKET},
+                {jss::nft_offer, ltNFTOKEN_OFFER},
+                {jss::nft_page, ltNFTOKEN_PAGE},
+                {jss::unl_report, ltUNL_REPORT},
+                {jss::cron, ltCRON},
+            }};
 
         auto const& p = params[jss::type];
         if (!p.isString())

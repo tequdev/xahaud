@@ -24,9 +24,12 @@
 #include <ripple/app/tx/impl/CashCheck.h>
 #include <ripple/app/tx/impl/Change.h>
 #include <ripple/app/tx/impl/ClaimReward.h>
+#include <ripple/app/tx/impl/Clawback.h>
 #include <ripple/app/tx/impl/CreateCheck.h>
 #include <ripple/app/tx/impl/CreateOffer.h>
 #include <ripple/app/tx/impl/CreateTicket.h>
+#include <ripple/app/tx/impl/Cron.h>
+#include <ripple/app/tx/impl/CronSet.h>
 #include <ripple/app/tx/impl/DeleteAccount.h>
 #include <ripple/app/tx/impl/DepositPreauth.h>
 #include <ripple/app/tx/impl/Escrow.h>
@@ -44,6 +47,7 @@
 #include <ripple/app/tx/impl/SetAccount.h>
 #include <ripple/app/tx/impl/SetHook.h>
 #include <ripple/app/tx/impl/SetRegularKey.h>
+#include <ripple/app/tx/impl/SetRemarks.h>
 #include <ripple/app/tx/impl/SetSignerList.h>
 #include <ripple/app/tx/impl/SetTrust.h>
 #include <ripple/app/tx/impl/URIToken.h>
@@ -107,6 +111,8 @@ invoke_preflight(PreflightContext const& ctx)
             return invoke_preflight_helper<DeleteAccount>(ctx);
         case ttACCOUNT_SET:
             return invoke_preflight_helper<SetAccount>(ctx);
+        case ttCLAWBACK:
+            return invoke_preflight_helper<Clawback>(ctx);
         case ttCHECK_CANCEL:
             return invoke_preflight_helper<CancelCheck>(ctx);
         case ttCHECK_CASH:
@@ -170,12 +176,18 @@ invoke_preflight(PreflightContext const& ctx)
             return invoke_preflight_helper<Invoke>(ctx);
         case ttREMIT:
             return invoke_preflight_helper<Remit>(ctx);
+        case ttREMARKS_SET:
+            return invoke_preflight_helper<SetRemarks>(ctx);
         case ttURITOKEN_MINT:
         case ttURITOKEN_BURN:
         case ttURITOKEN_BUY:
         case ttURITOKEN_CREATE_SELL_OFFER:
         case ttURITOKEN_CANCEL_SELL_OFFER:
             return invoke_preflight_helper<URIToken>(ctx);
+        case ttCRON_SET:
+            return invoke_preflight_helper<CronSet>(ctx);
+        case ttCRON:
+            return invoke_preflight_helper<Cron>(ctx);
         default:
             assert(false);
             return {temUNKNOWN, TxConsequences{temUNKNOWN}};
@@ -229,6 +241,8 @@ invoke_preclaim(PreclaimContext const& ctx)
             return invoke_preclaim<DeleteAccount>(ctx);
         case ttACCOUNT_SET:
             return invoke_preclaim<SetAccount>(ctx);
+        case ttCLAWBACK:
+            return invoke_preclaim<Clawback>(ctx);
         case ttCHECK_CANCEL:
             return invoke_preclaim<CancelCheck>(ctx);
         case ttCHECK_CASH:
@@ -292,12 +306,18 @@ invoke_preclaim(PreclaimContext const& ctx)
             return invoke_preclaim<Invoke>(ctx);
         case ttREMIT:
             return invoke_preclaim<Remit>(ctx);
+        case ttREMARKS_SET:
+            return invoke_preclaim<SetRemarks>(ctx);
         case ttURITOKEN_MINT:
         case ttURITOKEN_BURN:
         case ttURITOKEN_BUY:
         case ttURITOKEN_CREATE_SELL_OFFER:
         case ttURITOKEN_CANCEL_SELL_OFFER:
             return invoke_preclaim<URIToken>(ctx);
+        case ttCRON_SET:
+            return invoke_preclaim<CronSet>(ctx);
+        case ttCRON:
+            return invoke_preclaim<Cron>(ctx);
         default:
             assert(false);
             return temUNKNOWN;
@@ -313,6 +333,8 @@ invoke_calculateBaseFee(ReadView const& view, STTx const& tx)
             return DeleteAccount::calculateBaseFee(view, tx);
         case ttACCOUNT_SET:
             return SetAccount::calculateBaseFee(view, tx);
+        case ttCLAWBACK:
+            return Clawback::calculateBaseFee(view, tx);
         case ttCHECK_CANCEL:
             return CancelCheck::calculateBaseFee(view, tx);
         case ttCHECK_CASH:
@@ -376,12 +398,18 @@ invoke_calculateBaseFee(ReadView const& view, STTx const& tx)
             return Invoke::calculateBaseFee(view, tx);
         case ttREMIT:
             return Remit::calculateBaseFee(view, tx);
+        case ttREMARKS_SET:
+            return SetRemarks::calculateBaseFee(view, tx);
         case ttURITOKEN_MINT:
         case ttURITOKEN_BURN:
         case ttURITOKEN_BUY:
         case ttURITOKEN_CREATE_SELL_OFFER:
         case ttURITOKEN_CANCEL_SELL_OFFER:
             return URIToken::calculateBaseFee(view, tx);
+        case ttCRON_SET:
+            return CronSet::calculateBaseFee(view, tx);
+        case ttCRON:
+            return Cron::calculateBaseFee(view, tx);
         default:
             return XRPAmount{0};
     }
@@ -437,6 +465,10 @@ invoke_apply(ApplyContext& ctx)
         }
         case ttACCOUNT_SET: {
             SetAccount p(ctx);
+            return p();
+        }
+        case ttCLAWBACK: {
+            Clawback p(ctx);
             return p();
         }
         case ttCHECK_CANCEL: {
@@ -560,12 +592,24 @@ invoke_apply(ApplyContext& ctx)
             Remit p(ctx);
             return p();
         }
+        case ttREMARKS_SET: {
+            SetRemarks p(ctx);
+            return p();
+        }
         case ttURITOKEN_MINT:
         case ttURITOKEN_BURN:
         case ttURITOKEN_BUY:
         case ttURITOKEN_CREATE_SELL_OFFER:
         case ttURITOKEN_CANCEL_SELL_OFFER: {
             URIToken p(ctx);
+            return p();
+        }
+        case ttCRON_SET: {
+            CronSet p(ctx);
+            return p();
+        }
+        case ttCRON: {
+            Cron p(ctx);
             return p();
         }
         default:
@@ -584,19 +628,15 @@ preflight(
 {
     PreflightContext const pfctx(app, tx, rules, flags, j);
 
-#ifndef DEBUG
     try
     {
-#endif
         return {pfctx, invoke_preflight(pfctx)};
-#ifndef DEBUG
     }
     catch (std::exception const& e)
     {
         JLOG(j.fatal()) << "apply: " << e.what();
         return {pfctx, {tefEXCEPTION, TxConsequences{tx}}};
     }
-#endif
 }
 
 PreclaimResult
@@ -633,21 +673,17 @@ preclaim(
             preflightResult.j);
     }
 
-#ifndef DEBUG
     try
     {
-#endif
         if (!isTesSuccess(ctx->preflightResult))
             return {*ctx, ctx->preflightResult};
         return {*ctx, invoke_preclaim(*ctx)};
-#ifndef DEBUG
     }
     catch (std::exception const& e)
     {
         JLOG(ctx->j.fatal()) << "apply: " << e.what();
         return {*ctx, tefEXCEPTION};
     }
-#endif
 }
 
 XRPAmount
@@ -671,10 +707,8 @@ doApply(PreclaimResult const& preclaimResult, Application& app, OpenView& view)
         // info to recover.
         return {tefEXCEPTION, false};
     }
-#ifndef DEBUG
     try
     {
-#endif
         if (!preclaimResult.likelyToClaimFee)
             return {preclaimResult.ter, false};
 
@@ -687,14 +721,12 @@ doApply(PreclaimResult const& preclaimResult, Application& app, OpenView& view)
             preclaimResult.flags,
             preclaimResult.j);
         return invoke_apply(ctx);
-#ifndef DEBUG
     }
     catch (std::exception const& e)
     {
         JLOG(preclaimResult.j.fatal()) << "apply: " << e.what();
         return {tefEXCEPTION, false};
     }
-#endif
 }
 
 }  // namespace ripple

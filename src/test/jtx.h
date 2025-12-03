@@ -27,11 +27,13 @@
 #include <test/jtx/Env.h>
 #include <test/jtx/Env_ss.h>
 #include <test/jtx/JTx.h>
+#include <test/jtx/TestHelpers.h>
 #include <test/jtx/account_txn_id.h>
 #include <test/jtx/acctdelete.h>
 #include <test/jtx/amount.h>
 #include <test/jtx/balance.h>
 #include <test/jtx/check.h>
+#include <test/jtx/cron.h>
 #include <test/jtx/delivermin.h>
 #include <test/jtx/deposit.h>
 #include <test/jtx/escrow.h>
@@ -57,6 +59,7 @@
 #include <test/jtx/quality.h>
 #include <test/jtx/rate.h>
 #include <test/jtx/regkey.h>
+#include <test/jtx/remarks.h>
 #include <test/jtx/remit.h>
 #include <test/jtx/require.h>
 #include <test/jtx/requires.h>

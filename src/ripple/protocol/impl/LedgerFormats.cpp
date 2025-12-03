@@ -31,6 +31,7 @@ LedgerFormats::LedgerFormats()
         {sfLedgerIndex,              soeOPTIONAL},
         {sfLedgerEntryType,          soeREQUIRED},
         {sfFlags,                    soeREQUIRED},
+        {sfRemarks,                  soeOPTIONAL},
     };
 
     add(jss::AccountRoot,
@@ -66,6 +67,9 @@ LedgerFormats::LedgerFormats()
             {sfGovernanceFlags,      soeOPTIONAL},
             {sfGovernanceMarks,      soeOPTIONAL},
             {sfAccountIndex,         soeOPTIONAL},
+            {sfTouchCount,           soeOPTIONAL},
+            {sfHookStateScale,       soeOPTIONAL},
+            {sfCron,                 soeOPTIONAL},
         },
         commonFields);
 
@@ -233,7 +237,8 @@ LedgerFormats::LedgerFormats()
         ltHOOK_DEFINITION,
         {
             {sfHookHash, soeREQUIRED},
-            {sfHookOn, soeREQUIRED},  
+            {sfHookOn, soeREQUIRED},
+            {sfHookCanEmit, soeOPTIONAL},
             {sfHookNamespace, soeREQUIRED},
             {sfHookParameters, soeREQUIRED},
             {sfHookApiVersion, soeREQUIRED},  
@@ -367,6 +372,19 @@ LedgerFormats::LedgerFormats()
             {sfDigest,               soeOPTIONAL},
             {sfAmount,               soeOPTIONAL},
             {sfDestination,          soeOPTIONAL},
+            {sfPreviousTxnID,        soeREQUIRED},
+            {sfPreviousTxnLgrSeq,    soeREQUIRED}
+        },
+        commonFields);
+
+    add(jss::Cron,
+        ltCRON,
+        {
+            {sfOwner,                soeREQUIRED},
+            {sfStartTime,            soeREQUIRED},
+            {sfDelaySeconds,         soeREQUIRED},
+            {sfRepeatCount,          soeREQUIRED},
+            {sfOwnerNode,            soeREQUIRED},
             {sfPreviousTxnID,        soeREQUIRED},
             {sfPreviousTxnLgrSeq,    soeREQUIRED}
         },

@@ -139,12 +139,24 @@ enum TxType : std::uint16_t
     /** This transaction accepts an existing offer to buy or sell an existing  NFT. */
     ttNFTOKEN_ACCEPT_OFFER = 29,
 
+    /** This transaction claws back issued tokens. */
+    ttCLAWBACK = 30,
+
     /** This transaction mints/burns/buys/sells a URI TOKEN */
     ttURITOKEN_MINT = 45,
     ttURITOKEN_BURN = 46,
     ttURITOKEN_BUY = 47,
     ttURITOKEN_CREATE_SELL_OFFER = 48,
     ttURITOKEN_CANCEL_SELL_OFFER = 49,
+
+    /* A pseudo-txn alarm signal for invoking a hook, emitted by validators after alarm set conditions are met */
+    ttCRON = 92,
+
+    /* Sechedule an alarm for later */
+    ttCRON_SET = 93,
+
+    /* A note attaching transactor that allows the owner or issuer (on a object by object basis) to attach remarks */
+    ttREMARKS_SET = 94,
 
     /* A payment transactor that delivers only the exact amounts specified, creating accounts and TLs as needed 
      * that the sender pays for. */

@@ -75,7 +75,7 @@ doAccountInfo(RPC::JsonContext& context)
     auto const accountID{std::move(id.value())};
 
     static constexpr std::
-        array<std::pair<std::string_view, LedgerSpecificFlags>, 10>
+        array<std::pair<std::string_view, LedgerSpecificFlags>, 11>
             lsFlags{
                 {{"defaultRipple", lsfDefaultRipple},
                  {"depositAuth", lsfDepositAuth},
@@ -86,7 +86,8 @@ doAccountInfo(RPC::JsonContext& context)
                  {"passwordSpent", lsfPasswordSpent},
                  {"requireAuthorization", lsfRequireAuth},
                  {"tshCollect", lsfTshCollect},
-                 {"requireDestinationTag", lsfRequireDestTag}}};
+                 {"requireDestinationTag", lsfRequireDestTag},
+                 {"uriTokenIssuer", lsfURITokenIssuer}}};
 
     static constexpr std::
         array<std::pair<std::string_view, LedgerSpecificFlags>, 5>
@@ -97,6 +98,10 @@ doAccountInfo(RPC::JsonContext& context)
                  {"disallowIncomingPayChan", lsfDisallowIncomingPayChan},
                  {"disallowIncomingTrustline", lsfDisallowIncomingTrustline},
                  {"disallowIncomingRemit", lsfDisallowIncomingRemit}}};
+
+    static constexpr std::pair<std::string_view, LedgerSpecificFlags>
+        allowTrustLineClawbackFlag{
+            "allowTrustLineClawback", lsfAllowTrustLineClawback};
 
     auto const sleAccepted = ledger->read(keylet::account(accountID));
     if (sleAccepted)
@@ -125,6 +130,11 @@ doAccountInfo(RPC::JsonContext& context)
             for (auto const& lsf : disallowIncomingFlags)
                 acctFlags[lsf.first.data()] = sleAccepted->isFlag(lsf.second);
         }
+
+        if (ledger->rules().enabled(featureClawback))
+            acctFlags[allowTrustLineClawbackFlag.first.data()] =
+                sleAccepted->isFlag(allowTrustLineClawbackFlag.second);
+
         result[jss::account_flags] = std::move(acctFlags);
 
         // Return SignerList(s) if that is requested.

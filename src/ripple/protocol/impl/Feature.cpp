@@ -468,7 +468,22 @@ REGISTER_FIX    (fix240819,                     Supported::yes, VoteBehavior::De
 REGISTER_FIX    (fixPageCap,                    Supported::yes, VoteBehavior::DefaultYes);
 REGISTER_FIX    (fix240911,                     Supported::yes, VoteBehavior::DefaultYes);
 REGISTER_FIX    (fixFloatDivide,                Supported::yes, VoteBehavior::DefaultYes);
+REGISTER_FEATURE(Remarks,                       Supported::yes, VoteBehavior::DefaultNo);
+REGISTER_FEATURE(Touch,                         Supported::yes, VoteBehavior::DefaultNo);
 REGISTER_FIX    (fixReduceImport,               Supported::yes, VoteBehavior::DefaultYes);
+REGISTER_FIX    (fixXahauV3,                    Supported::yes, VoteBehavior::DefaultYes);
+REGISTER_FIX    (fix20250131,                   Supported::yes, VoteBehavior::DefaultYes);
+REGISTER_FEATURE(HookCanEmit,                   Supported::yes, VoteBehavior::DefaultNo);
+REGISTER_FIX    (fixRewardClaimFlags,           Supported::yes, VoteBehavior::DefaultYes);
+REGISTER_FEATURE(Clawback,                      Supported::yes, VoteBehavior::DefaultNo);
+REGISTER_FIX    (fixProvisionalDoubleThreading, Supported::yes, VoteBehavior::DefaultYes);
+REGISTER_FEATURE(DeepFreeze,                    Supported::yes, VoteBehavior::DefaultNo);
+REGISTER_FEATURE(IOUIssuerWeakTSH,              Supported::yes, VoteBehavior::DefaultNo);
+REGISTER_FEATURE(Cron,                          Supported::yes, VoteBehavior::DefaultNo);
+REGISTER_FIX    (fixInvalidTxFlags,             Supported::yes, VoteBehavior::DefaultYes);
+REGISTER_FEATURE(ExtendedHookState,             Supported::yes, VoteBehavior::DefaultNo);
+REGISTER_FIX    (fixCronStacking,               Supported::yes, VoteBehavior::DefaultYes);
+REGISTER_FIX    (fixHookAPI20251128,            Supported::yes, VoteBehavior::DefaultYes);
 REGISTER_FEATURE(HooksSettings,                 Supported::yes, VoteBehavior::DefaultNo);
 
 // The following amendments are obsolete, but must remain supported

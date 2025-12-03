@@ -45,7 +45,6 @@
 
 namespace ripple {
 namespace detail {
-
 [[nodiscard]] std::uint64_t
 getMemorySize()
 {
@@ -54,7 +53,6 @@ getMemorySize()
 
     return 0;
 }
-
 }  // namespace detail
 }  // namespace ripple
 #endif
@@ -64,7 +62,6 @@ getMemorySize()
 
 namespace ripple {
 namespace detail {
-
 [[nodiscard]] std::uint64_t
 getMemorySize()
 {
@@ -73,7 +70,6 @@ getMemorySize()
 
     return 0;
 }
-
 }  // namespace detail
 }  // namespace ripple
 
@@ -85,7 +81,6 @@ getMemorySize()
 
 namespace ripple {
 namespace detail {
-
 [[nodiscard]] std::uint64_t
 getMemorySize()
 {
@@ -98,13 +93,11 @@ getMemorySize()
 
     return 0;
 }
-
 }  // namespace detail
 }  // namespace ripple
 #endif
 
 namespace ripple {
-
 // clang-format off
 // The configurable node sizes are "tiny", "small", "medium", "large", "huge"
 inline constexpr std::array<std::pair<SizedItem, std::array<int, 5>>, 13>
@@ -510,11 +503,10 @@ Config::loadFromString(std::string const& fileContents)
             NETWORK_ID = beast::lexicalCastThrow<uint32_t>(strTemp);
     }
 
-    if (getSingleSection(secConfig, SECTION_DATAGRAM_MONITOR, strTemp, j_))
+    if (auto s = getIniFileSection(secConfig, SECTION_DATAGRAM_MONITOR))
     {
-        std::vector<std::string> vecTemp{strTemp};
-        replaceColons(vecTemp);
-        DATAGRAM_MONITOR = vecTemp[0];
+        DATAGRAM_MONITOR = *s;
+        replaceColons(DATAGRAM_MONITOR);
     }
 
     if (getSingleSection(secConfig, SECTION_PEER_PRIVATE, strTemp, j_))
@@ -1008,6 +1000,23 @@ Config::loadFromString(std::string const& fileContents)
             Throw<std::runtime_error>(
                 "The minimum number of required peers (network_quorum) exceeds "
                 "the maximum number of allowed peers (peers_max)");
+        }
+    }
+
+    if (!RUN_STANDALONE)
+    {
+        auto db_section = section(ConfigSection::nodeDatabase());
+        if (auto type = get(db_section, "type", ""); type == "rwdb")
+        {
+            if (auto delete_interval = get(db_section, "online_delete", 0);
+                delete_interval == 0)
+            {
+                Throw<std::runtime_error>(
+                    "RWDB (in-memory backend) requires online_delete to "
+                    "prevent OOM "
+                    "Exception: standalone mode (used by tests) doesn't need "
+                    "online_delete");
+            }
         }
     }
 }

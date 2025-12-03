@@ -202,7 +202,7 @@ public:
     strOperatingMode(bool const admin = false) const override;
 
     StateAccounting::CounterData
-    getStateAccountingData();
+    getStateAccountingData() override;
 
     //
     // Transaction operations.
@@ -714,10 +714,10 @@ private:
     std::mutex validationsMutex_;
 
     RCLConsensus&
-    getConsensus();
+    getConsensus() override;
 
     LedgerMaster&
-    getLedgerMaster();
+    getLedgerMaster() override;
 
 private:
     struct Stats
@@ -2496,6 +2496,8 @@ NetworkOPsImp::getServerInfo(bool human, bool admin, bool counters)
         toBase58(TokenType::NodePublic, app_.nodeIdentity().first);
 
     info[jss::complete_ledgers] = app_.getLedgerMaster().getCompleteLedgers();
+    info[jss::complete_ledgers_pinned] =
+        app_.getLedgerMaster().getPinnedLedgers();
 
     if (amendmentBlocked_)
         info[jss::amendment_blocked] = true;

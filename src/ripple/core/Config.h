@@ -162,7 +162,7 @@ public:
     std::map<std::string, PublicKey>
         IMPORT_VL_KEYS;  // hex string -> class PublicKey (for caching purposes)
 
-    std::string DATAGRAM_MONITOR;
+    std::vector<std::string> DATAGRAM_MONITOR;
 
     enum StartUpType {
         FRESH,
@@ -369,9 +369,7 @@ public:
              boost::beast::iequals(
                  get(section(SECTION_RELATIONAL_DB), "backend"), "rwdb")) ||
             (!section("node_db").empty() &&
-             (boost::beast::iequals(get(section("node_db"), "type"), "rwdb") ||
-              boost::beast::iequals(
-                  get(section("node_db"), "type"), "flatmap")));
+             boost::beast::iequals(get(section("node_db"), "type"), "rwdb"));
         // RHNOTE: memory type is not selected for here because it breaks
         // tests
         return isMem;

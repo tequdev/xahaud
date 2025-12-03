@@ -220,7 +220,10 @@ Ledger::Ledger(
 
     {
         auto sle = std::make_shared<SLE>(keylet::fees());
-        sle->setFieldU32(sfNetworkID, config.NETWORK_ID);
+
+        uint32_t networkID = config.NETWORK_ID;
+        if (networkID > 1024)
+            sle->setFieldU32(sfNetworkID, networkID);
 
         // Whether featureXRPFees is supported will depend on startup options.
         if (std::find(amendments.begin(), amendments.end(), featureXRPFees) !=
@@ -314,6 +317,20 @@ Ledger::Ledger(
     }
 }
 
+Ledger::Ledger(
+    LedgerInfo& info,
+    Config const& config,
+    Family& family,
+    SHAMap const& baseState)
+    : mImmutable(false)
+    , txMap_(SHAMapType::TRANSACTION, family)
+    , stateMap_(baseState, true)
+    , rules_{config.features}
+    , info_(info)
+    , j_(beast::Journal(beast::Journal::getNullSink()))
+{
+}
+
 // Create a new ledger that follows this one
 Ledger::Ledger(Ledger const& prevLedger, NetClock::time_point closeTime)
     : mImmutable(false)
@@ -394,6 +411,19 @@ Ledger::setImmutable(bool rehash)
     txMap_.setImmutable();
     stateMap_.setImmutable();
     setup();
+}
+
+// raw setters for catalogue
+void
+Ledger::setCloseFlags(int closeFlags)
+{
+    info_.closeFlags = closeFlags;
+}
+
+void
+Ledger::setDrops(uint64_t drops)
+{
+    info_.drops = drops;
 }
 
 void

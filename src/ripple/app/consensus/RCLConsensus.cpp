@@ -503,15 +503,11 @@ RCLConsensus::Adaptor::doAccept(
 
     for (auto const& item : *result.txns.map_)
     {
-#ifndef DEBUG
         try
         {
-#endif
             retriableTxs.insert(
                 std::make_shared<STTx const>(SerialIter{item.slice()}));
             JLOG(j_.debug()) << "    Tx: " << item.key();
-
-#ifndef DEBUG
         }
         catch (std::exception const& ex)
         {
@@ -519,7 +515,6 @@ RCLConsensus::Adaptor::doAccept(
             JLOG(j_.warn())
                 << "    Tx: " << item.key() << " throws: " << ex.what();
         }
-#endif
     }
 
     auto built = buildLCL(

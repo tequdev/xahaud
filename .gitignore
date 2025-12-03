@@ -24,6 +24,11 @@ bin/project-cache.jam
 
 build/docker
 
+# Ignore release builder files
+.env
+release-build
+cmake-*.tar.gz
+
 # Ignore object files.
 *.o
 build
@@ -114,3 +119,5 @@ pkg_out
 pkg
 CMakeUserPresets.json
 bld.rippled/
+
+generated

@@ -75,6 +75,11 @@ getTransactionalStakeHolders(STTx const& tx, ReadView const& rv)
 
     switch (tt)
     {
+        case ttCRON: {
+            ADD_TSH(tx.getAccountID(sfOwner), tshWEAK);
+            break;
+        }
+
         case ttREMIT: {
             if (destAcc)
                 ADD_TSH(*destAcc, tshSTRONG);
@@ -342,8 +347,7 @@ getTransactionalStakeHolders(STTx const& tx, ReadView const& rv)
         case ttOFFER_CANCEL:
         case ttTICKET_CREATE:
         case ttHOOK_SET:
-        case ttOFFER_CREATE:  // this is handled seperately
-        {
+        case ttOFFER_CREATE: {
             break;
         }
 
@@ -493,6 +497,12 @@ getTransactionalStakeHolders(STTx const& tx, ReadView const& rv)
                     }
                 }
             }
+            break;
+        }
+
+        case ttCLAWBACK: {
+            auto const amount = tx.getFieldAmount(sfAmount);
+            ADD_TSH(amount.getIssuer(), tshWEAK);
             break;
         }
 
@@ -852,12 +862,6 @@ parseCurrency(uint8_t* cu_ptr, uint32_t cu_len)
         return {};
 }
 
-uint32_t
-hook::computeHookStateOwnerCount(uint32_t hookStateCount)
-{
-    return hookStateCount;
-}
-
 inline int64_t
 serialize_keylet(
     ripple::Keylet& kl,
@@ -1028,6 +1032,29 @@ hook::canHook(ripple::TxType txType, ripple::uint256 hookOn)
     return (hookOn & UINT256_BIT[txType]) != beast::zero;
 }
 
+bool
+hook::canEmit(ripple::TxType txType, ripple::uint256 hookCanEmit)
+{
+    return hook::canHook(txType, hookCanEmit);
+}
+
+ripple::uint256
+hook::getHookCanEmit(
+    ripple::STObject const& hookObj,
+    SLE::pointer const& hookDef)
+{
+    // default allows all transaction types
+    uint256 defaultHookCanEmit = UINT256_BIT[ttHOOK_SET];
+
+    uint256 hookCanEmit =
+        (hookObj.isFieldPresent(sfHookCanEmit)
+             ? hookObj.getFieldH256(sfHookCanEmit)
+             : hookDef->isFieldPresent(sfHookCanEmit)
+                 ? hookDef->getFieldH256(sfHookCanEmit)
+                 : defaultHookCanEmit);
+    return hookCanEmit;
+}
+
 // Update HookState ledger objects for the hook... only called after accept()
 // assumes the specified acc has already been checked for authoriation (hook
 // grants)
@@ -1047,14 +1074,18 @@ hook::setHookState(
         return tefINTERNAL;
 
     // if the blob is too large don't set it
-    if (data.size() > hook::maxHookStateDataSize())
+    uint16_t const hookStateScale = sleAccount->isFieldPresent(sfHookStateScale)
+        ? sleAccount->getFieldU16(sfHookStateScale)
+        : 1;
+
+    if (data.size() > hook::maxHookStateDataSize(hookStateScale))
         return temHOOK_DATA_TOO_LARGE;
 
     auto hookStateKeylet = ripple::keylet::hookState(acc, key, ns);
     auto hookStateDirKeylet = ripple::keylet::hookStateDir(acc, ns);
 
     uint32_t stateCount = sleAccount->getFieldU32(sfHookStateCount);
-    uint32_t oldStateReserve = computeHookStateOwnerCount(stateCount);
+    uint32_t oldStateCount = stateCount;
 
     auto hookState = view.peek(hookStateKeylet);
 
@@ -1085,13 +1116,15 @@ hook::setHookState(
         if (stateCount > 0)
             --stateCount;  // guard this because in the "impossible" event it is
                            // already 0 we'll wrap back to int_max
-
         // if removing this state entry would destroy the allotment then reduce
         // the owner count
-        if (computeHookStateOwnerCount(stateCount) < oldStateReserve)
-            adjustOwnerCount(view, sleAccount, -1, j);
+        if (stateCount < oldStateCount)
+            adjustOwnerCount(view, sleAccount, -hookStateScale, j);
 
-        sleAccount->setFieldU32(sfHookStateCount, stateCount);
+        if (view.rules().enabled(featureExtendedHookState) && stateCount == 0)
+            sleAccount->makeFieldAbsent(sfHookStateCount);
+        else
+            sleAccount->setFieldU32(sfHookStateCount, stateCount);
 
         if (nsDestroyed)
             hook::removeHookNamespaceEntry(*sleAccount, ns);
@@ -1118,19 +1151,19 @@ hook::setHookState(
     {
         ++stateCount;
 
-        if (computeHookStateOwnerCount(stateCount) > oldStateReserve)
+        if (stateCount > oldStateCount)
         {
             // the hook used its allocated allotment of state entries for its
             // previous ownercount increment ownercount and give it another
             // allotment
 
-            ++ownerCount;
+            ownerCount += hookStateScale;
             XRPAmount const newReserve{view.fees().accountReserve(ownerCount)};
 
             if (STAmount((*sleAccount)[sfBalance]).xrp() < newReserve)
                 return tecINSUFFICIENT_RESERVE;
 
-            adjustOwnerCount(view, sleAccount, 1, j);
+            adjustOwnerCount(view, sleAccount, hookStateScale, j);
         }
 
         // update state count
@@ -1179,6 +1212,7 @@ hook::apply(
                                             used for caching (one day) */
     ripple::uint256 const&
         hookHash, /* hash of the actual hook byte code, used for metadata */
+    ripple::uint256 const& hookCanEmit,
     ripple::uint256 const& hookNamespace,
     ripple::Blob const& wasm,
     std::map<
@@ -1206,6 +1240,7 @@ hook::apply(
         .result =
             {.hookSetTxnID = hookSetTxnID,
              .hookHash = hookHash,
+             .hookCanEmit = hookCanEmit,
              .accountKeylet = keylet::account(account),
              .ownerDirKeylet = keylet::ownerDir(account),
              .hookKeylet = keylet::hook(account),
@@ -1217,9 +1252,10 @@ hook::apply(
              .hookParamOverrides = hookParamOverrides,
              .hookParams = hookParams,
              .hookSkips = {},
-             .exitType =
-                 hook_api::ExitType::ROLLBACK,  // default is to rollback unless
-                                                // hook calls accept()
+             .exitType = applyCtx.view().rules().enabled(fixXahauV3)
+                 ? hook_api::ExitType::UNSET
+                 : hook_api::ExitType::ROLLBACK,  // default is to rollback
+                                                  // unless hook calls accept()
              .exitReason = std::string(""),
              .exitCode = -1,
              .hasCallback = hasCallback,
@@ -1415,7 +1451,7 @@ lookup_state_cache(
     if (stateMap.find(acc) == stateMap.end())
         return std::nullopt;
 
-    auto& stateMapAcc = std::get<2>(stateMap[acc]);
+    auto& stateMapAcc = std::get<3>(stateMap[acc]);
     if (stateMapAcc.find(ns) == stateMapAcc.end())
         return std::nullopt;
 
@@ -1450,6 +1486,7 @@ set_state_cache(
 
     if (stateMap.find(acc) == stateMap.end())
     {
+        // new Account Key
         // if this is the first time this account has been interacted with
         // we will compute how many available reserve positions there are
         auto const& fees = hookCtx.applyCtx.view().fees();
@@ -1461,6 +1498,10 @@ set_state_cache(
 
         STAmount bal = accSLE->getFieldAmount(sfBalance);
 
+        uint16_t const hookStateScale = accSLE->isFieldPresent(sfHookStateScale)
+            ? accSLE->getFieldU16(sfHookStateScale)
+            : 1;
+
         int64_t availableForReserves = bal.xrp().drops() -
             fees.accountReserve(accSLE->getFieldU32(sfOwnerCount)).drops();
 
@@ -1471,7 +1512,7 @@ set_state_cache(
 
         availableForReserves /= increment;
 
-        if (availableForReserves < 1 && modified)
+        if (availableForReserves < hookStateScale && modified)
             return RESERVE_INSUFFICIENT;
 
         int64_t namespaceCount = accSLE->isFieldPresent(sfHookNamespaces)
@@ -1490,20 +1531,28 @@ set_state_cache(
 
         stateMap.modified_entry_count++;
 
+        // sanity check
+        if (view.rules().enabled(featureExtendedHookState) &&
+            availableForReserves < hookStateScale)
+            return INTERNAL_ERROR;
+
         stateMap[acc] = {
-            availableForReserves - 1,
+            availableForReserves - hookStateScale,
             namespaceCount,
+            hookStateScale,
             {{ns, {{key, {modified, data}}}}}};
         return 1;
     }
 
     auto& availableForReserves = std::get<0>(stateMap[acc]);
     auto& namespaceCount = std::get<1>(stateMap[acc]);
-    auto& stateMapAcc = std::get<2>(stateMap[acc]);
-    bool const canReserveNew = availableForReserves > 0;
+    auto& hookStateScale = std::get<2>(stateMap[acc]);
+    auto& stateMapAcc = std::get<3>(stateMap[acc]);
+    bool const canReserveNew = availableForReserves >= hookStateScale;
 
     if (stateMapAcc.find(ns) == stateMapAcc.end())
     {
+        // new Namespace Key
         if (modified)
         {
             if (!canReserveNew)
@@ -1521,7 +1570,11 @@ set_state_cache(
                 namespaceCount++;
             }
 
-            availableForReserves--;
+            if (view.rules().enabled(featureExtendedHookState) &&
+                availableForReserves < hookStateScale)
+                return INTERNAL_ERROR;
+
+            availableForReserves -= hookStateScale;
             stateMap.modified_entry_count++;
         }
 
@@ -1533,11 +1586,17 @@ set_state_cache(
     auto& stateMapNs = stateMapAcc[ns];
     if (stateMapNs.find(key) == stateMapNs.end())
     {
+        // new State Key
         if (modified)
         {
             if (!canReserveNew)
                 return RESERVE_INSUFFICIENT;
-            availableForReserves--;
+
+            if (view.rules().enabled(featureExtendedHookState) &&
+                availableForReserves < hookStateScale)
+                return INTERNAL_ERROR;
+
+            availableForReserves -= hookStateScale;
             stateMap.modified_entry_count++;
         }
 
@@ -1546,6 +1605,7 @@ set_state_cache(
         return 1;
     }
 
+    // existing State Key
     if (modified)
     {
         if (!stateMapNs[key].first)
@@ -1634,7 +1694,15 @@ DEFINE_HOOK_FUNCTION(
         (aread_len && NOT_IN_BOUNDS(aread_ptr, aread_len, memory_length)))
         return OUT_OF_BOUNDS;
 
-    uint32_t maxSize = hook::maxHookStateDataSize();
+    auto const sleAccount = view.peek(hookCtx.result.accountKeylet);
+    if (!sleAccount && view.rules().enabled(featureExtendedHookState))
+        return tefINTERNAL;
+
+    uint16_t const hookStateScale = sleAccount->isFieldPresent(sfHookStateScale)
+        ? sleAccount->getFieldU16(sfHookStateScale)
+        : 1;
+
+    uint32_t maxSize = hook::maxHookStateDataSize(hookStateScale);
     if (read_len > maxSize)
         return TOO_BIG;
 
@@ -1778,7 +1846,7 @@ hook::finalizeHookState(
     for (const auto& accEntry : stateMap)
     {
         const auto& acc = accEntry.first;
-        for (const auto& nsEntry : std::get<2>(accEntry.second))
+        for (const auto& nsEntry : std::get<3>(accEntry.second))
         {
             const auto& ns = nsEntry.first;
             for (const auto& cacheEntry : nsEntry.second)
@@ -2835,17 +2903,6 @@ DEFINE_HOOK_FUNCTION(
     if (write_len < 34)
         return TOO_SMALL;
 
-    bool const v1 = applyCtx.view().rules().enabled(featureHooksUpdate1);
-
-    if (keylet_type == 0)
-        return INVALID_ARGUMENT;
-
-    auto const last =
-        v1 ? keylet_code::LAST_KLTYPE_V1 : keylet_code::LAST_KLTYPE_V0;
-
-    if (keylet_type > last)
-        return INVALID_ARGUMENT;
-
     try
     {
         switch (keylet_type)
@@ -2947,7 +3004,8 @@ DEFINE_HOOK_FUNCTION(
                 return serialize_keylet(kl, memory, write_ptr, write_len);
             }
 
-            // keylets that take 20 byte account id, and 4 byte uint
+            // keylets that take 20 byte account id, and (4 byte uint for 32
+            // byte hash)
             case keylet_code::OFFER:
             case keylet_code::CHECK:
             case keylet_code::ESCROW:
@@ -2986,6 +3044,33 @@ DEFINE_HOOK_FUNCTION(
                         : keylet_type == keylet_code::NFT_OFFER
                             ? ripple::keylet::nftoffer(id, seq)
                             : ripple::keylet::offer(id, seq);
+
+                return serialize_keylet(kl, memory, write_ptr, write_len);
+            }
+
+                // keylets that take 20 byte account id, and 4 byte uint
+            case keylet_code::CRON: {
+                if (!applyCtx.view().rules().enabled(featureCron))
+                    return INVALID_ARGUMENT;
+
+                if (a == 0 || b == 0)
+                    return INVALID_ARGUMENT;
+                if (e != 0 || f != 0 || d != 0)
+                    return INVALID_ARGUMENT;
+
+                uint32_t read_ptr = a, read_len = b;
+
+                if (NOT_IN_BOUNDS(read_ptr, read_len, memory_length))
+                    return OUT_OF_BOUNDS;
+
+                if (read_len != 20)
+                    return INVALID_ARGUMENT;
+
+                ripple::AccountID id = AccountID::fromVoid(memory + read_ptr);
+
+                uint32_t seq = c;
+
+                ripple::Keylet kl = ripple::keylet::cron(seq, id);
 
                 return serialize_keylet(kl, memory, write_ptr, write_len);
             }
@@ -3037,6 +3122,9 @@ DEFINE_HOOK_FUNCTION(
             }
 
             case keylet_code::HOOK_STATE_DIR: {
+                if (!applyCtx.view().rules().enabled(featureHooksUpdate1))
+                    return INVALID_ARGUMENT;
+
                 if (a == 0 || b == 0 || c == 0 || d == 0)
                     return INVALID_ARGUMENT;
 
@@ -3119,15 +3207,15 @@ DEFINE_HOOK_FUNCTION(
                 if (a == 0 || b == 0 || c == 0 || d == 0 || e == 0 || f == 0)
                     return INVALID_ARGUMENT;
 
-                uint32_t hi_ptr = a, hi_len = b, lo_ptr = c, lo_len = d,
+                uint32_t acc1_ptr = a, acc1_len = b, acc2_ptr = c, acc2_len = d,
                          cu_ptr = e, cu_len = f;
 
-                if (NOT_IN_BOUNDS(hi_ptr, hi_len, memory_length) ||
-                    NOT_IN_BOUNDS(lo_ptr, lo_len, memory_length) ||
+                if (NOT_IN_BOUNDS(acc1_ptr, acc1_len, memory_length) ||
+                    NOT_IN_BOUNDS(acc2_ptr, acc2_len, memory_length) ||
                     NOT_IN_BOUNDS(cu_ptr, cu_len, memory_length))
                     return OUT_OF_BOUNDS;
 
-                if (hi_len != 20 || lo_len != 20)
+                if (acc1_len != 20 || acc2_len != 20)
                     return INVALID_ARGUMENT;
 
                 std::optional<Currency> cur =
@@ -3136,8 +3224,8 @@ DEFINE_HOOK_FUNCTION(
                     return INVALID_ARGUMENT;
 
                 auto kl = ripple::keylet::line(
-                    AccountID::fromVoid(memory + hi_ptr),
-                    AccountID::fromVoid(memory + lo_ptr),
+                    AccountID::fromVoid(memory + acc1_ptr),
+                    AccountID::fromVoid(memory + acc2_ptr),
                     *cur);
                 return serialize_keylet(kl, memory, write_ptr, write_len);
             }
@@ -3211,7 +3299,7 @@ DEFINE_HOOK_FUNCTION(
         return INTERNAL_ERROR;
     }
 
-    return NO_SUCH_KEYLET;
+    return INVALID_ARGUMENT;
 
     HOOK_TEARDOWN();
 }
@@ -3266,6 +3354,16 @@ DEFINE_HOOK_FUNCTION(
     {
         JLOG(j.trace()) << "HookEmit[" << HC_ACC()
                         << "]: Attempted to emit pseudo txn.";
+        return EMISSION_FAILURE;
+    }
+
+    ripple::TxType txType = stpTrans->getTxnType();
+
+    ripple::uint256 const& hookCanEmit = hookCtx.result.hookCanEmit;
+    if (!hook::canEmit(txType, hookCanEmit))
+    {
+        JLOG(j.trace()) << "HookEmit[" << HC_ACC()
+                        << "]: Hook cannot emit this txn.";
         return EMISSION_FAILURE;
     }
 
@@ -3536,7 +3634,7 @@ DEFINE_HOOK_FUNCTION(
     {
         JLOG(j.trace()) << "HookEmit[" << HC_ACC()
                         << "]: Transaction preflight failure: "
-                        << preflightResult.ter;
+                        << transHuman(preflightResult.ter);
         return EMISSION_FAILURE;
     }
 
@@ -4135,10 +4233,25 @@ DEFINE_HOOK_FUNCTION(
 
     // unwrap the array if it is wrapped,
     // by removing a byte from the start and end
+    // why here 0xF0?
+    // STI_ARRAY = 0xF0
+    // eg) Signers field value = 0x03 => 0xF3
+    // eg) Amounts field value = 0x5C => 0xF0, 0x5C
     if ((*upto & 0xF0U) == 0xF0U)
     {
-        upto++;
-        end--;
+        if (view.rules().enabled(fixHookAPI20251128) && *upto == 0xF0U)
+        {
+            // field value > 15
+            upto++;
+            upto++;
+            end--;
+        }
+        else
+        {
+            // field value <= 15
+            upto++;
+            end--;
+        }
     }
 
     if (upto >= end)
@@ -4369,6 +4482,30 @@ DEFINE_HOOK_FUNCTION(
                  fread_ptr,
                  fread_ptr + fread_len}))
             return MEM_OVERLAP;
+    }
+
+    if (fread_len > 0 && view.rules().enabled(fixHookAPI20251128))
+    {
+        // inject field should be valid sto object and it's field id should
+        // match the field_id
+        unsigned char* inject_start = (unsigned char*)(memory + fread_ptr);
+        unsigned char* inject_end =
+            (unsigned char*)(memory + fread_ptr + fread_len);
+        int type = -1, field = -1, payload_start = -1, payload_length = -1;
+        int32_t length = get_stobject_length(
+            inject_start,
+            inject_end,
+            type,
+            field,
+            payload_start,
+            payload_length,
+            0);
+        if (length < 0)
+            return PARSE_ERROR;
+        if ((type << 16) + field != field_id)
+        {
+            return PARSE_ERROR;
+        }
     }
 
     // we must inject the field at the canonical location....
@@ -4611,7 +4748,12 @@ DEFINE_HOOK_FUNCTION(
         std::unique_ptr<STTx const> stpTrans;
         stpTrans = std::make_unique<STTx const>(std::ref(sitTrans));
 
-        return Transactor::calculateBaseFee(
+        if (!view.rules().enabled(fixHookAPI20251128))
+            return Transactor::calculateBaseFee(
+                       *(applyCtx.app.openLedger().current()), *stpTrans)
+                .drops();
+
+        return invoke_calculateBaseFee(
                    *(applyCtx.app.openLedger().current()), *stpTrans)
             .drops();
     }
@@ -4790,7 +4932,7 @@ DEFINE_HOOK_FUNCTION(
 
     if (float1 == 0)
     {
-        j.trace() << "HookTrace[" << HC_ACC() << "]:"
+        j.trace() << "HookTrace[" << HC_ACC() << "]: "
                   << (read_len == 0
                           ? ""
                           : std::string_view(

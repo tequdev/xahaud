@@ -240,7 +240,8 @@ EscrowCreate::doApply()
             ctx_.view(),
             {account, ctx_.tx[sfDestination]},
             amount.issue(),
-            ctx_.journal);
+            ctx_.journal,
+            lhLOCKING);
 
         JLOG(ctx_.journal.trace())
             << "EscrowCreate::doApply trustTransferAllowed result=" << result;
@@ -446,8 +447,8 @@ EscrowFinish::preflight(PreflightContext const& ctx)
     {
         if ((!ctx.tx.isFieldPresent(sfEscrowID) &&
              !ctx.tx.isFieldPresent(sfOfferSequence)) ||
-            ctx.tx.isFieldPresent(sfEscrowID) &&
-                ctx.tx.isFieldPresent(sfOfferSequence))
+            (ctx.tx.isFieldPresent(sfEscrowID) &&
+             ctx.tx.isFieldPresent(sfOfferSequence)))
             return temMALFORMED;
     }
 
@@ -729,8 +730,8 @@ EscrowCancel::preflight(PreflightContext const& ctx)
     {
         if ((!ctx.tx.isFieldPresent(sfEscrowID) &&
              !ctx.tx.isFieldPresent(sfOfferSequence)) ||
-            ctx.tx.isFieldPresent(sfEscrowID) &&
-                ctx.tx.isFieldPresent(sfOfferSequence))
+            (ctx.tx.isFieldPresent(sfEscrowID) &&
+             ctx.tx.isFieldPresent(sfOfferSequence)))
             return temMALFORMED;
     }
 

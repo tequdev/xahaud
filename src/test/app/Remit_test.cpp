@@ -2102,9 +2102,10 @@ struct Remit_test : public beast::unit_test::suite
             std::string result;
             TER code;
         };
-        std::array<TestRateData, 10> testCases = {{
+        // We test only rates that that can fit in a STI_UINT32.
+        // Negative rates can't be serdes so there is no need to test them.
+        std::array<TestRateData, 9> testCases = {{
             {0.0, USD(100), "900", tesSUCCESS},
-            {-1.0, USD(100), "900", temBAD_TRANSFER_RATE},
             {0.9, USD(100), "900", temBAD_TRANSFER_RATE},
             {1.0, USD(100), "900", tesSUCCESS},
             {1.1, USD(100), "890", tesSUCCESS},
@@ -2389,11 +2390,17 @@ struct Remit_test : public beast::unit_test::suite
             env(trust(gw, USD(100000), alice, tfSetFreeze));
             env.close();
 
-            // remit fails - frozen trustline
+            // outgoing remit fails - frozen trustline
             env(remit::remit(alice, bob),
                 remit::amts({XRP(1), USD(1)}),
                 ter(tecFROZEN));
             env.close();
+
+            // incoming remit success - frozen trustline
+            // env(remit::remit(bob, alice),
+            //     remit::amts({XRP(1), USD(1)}),
+            //     ter(tesSUCCESS));
+            // env.close();
 
             // clear freeze on alice trustline
             env(trust(gw, USD(100000), alice, tfClearFreeze));
@@ -2401,6 +2408,76 @@ struct Remit_test : public beast::unit_test::suite
 
             // remit success
             env(remit::remit(alice, bob),
+                remit::amts({XRP(1), USD(1)}),
+                ter(tesSUCCESS));
+            env.close();
+
+            // incoming remit success
+            env(remit::remit(bob, alice),
+                remit::amts({XRP(1), USD(1)}),
+                ter(tesSUCCESS));
+            env.close();
+        }
+    }
+
+    void
+    testTLDeepFreeze(FeatureBitset features)
+    {
+        testcase("trustline deep freeze");
+        using namespace test::jtx;
+        using namespace std::literals;
+
+        auto const alice = Account("alice");
+        auto const bob = Account("bob");
+        auto const carol = Account("carol");
+        auto const gw = Account{"gateway"};
+        auto const USD = gw["USD"];
+
+        auto const aliceUSD = alice["USD"];
+        auto const bobUSD = bob["USD"];
+
+        // test Deep Freeze
+        {
+            // Env Setup
+            Env env{*this, features};
+            env.fund(XRP(10000), alice, bob, gw);
+            env.close();
+            env(trust(alice, USD(100000)));
+            env(trust(bob, USD(100000)));
+            env.close();
+            env(pay(gw, alice, USD(10000)));
+            env(pay(gw, bob, USD(10000)));
+            env.close();
+
+            // set deep freeze on alice trustline
+            env(trust(gw, USD(100000), alice, tfSetFreeze | tfSetDeepFreeze));
+            env.close();
+
+            // outgoing remit fails - deep frozen trustline
+            env(remit::remit(alice, bob),
+                remit::amts({XRP(1), USD(1)}),
+                ter(tecFROZEN));
+            env.close();
+
+            // incoming remit fails - deep frozen trustline
+            env(remit::remit(bob, alice),
+                remit::amts({XRP(1), USD(1)}),
+                ter(tecFROZEN));
+            env.close();
+
+            // clear freeze on alice trustline
+            env(trust(
+                gw, USD(100000), alice, tfClearFreeze | tfClearDeepFreeze));
+            env.close();
+
+            // outgoing remit success
+            env(remit::remit(alice, bob),
+                remit::amts({XRP(1), USD(1)}),
+                ter(tesSUCCESS));
+            env.close();
+
+            // incoming remit success
+            env(remit::remit(bob, alice),
                 remit::amts({XRP(1), USD(1)}),
                 ter(tesSUCCESS));
             env.close();
@@ -2816,6 +2893,7 @@ struct Remit_test : public beast::unit_test::suite
         testRequireAuth(features);
         testDepositAuth(features);
         testTLFreeze(features);
+        testTLDeepFreeze(features);
         testRippling(features);
         testURIToken(features);
         testOptionals(features);

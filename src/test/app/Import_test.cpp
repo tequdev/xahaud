@@ -5203,8 +5203,8 @@ class Import_test : public beast::unit_test::suite
             std::string ns_str =
                 "CAFECAFECAFECAFECAFECAFECAFECAFECAFECAFECAFECAFECAFECAFECAFECA"
                 "FE";
-            Json::Value jv = ripple::test::jtx::hook(
-                issuer, {{hso(createCodeHex)}}, hsfOVERRIDE | hsfCOLLECT);
+            Json::Value jv =
+                ripple::test::jtx::hook(issuer, {{hso(createCodeHex)}}, 0);
             jv[jss::Hooks][0U][jss::Hook][jss::HookNamespace] = ns_str;
             jv[jss::Hooks][0U][jss::Hook][jss::HookOn] =
                 "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFDFFFFFFFFFFFFFFFFFFBFFF"
@@ -5469,7 +5469,11 @@ class Import_test : public beast::unit_test::suite
         // burn 100'000 coins
         {
             test::jtx::Env env{
-                *this, network::makeNetworkVLConfig(21337, keys)};
+                *this,
+                network::makeNetworkVLConfig(21337, keys),
+                nullptr,
+                beast::severities::kDisabled,
+            };
 
             auto const envCoins = env.current()->info().drops;
             BEAST_EXPECT(envCoins == 100'000'000'000'000'000);
@@ -5509,7 +5513,11 @@ class Import_test : public beast::unit_test::suite
         // burn all coins
         {
             test::jtx::Env env{
-                *this, network::makeNetworkVLConfig(21337, keys)};
+                *this,
+                network::makeNetworkVLConfig(21337, keys),
+                nullptr,
+                beast::severities::kDisabled,
+            };
 
             auto const envCoins = env.current()->info().drops;
             BEAST_EXPECT(envCoins == 100'000'000'000'000'000);
@@ -5549,7 +5557,11 @@ class Import_test : public beast::unit_test::suite
         // burn no coins
         {
             test::jtx::Env env{
-                *this, network::makeNetworkVLConfig(21337, keys)};
+                *this,
+                network::makeNetworkVLConfig(21337, keys),
+                nullptr,
+                beast::severities::kDisabled,
+            };
 
             auto const envCoins = env.current()->info().drops;
             BEAST_EXPECT(envCoins == 100'000'000'000'000'000);

@@ -23,6 +23,11 @@ else()
   message(STATUS "ACL not found, continuing without ACL support")
 endif()
 
+add_library(libxrpl INTERFACE)
+target_link_libraries(libxrpl INTERFACE xrpl_core)
+add_library(xrpl::libxrpl ALIAS libxrpl)
+
+
 #[===============================[
     beast/legacy FILES:
     TODO: review these sources for removal or replacement
@@ -44,6 +49,12 @@ target_sources (xrpl_core PRIVATE
   src/ripple/beast/net/impl/IPEndpoint.cpp
   src/ripple/beast/utility/src/beast_Journal.cpp
   src/ripple/beast/utility/src/beast_PropertyStream.cpp)
+
+# Conditionally add enhanced logging source when BEAST_ENHANCED_LOGGING is enabled
+if(DEFINED BEAST_ENHANCED_LOGGING AND BEAST_ENHANCED_LOGGING)
+  target_sources(xrpl_core PRIVATE
+    src/ripple/beast/utility/src/beast_EnhancedLogging.cpp)
+endif()
 
 #[===============================[
     core sources
@@ -144,12 +155,19 @@ target_link_libraries (xrpl_core
   PUBLIC
     OpenSSL::Crypto
     Ripple::boost
-    NIH::WasmEdge
+    wasmedge::wasmedge
     Ripple::syslibs
-    NIH::secp256k1
-    NIH::ed25519-donna
+    secp256k1::secp256k1
+    ed25519::ed25519
     date::date
     Ripple::opts)
+
+# Link date-tz library when enhanced logging is enabled
+if(DEFINED BEAST_ENHANCED_LOGGING AND BEAST_ENHANCED_LOGGING)
+  if(TARGET date::date-tz)
+    target_link_libraries(xrpl_core PUBLIC date::date-tz)
+  endif()
+endif()
 #[=================================[
    main/core headers installation
 #]=================================]
@@ -436,9 +454,12 @@ target_sources (rippled PRIVATE
   src/ripple/app/tx/impl/CashCheck.cpp
   src/ripple/app/tx/impl/Change.cpp
   src/ripple/app/tx/impl/ClaimReward.cpp
+  src/ripple/app/tx/impl/Clawback.cpp
   src/ripple/app/tx/impl/CreateCheck.cpp
   src/ripple/app/tx/impl/CreateOffer.cpp
   src/ripple/app/tx/impl/CreateTicket.cpp
+  src/ripple/app/tx/impl/Cron.cpp
+  src/ripple/app/tx/impl/CronSet.cpp
   src/ripple/app/tx/impl/DeleteAccount.cpp
   src/ripple/app/tx/impl/DepositPreauth.cpp
   src/ripple/app/tx/impl/Escrow.cpp
@@ -457,6 +478,7 @@ target_sources (rippled PRIVATE
   src/ripple/app/tx/impl/Remit.cpp
   src/ripple/app/tx/impl/SetAccount.cpp
   src/ripple/app/tx/impl/SetHook.cpp
+  src/ripple/app/tx/impl/SetRemarks.cpp
   src/ripple/app/tx/impl/SetRegularKey.cpp
   src/ripple/app/tx/impl/SetSignerList.cpp
   src/ripple/app/tx/impl/SetTrust.cpp
@@ -542,7 +564,6 @@ target_sources (rippled PRIVATE
   src/ripple/nodestore/backend/CassandraFactory.cpp
   src/ripple/nodestore/backend/RWDBFactory.cpp
   src/ripple/nodestore/backend/MemoryFactory.cpp
-  src/ripple/nodestore/backend/FlatmapFactory.cpp
   src/ripple/nodestore/backend/NuDBFactory.cpp
   src/ripple/nodestore/backend/NullFactory.cpp
   src/ripple/nodestore/backend/RocksDBFactory.cpp
@@ -607,6 +628,7 @@ target_sources (rippled PRIVATE
   src/ripple/rpc/handlers/BlackList.cpp
   src/ripple/rpc/handlers/BookOffers.cpp
   src/ripple/rpc/handlers/CanDelete.cpp
+  src/ripple/rpc/handlers/Catalogue.cpp
   src/ripple/rpc/handlers/Connect.cpp
   src/ripple/rpc/handlers/ConsensusInfo.cpp
   src/ripple/rpc/handlers/CrawlShards.cpp
@@ -662,6 +684,7 @@ target_sources (rippled PRIVATE
   src/ripple/rpc/handlers/ValidatorListSites.cpp
   src/ripple/rpc/handlers/Validators.cpp
   src/ripple/rpc/handlers/WalletPropose.cpp
+  src/ripple/rpc/handlers/Catalogue.cpp
   src/ripple/rpc/impl/DeliveredAmount.cpp
   src/ripple/rpc/impl/Handler.cpp
   src/ripple/rpc/impl/LegacyPathFind.cpp
@@ -714,6 +737,8 @@ if (tests)
     src/test/app/BaseFee_test.cpp
     src/test/app/Check_test.cpp
     src/test/app/ClaimReward_test.cpp
+    src/test/app/Cron_test.cpp
+    src/test/app/Clawback_test.cpp
     src/test/app/CrossingLimits_test.cpp
     src/test/app/DeliverMin_test.cpp
     src/test/app/DepositAuth_test.cpp
@@ -745,6 +770,7 @@ if (tests)
     src/test/app/Path_test.cpp
     src/test/app/PayChan_test.cpp
     src/test/app/PayStrand_test.cpp
+    src/test/app/PreviousTxn_test.cpp
     src/test/app/PseudoTx_test.cpp
     src/test/app/RCLCensorshipDetector_test.cpp
     src/test/app/RCLValidations_test.cpp
@@ -752,11 +778,15 @@ if (tests)
     src/test/app/Remit_test.cpp
     src/test/app/SHAMapStore_test.cpp
     src/test/app/SetAuth_test.cpp
+    src/test/app/SetHook_test.cpp
+    src/test/app/SetHookTSH_test.cpp
     src/test/app/SetRegularKey_test.cpp
+    src/test/app/SetRemarks_test.cpp
     src/test/app/SetTrust_test.cpp
     src/test/app/Taker_test.cpp
     src/test/app/TheoreticalQuality_test.cpp
     src/test/app/Ticket_test.cpp
+    src/test/app/Touch_test.cpp
     src/test/app/Transaction_ordering_test.cpp
     src/test/app/TrustAndBalance_test.cpp
     src/test/app/TxQ_test.cpp
@@ -764,8 +794,6 @@ if (tests)
     src/test/app/ValidatorKeys_test.cpp
     src/test/app/ValidatorList_test.cpp
     src/test/app/ValidatorSite_test.cpp
-    src/test/app/SetHook_test.cpp
-    src/test/app/SetHookTSH_test.cpp
     src/test/app/Wildcard_test.cpp
     src/test/app/XahauGenesis_test.cpp
     src/test/app/tx/apply_test.cpp
@@ -875,6 +903,7 @@ if (tests)
     src/test/jtx/impl/amount.cpp
     src/test/jtx/impl/balance.cpp
     src/test/jtx/impl/check.cpp
+    src/test/jtx/impl/cron.cpp
     src/test/jtx/impl/delivermin.cpp
     src/test/jtx/impl/deposit.cpp
     src/test/jtx/impl/envconfig.cpp
@@ -899,11 +928,13 @@ if (tests)
     src/test/jtx/impl/rate.cpp
     src/test/jtx/impl/regkey.cpp
     src/test/jtx/impl/reward.cpp
+    src/test/jtx/impl/remarks.cpp
     src/test/jtx/impl/remit.cpp
     src/test/jtx/impl/sendmax.cpp
     src/test/jtx/impl/seq.cpp
     src/test/jtx/impl/sig.cpp
     src/test/jtx/impl/tag.cpp
+    src/test/jtx/impl/TestHelpers.cpp
     src/test/jtx/impl/ticket.cpp
     src/test/jtx/impl/token.cpp
     src/test/jtx/impl/trust.cpp
@@ -936,6 +967,7 @@ if (tests)
     src/test/nodestore/Basics_test.cpp
     src/test/nodestore/DatabaseShard_test.cpp
     src/test/nodestore/Database_test.cpp
+    src/test/nodestore/NuDBFactory_test.cpp
     src/test/nodestore/Timing_test.cpp
     src/test/nodestore/import_test.cpp
     src/test/nodestore/varint_test.cpp
@@ -984,6 +1016,11 @@ if (tests)
     src/test/resource/Logic_test.cpp
     #[===============================[
        test sources:
+         subdir: rdb
+    #]===============================]
+    src/test/rdb/RelationalDatabase_test.cpp
+    #[===============================[
+       test sources:
          subdir: rpc
     #]===============================]
     src/test/rpc/AccountCurrencies_test.cpp
@@ -996,6 +1033,7 @@ if (tests)
     src/test/rpc/AccountTx_test.cpp
     src/test/rpc/AmendmentBlocked_test.cpp
     src/test/rpc/Book_test.cpp
+    src/test/rpc/Catalogue_test.cpp
     src/test/rpc/DepositAuthorized_test.cpp
     src/test/rpc/DeliveredAmount_test.cpp
     src/test/rpc/Feature_test.cpp
@@ -1054,6 +1092,11 @@ target_link_libraries (rippled
   Ripple::opts
   Ripple::libs
   Ripple::xrpl_core
+  # Workaround for a Conan 1.x bug that prevents static linking of libstdc++
+  # when a dependency (snappy) modifies system_libs. See the comment in
+  # external/snappy/conanfile.py for a full explanation.
+  # This is likely not strictly necessary, but listed explicitly as a good practice.
+  m
   )
 exclude_if_included (rippled)
 # define a macro for tests that might need to
