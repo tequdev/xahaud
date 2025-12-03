@@ -3392,8 +3392,8 @@ DEFINE_HOOK_FUNCTION(
     }
     catch (std::exception& e)
     {
-        JLOG(j.trace()) << "prepare[" << HC_ACC() << "]: Failed " << e.what()
-                        << "\n";
+        JLOG(j.trace()) << "HookInfo[" << HC_ACC() << "]: prepare Failed "
+                        << e.what() << "\n";
         return INVALID_ARGUMENT;
     }
 
@@ -3412,12 +3412,12 @@ DEFINE_HOOK_FUNCTION(
 
     json[jss::Account] = raddr;
 
-    int64_t seq = view.info().seq;
+    uint32_t seq = view.info().seq;
     if (!json.isMember(jss::FirstLedgerSequence))
-        json[jss::FirstLedgerSequence] = Json::Value((uint32_t)(seq + 1));
+        json[jss::FirstLedgerSequence] = Json::Value(seq + 1);
 
     if (!json.isMember(jss::LastLedgerSequence))
-        json[jss::LastLedgerSequence] = Json::Value((uint32_t)(seq + 5));
+        json[jss::LastLedgerSequence] = Json::Value(seq + 5);
 
     uint8_t details[512];
     if (!json.isMember(jss::EmitDetails))
@@ -3438,7 +3438,8 @@ DEFINE_HOOK_FUNCTION(
         }
         catch (std::exception const& ex)
         {
-            JLOG(j.warn()) << "Exception in " << __func__ << ": " << ex.what();
+            JLOG(j.warn()) << "HookInfo[" << HC_ACC() << "]: Exception in "
+                           << __func__ << ": " << ex.what();
             return INTERNAL_ERROR;
         }
     }
