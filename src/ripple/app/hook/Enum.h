@@ -427,6 +427,7 @@ getImportWhitelist(
 
 enum GuardRulesVersion : uint64_t {
     GuardRuleFix20250131 = 0x00000001,
+    GuardRuleDepth32 = 0x00000002,
 };
 
 inline uint64_t
@@ -440,6 +441,8 @@ getGuardRulesVersion(
 #ifndef GUARD_CHECKER_BUILD
     if (rules.enabled(fix20250131))
         version |= GuardRuleFix20250131;
+    if (rules.enabled(fixGuardDepth32))
+        version |= GuardRuleDepth32;
 #else
     version = -1;  // all bits set for guard checker
 #endif
