@@ -2355,7 +2355,7 @@ DEFINE_HOOK_FUNCTION(
 }
 
 // Return the tt (Transaction Type) numeric code of the originating transaction
-DEFINE_HOOK_FUNCNARG(int64_t, otxn_type)
+DEFINE_HOOK_FUNCTION(int64_t, otxn_type)
 {
     HOOK_SETUP();  // populates memory_ctx, memory, memory_length, applyCtx,
                    // hookCtx on current stack
@@ -2405,7 +2405,7 @@ DEFINE_HOOK_FUNCTION(int64_t, otxn_slot, uint32_t slot_into)
 // Return the burden of the originating transaction... this will be 1 unless the
 // originating transaction was itself an emitted transaction from a previous
 // hook invocation
-DEFINE_HOOK_FUNCNARG(int64_t, otxn_burden)
+DEFINE_HOOK_FUNCTION(int64_t, otxn_burden)
 {
     HOOK_SETUP();  // populates memory_ctx, memory, memory_length, applyCtx,
                    // hookCtx on current stack
@@ -2442,7 +2442,7 @@ DEFINE_HOOK_FUNCNARG(int64_t, otxn_burden)
 // Return the generation of the originating transaction... this will be 1 unless
 // the originating transaction was itself an emitted transaction from a previous
 // hook invocation
-DEFINE_HOOK_FUNCNARG(int64_t, otxn_generation)
+DEFINE_HOOK_FUNCTION(int64_t, otxn_generation)
 {
     HOOK_SETUP();  // populates memory_ctx, memory, memory_length, applyCtx,
                    // hookCtx on current stack
@@ -2474,14 +2474,14 @@ DEFINE_HOOK_FUNCNARG(int64_t, otxn_generation)
 }
 
 // Return the generation of a hypothetically emitted transaction from this hook
-DEFINE_HOOK_FUNCNARG(int64_t, etxn_generation)
+DEFINE_HOOK_FUNCTION(int64_t, etxn_generation)
 {
     // proxy only, no setup or teardown
     return otxn_generation(hookCtx, frameCtx) + 1;
 }
 
 // Return the current ledger sequence number
-DEFINE_HOOK_FUNCNARG(int64_t, ledger_seq)
+DEFINE_HOOK_FUNCTION(int64_t, ledger_seq)
 {
     HOOK_SETUP();
 
@@ -2511,7 +2511,7 @@ DEFINE_HOOK_FUNCTION(
     HOOK_TEARDOWN();
 }
 
-DEFINE_HOOK_FUNCNARG(int64_t, ledger_last_time)
+DEFINE_HOOK_FUNCTION(int64_t, ledger_last_time)
 {
     HOOK_SETUP();
 
@@ -3969,7 +3969,7 @@ DEFINE_HOOK_FUNCTION(int64_t, etxn_reserve, uint32_t count)
 }
 
 // Compute the burden of an emitted transaction based on a number of factors
-DEFINE_HOOK_FUNCNARG(int64_t, etxn_burden)
+DEFINE_HOOK_FUNCTION(int64_t, etxn_burden)
 {
     HOOK_SETUP();  // populates memory_ctx, memory, memory_length, applyCtx,
                    // hookCtx on current stack
@@ -4313,10 +4313,25 @@ DEFINE_HOOK_FUNCTION(
 
     // unwrap the array if it is wrapped,
     // by removing a byte from the start and end
+    // why here 0xF0?
+    // STI_ARRAY = 0xF0
+    // eg) Signers field value = 0x03 => 0xF3
+    // eg) Amounts field value = 0x5C => 0xF0, 0x5C
     if ((*upto & 0xF0U) == 0xF0U)
     {
-        upto++;
-        end--;
+        if (view.rules().enabled(fixHookAPI20251128) && *upto == 0xF0U)
+        {
+            // field value > 15
+            upto++;
+            upto++;
+            end--;
+        }
+        else
+        {
+            // field value <= 15
+            upto++;
+            end--;
+        }
     }
 
     if (upto >= end)
@@ -4549,6 +4564,30 @@ DEFINE_HOOK_FUNCTION(
             return MEM_OVERLAP;
     }
 
+    if (fread_len > 0 && view.rules().enabled(fixHookAPI20251128))
+    {
+        // inject field should be valid sto object and it's field id should
+        // match the field_id
+        unsigned char* inject_start = (unsigned char*)(memory + fread_ptr);
+        unsigned char* inject_end =
+            (unsigned char*)(memory + fread_ptr + fread_len);
+        int type = -1, field = -1, payload_start = -1, payload_length = -1;
+        int32_t length = get_stobject_length(
+            inject_start,
+            inject_end,
+            type,
+            field,
+            payload_start,
+            payload_length,
+            0);
+        if (length < 0)
+            return PARSE_ERROR;
+        if ((type << 16) + field != field_id)
+        {
+            return PARSE_ERROR;
+        }
+    }
+
     // we must inject the field at the canonical location....
     // so find that location
     unsigned char* start = (unsigned char*)(memory + sread_ptr);
@@ -4752,7 +4791,7 @@ DEFINE_HOOK_FUNCTION(
 }
 
 // Return the current fee base of the current ledger (multiplied by a margin)
-DEFINE_HOOK_FUNCNARG(int64_t, fee_base)
+DEFINE_HOOK_FUNCTION(int64_t, fee_base)
 {
     HOOK_SETUP();  // populates memory_ctx, memory, memory_length, applyCtx,
                    // hookCtx on current stack
@@ -4789,7 +4828,12 @@ DEFINE_HOOK_FUNCTION(
         std::unique_ptr<STTx const> stpTrans;
         stpTrans = std::make_unique<STTx const>(std::ref(sitTrans));
 
-        return Transactor::calculateBaseFee(
+        if (!view.rules().enabled(fixHookAPI20251128))
+            return Transactor::calculateBaseFee(
+                       *(applyCtx.app.openLedger().current()), *stpTrans)
+                .drops();
+
+        return invoke_calculateBaseFee(
                    *(applyCtx.app.openLedger().current()), *stpTrans)
             .drops();
     }
@@ -5670,7 +5714,7 @@ DEFINE_HOOK_FUNCTION(int64_t, float_divide, int64_t float1, int64_t float2)
     HOOK_TEARDOWN();
 }
 
-DEFINE_HOOK_FUNCNARG(int64_t, float_one)
+DEFINE_HOOK_FUNCTION(int64_t, float_one)
 {
     return float_one_internal;
 }
@@ -6066,12 +6110,12 @@ DEFINE_HOOK_FUNCTION(
     HOOK_TEARDOWN();
 }
 
-DEFINE_HOOK_FUNCNARG(int64_t, hook_pos)
+DEFINE_HOOK_FUNCTION(int64_t, hook_pos)
 {
     return hookCtx.result.hookChainPosition;
 }
 
-DEFINE_HOOK_FUNCNARG(int64_t, hook_again)
+DEFINE_HOOK_FUNCTION(int64_t, hook_again)
 {
     HOOK_SETUP();
 
