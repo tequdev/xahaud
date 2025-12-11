@@ -177,9 +177,9 @@ struct HookResult
     std::map<std::string, uint64_t>
         hookApiMaxTimeNs;  // Max time in Hook APIs (nanoseconds)
     std::map<std::string, uint64_t>
-        instrPerCall;    // Instructions per call from WasmEdge
-    double totalTimeNs;  // Total time in Hook APIs (nanoseconds) for the
-                         // entire hook execution excluding host api calls
+        instrPerCall;        // Instructions per call from WasmEdge
+    double totalWasmTimeNs;  // Total time in Hook APIs (nanoseconds) for the
+                             // entire hook execution excluding host api calls
 #endif
     bool hasCallback = false;  // true iff this hook wasm has a cbak function
     bool isCallback =
@@ -465,7 +465,7 @@ public:
         auto* statsCtx = WasmEdge_VMGetStatisticsContext(vm.ctx);
         hookCtx.result.instructionCount =
             WasmEdge_StatisticsGetInstrCount(statsCtx);
-        hookCtx.result.totalTimeNs =
+        hookCtx.result.totalWasmTimeNs =
             WasmEdge_StatisticsGetInstrCount(statsCtx) * 1'000'000'000 /
             WasmEdge_StatisticsGetInstrPerSecond(statsCtx);
         // RH NOTE: stack unwind will clean up WasmEdgeVM

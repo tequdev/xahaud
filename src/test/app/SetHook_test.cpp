@@ -13467,8 +13467,6 @@ public:
     void
     testWithFeatures(FeatureBitset features)
     {
-        test_emit(features);  //
-        return;
         testHooksOwnerDir(features);
         testHooksDisabled(features);
         testTxStructure(features);
