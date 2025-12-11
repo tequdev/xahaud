@@ -168,6 +168,19 @@ struct HookResult
     std::string exitReason{""};
     int64_t exitCode{-1};
     uint64_t instructionCount{0};
+
+    // Benchmarking fields (enabled when HOOK_BENCHMARK is defined)
+#ifdef HOOK_BENCHMARK
+    std::map<std::string, uint64_t> hookApiCallCount;  // Total Hook API calls
+    std::map<std::string, uint64_t>
+        hookApiTotalTimeNs;  // Total time in Hook APIs (nanoseconds)
+    std::map<std::string, uint64_t>
+        hookApiMaxTimeNs;  // Max time in Hook APIs (nanoseconds)
+    std::map<std::string, uint64_t>
+        instrPerCall;    // Instructions per call from WasmEdge
+    double totalTimeNs;  // Total time in Hook APIs (nanoseconds) for the
+                         // entire hook execution excluding host api calls
+#endif
     bool hasCallback = false;  // true iff this hook wasm has a cbak function
     bool isCallback =
         false;  // true iff this hook execution is a callback in action
@@ -325,6 +338,10 @@ public:
             if (!conf)
                 return;
             WasmEdge_ConfigureStatisticsSetInstructionCounting(conf, true);
+#ifdef HOOK_BENCHMARK
+            // Enable time measuring for benchmarking
+            WasmEdge_ConfigureStatisticsSetTimeMeasuring(conf, true);
+#endif
             ctx = WasmEdge_VMCreate(conf, NULL);
         }
 
@@ -448,7 +465,9 @@ public:
         auto* statsCtx = WasmEdge_VMGetStatisticsContext(vm.ctx);
         hookCtx.result.instructionCount =
             WasmEdge_StatisticsGetInstrCount(statsCtx);
-
+        hookCtx.result.totalTimeNs =
+            WasmEdge_StatisticsGetInstrCount(statsCtx) * 1'000'000'000 /
+            WasmEdge_StatisticsGetInstrPerSecond(statsCtx);
         // RH NOTE: stack unwind will clean up WasmEdgeVM
     }
 

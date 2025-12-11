@@ -103,6 +103,37 @@
     extern WasmEdge_FunctionTypeContext* WasmFunctionType##F;    \
     extern WasmEdge_String WasmFunctionName##F;
 
+#ifdef HOOK_BENCHMARK
+#include <chrono>
+#define HOOK_BENCH_START() \
+    auto _bench_start = std::chrono::high_resolution_clock::now()
+#define HOOK_BENCH_END(hookCtx, F)                                             \
+    do                                                                         \
+    {                                                                          \
+        auto _bench_end = std::chrono::high_resolution_clock::now();           \
+        auto _bench_duration = static_cast<uint64_t>(                          \
+            std::chrono::duration_cast<std::chrono::nanoseconds>(              \
+                _bench_end - _bench_start)                                     \
+                .count());                                                     \
+        (hookCtx)->result.hookApiCallCount[#F]++;                              \
+        (hookCtx)->result.hookApiTotalTimeNs[#F] += _bench_duration;           \
+        (hookCtx)->result.hookApiMaxTimeNs[#F] =                               \
+            std::max((hookCtx)->result.hookApiMaxTimeNs[#F], _bench_duration); \
+        (hookCtx)->result.instrPerCall[#F] = static_cast<uint64_t>(            \
+            (hookCtx)->result.hookApiTotalTimeNs[#F] /                         \
+            (hookCtx)->result.hookApiCallCount[#F]);                           \
+    } while (0)
+#else
+#define HOOK_BENCH_START() \
+    do                     \
+    {                      \
+    } while (0)
+#define HOOK_BENCH_END(hookCtx, F) \
+    do                             \
+    {                              \
+    } while (0)
+#endif
+
 #define DEFINE_HOOK_FUNCTION(R, F, ...)                             \
     WasmEdge_Result hook_api::WasmFunction##F(                      \
         void* data_ptr,                                             \
@@ -114,10 +145,12 @@
         __VA_OPT__(FOR_VARS(VAR_ASSIGN, 2, __VA_ARGS__);)           \
         hook::HookContext* hookCtx =                                \
             reinterpret_cast<hook::HookContext*>(data_ptr);         \
+        HOOK_BENCH_START();                                         \
         R return_code = hook_api::F(                                \
             *hookCtx,                                               \
             *const_cast<WasmEdge_CallingFrameContext*>(frameCtx)    \
                 __VA_OPT__(COMMA STRIP_TYPES(__VA_ARGS__)));        \
+        HOOK_BENCH_END(hookCtx, #F);                                \
         if (return_code == RC_ROLLBACK || return_code == RC_ACCEPT) \
             return WasmEdge_Result_Terminate;                       \
         out[0] = RET_ASSIGN(R, return_code);                        \

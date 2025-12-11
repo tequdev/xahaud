@@ -1366,6 +1366,58 @@ hook::apply(
                     << " RS: '" << hookCtx.result.exitReason.c_str()
                     << "' RC: " << hookCtx.result.exitCode;
 
+#ifdef HOOK_BENCHMARK
+    // Log benchmark statistics when HOOK_BENCHMARK is defined
+
+    uint64_t hookApiInstructionCount = 0;
+    // printf(
+    //     "| API                  | API Calls | API Time (ns) | Time/Call (ns)
+    //     "
+    //     "| Max Time (ns)   |\n");
+    // printf(
+    //     "|----------------------|-----------|---------------|-----------------|"
+    //     "-----------------|\n");
+    for (const auto& [api, count] : hookCtx.result.hookApiCallCount)
+    {
+        // printf(
+        //     "| %-20s | %-9d | %-13d | %-15d | %-15d |\n",
+        //     api.c_str(),
+        //     count,
+        //     hookCtx.result.hookApiTotalTimeNs[api],
+        //     hookCtx.result.instrPerCall[api],
+        //     hookCtx.result.hookApiMaxTimeNs[api]);
+        // printf(
+        //     "|----------------------|-----------|---------------|--------------"
+        //     "---|-----------------|\n");
+        hookApiInstructionCount += count;
+    }
+    auto const baseTime = hookCtx.result.totalTimeNs /
+        (hookCtx.result.instructionCount - hookApiInstructionCount);
+    printf(
+        "| Wasm Instructions    | %-13d |\n",
+        hookCtx.result.instructionCount - hookApiInstructionCount);
+    printf("| Total Time (ns)     | %-13.8f |\n", hookCtx.result.totalTimeNs);
+    printf(
+        "| Average Time (ns)   | %-13.8f |\n",
+        hookCtx.result.totalTimeNs /
+            (hookCtx.result.instructionCount - hookApiInstructionCount));
+
+    printf("| API                  | Ave based cost  | Max based cost  |\n");
+    printf("|----------------------|-----------------|-----------------|\n");
+    for (const auto& [api, count] : hookCtx.result.hookApiCallCount)
+    {
+        printf(
+            "| %-20s | %-15.8f | %-15.8f |\n",
+            api.c_str(),
+            hookCtx.result.instrPerCall[api] / baseTime,
+            hookCtx.result.hookApiMaxTimeNs[api] / baseTime);
+        printf(
+            "|----------------------|--------------"
+            "---|-----------------|\n");
+    }
+    printf("\n");
+#endif
+
     return hookCtx.result;
 }
 

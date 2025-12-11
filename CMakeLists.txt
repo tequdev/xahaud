@@ -52,6 +52,12 @@ else()
     message(STATUS "Log line numbers disabled")
 endif()
 
+option(HOOK_BENCHMARK "Enable hook benchmarking instrumentation" OFF)
+if(HOOK_BENCHMARK)
+    add_compile_definitions(HOOK_BENCHMARK)
+    message(STATUS "Hook benchmarking enabled")
+endif()
+
 if(thread_safety_analysis)
   add_compile_options(-Wthread-safety -D_LIBCPP_ENABLE_THREAD_SAFETY_ANNOTATIONS -DRIPPLE_ENABLE_THREAD_SAFETY_ANNOTATIONS)
   add_compile_options("-stdlib=libc++")
