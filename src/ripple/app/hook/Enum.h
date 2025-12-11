@@ -1,7 +1,3 @@
-#ifndef GUARD_CHECKER_BUILD
-#include <ripple/protocol/Feature.h>
-#include <ripple/protocol/Rules.h>
-#endif
 #include <cstdint>
 #include <map>
 #include <set>
@@ -9,6 +5,26 @@
 #include <vector>
 #ifndef HOOKENUM_INCLUDED
 #define HOOKENUM_INCLUDED 1
+
+#ifndef GUARD_CHECKER_BUILD
+#include <ripple/protocol/Feature.h>
+#include <ripple/protocol/Rules.h>
+#else
+// Override Feature and Rules for guard checker build
+#define featureHooksUpdate1 1
+#define fix20250131 1
+namespace hook_api {
+struct Rules
+{
+    constexpr bool
+    enabled(int feature) const
+    {
+        return true;
+    }
+};
+}  // namespace hook_api
+#endif
+
 namespace ripple {
 enum HookSetOperation : int8_t {
     hsoINVALID = -1,
@@ -384,11 +400,7 @@ using APIWhitelist = std::map<std::string, std::vector<uint8_t>>;
 // hookapi.h (include for hooks) this is a map of the api name to its return
 // code (vec[0] and its parameters vec[>0]) as wasm type codes
 inline APIWhitelist
-getImportWhitelist(
-#ifndef GUARD_CHECKER_BUILD
-    Rules const& rules
-#endif
-)
+getImportWhitelist(Rules const& rules)
 {
     APIWhitelist whitelist;
     // clang-format off
@@ -466,9 +478,7 @@ getImportWhitelist(
     HOOK_API_DEFINITION(I64, otxn_param, (I32, I32, I32, I32))
     HOOK_API_DEFINITION(I64, meta_slot, (I32))
 
-    #ifndef GUARD_CHECKER_BUILD
     if (rules.enabled(featureHooksUpdate1))
-    #endif
         HOOK_API_DEFINITION(I64, xpop_slot, (I32, I32))
 
     return whitelist;
@@ -484,19 +494,11 @@ enum GuardRulesVersion : uint64_t {
 };
 
 inline uint64_t
-getGuardRulesVersion(
-#ifndef GUARD_CHECKER_BUILD
-    Rules const& rules
-#endif
-)
+getGuardRulesVersion(Rules const& rules)
 {
     uint64_t version = 0;
-#ifndef GUARD_CHECKER_BUILD
     if (rules.enabled(fix20250131))
         version |= GuardRuleFix20250131;
-#else
-    version = -1;  // all bits set for guard checker
-#endif
     return version;
 }
 
