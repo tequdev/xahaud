@@ -17,16 +17,7 @@
 */
 //==============================================================================
 
-#include <ripple/app/hook/applyHook.h>
 #include <ripple/app/tx/impl/HookDefinitionUpdate.h>
-#include <ripple/basics/Log.h>
-#include <ripple/ledger/View.h>
-#include <ripple/protocol/Feature.h>
-#include <ripple/protocol/Indexes.h>
-#include <ripple/protocol/TxFlags.h>
-#include <ripple/protocol/st.h>
-#include "ripple/protocol/SField.h"
-#include "ripple/protocol/TER.h"
 
 namespace ripple {
 
