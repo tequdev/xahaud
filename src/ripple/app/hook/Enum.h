@@ -1,7 +1,3 @@
-#ifndef GUARD_CHECKER_BUILD
-#include <ripple/protocol/Feature.h>
-#include <ripple/protocol/Rules.h>
-#endif
 #include <cstdint>
 #include <map>
 #include <set>
@@ -9,6 +5,28 @@
 #include <vector>
 #ifndef HOOKENUM_INCLUDED
 #define HOOKENUM_INCLUDED 1
+
+#ifndef GUARD_CHECKER_BUILD
+#include <ripple/basics/base_uint.h>
+#include <ripple/protocol/Feature.h>
+#include <ripple/protocol/Rules.h>
+#else
+// Override uint256, Feature and Rules for guard checker build
+#define uint256 std::string
+#define featureHooksUpdate1 "1"
+#define fix20250131 "1"
+namespace hook_api {
+struct Rules
+{
+    constexpr bool
+    enabled(const uint256& feature) const
+    {
+        return true;
+    }
+};
+}  // namespace hook_api
+#endif
+
 namespace ripple {
 enum HookSetOperation : int8_t {
     hsoINVALID = -1,
@@ -378,16 +396,9 @@ using APIWhitelist =
 // hookapi.h (include for hooks) this is a map of the api name to its return
 // code (vec[0] and its parameters vec[>0]) as wasm type codes
 inline APIWhitelist
-getImportWhitelist(
-#ifndef GUARD_CHECKER_BUILD
-    Rules const& rules
-#endif
-)
+getImportWhitelist(Rules const& rules)
 {
     APIWhitelist whitelist;
-#ifndef GUARD_CHECKER_BUILD
-    std::map<std::string, uint256> amendments = {};
-#endif
 
 #pragma push_macro("HOOK_API_DEFINITION")
 #undef HOOK_API_DEFINITION
@@ -398,18 +409,11 @@ getImportWhitelist(
 
 #define HOOK_WRAP_PARAMS(...) __VA_ARGS__
 
-#ifdef GUARD_CHECKER_BUILD
-#define HOOK_API_DEFINITION(                                   \
-    RETURN_TYPE, FUNCTION_NAME, PARAMS_TUPLE, AMENDMENT, COST) \
-    whitelist[#FUNCTION_NAME] = {                              \
-        {RETURN_TYPE, HOOK_WRAP_PARAMS PARAMS_TUPLE}, COST};
-#else
 #define HOOK_API_DEFINITION(                                   \
     RETURN_TYPE, FUNCTION_NAME, PARAMS_TUPLE, AMENDMENT, COST) \
     if (AMENDMENT == uint256{} || rules.enabled(AMENDMENT))    \
         whitelist[#FUNCTION_NAME] = {                          \
             {RETURN_TYPE, HOOK_WRAP_PARAMS PARAMS_TUPLE}, COST};
-#endif
 
 #include "hook_api.macro"
 
@@ -432,19 +436,11 @@ enum GuardRulesVersion : uint64_t {
 };
 
 inline uint64_t
-getGuardRulesVersion(
-#ifndef GUARD_CHECKER_BUILD
-    Rules const& rules
-#endif
-)
+getGuardRulesVersion(Rules const& rules)
 {
     uint64_t version = 0;
-#ifndef GUARD_CHECKER_BUILD
     if (rules.enabled(fix20250131))
         version |= GuardRuleFix20250131;
-#else
-    version = -1;  // all bits set for guard checker
-#endif
     return version;
 }
 

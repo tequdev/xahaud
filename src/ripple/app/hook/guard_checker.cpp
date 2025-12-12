@@ -81,13 +81,16 @@ main(int argc, char** argv)
 
     close(fd);
 
+    // Dummy rules for guard checker build
+    hook_api::Rules rules;
+
     auto result = validateGuards(
         hook,
         std::cout,
         "",
         false,
-        hook_api::getImportWhitelist(),
-        hook_api::getGuardRulesVersion());
+        hook_api::getImportWhitelist(rules),
+        hook_api::getGuardRulesVersion(rules));
 
     if (!result)
     {
