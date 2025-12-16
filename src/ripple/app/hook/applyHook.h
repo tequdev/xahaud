@@ -129,7 +129,7 @@ computeCreationFee(uint64_t byteCount);
 constexpr uint32_t MICRO_DROPS_PER_DROP{1'000'000};
 
 XRPAmount
-hookCostToFee(uint64_t hookCost);
+hookCostToFee(ReadView const& view, uint64_t hookCost);
 
 std::optional<std::pair<uint64_t, uint64_t>>
 doValidateGuards(

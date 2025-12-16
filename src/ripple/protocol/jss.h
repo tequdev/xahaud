@@ -369,6 +369,7 @@ JSS(highest_ticket);        // out: AccountInfo
 JSS(historical_perminute);  // historical_perminute.
 JSS(hook);                  // in: LedgerEntry
 JSS(hook_definition);       // in: LedgerEntry
+JSS(hook_gas_price);        //
 JSS(hook_state);            // in: LedgerEntry
 JSS(hostid);                // out: NetworkOPs
 JSS(hotwallet);             // in: GatewayBalances

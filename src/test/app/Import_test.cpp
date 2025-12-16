@@ -5786,7 +5786,14 @@ class Import_test : public beast::unit_test::suite
             test::jtx::Env env{
                 *this,
                 network::makeGenesisConfig(
-                    features, 21337, keys, "10", "1000000", "200000", 1999998),
+                    features,
+                    21337,
+                    keys,
+                    "10",
+                    "1000000",
+                    "200000",
+                    "1000000",
+                    1999998),
                 features};
 
             // confirm total coins header
@@ -5830,7 +5837,14 @@ class Import_test : public beast::unit_test::suite
             test::jtx::Env env{
                 *this,
                 network::makeGenesisConfig(
-                    features, 21337, keys, "10", "1000000", "200000", 1999998),
+                    features,
+                    21337,
+                    keys,
+                    "10",
+                    "1000000",
+                    "200000",
+                    "1000000",
+                    1999998),
                 features};
 
             // confirm total coins header
@@ -5875,7 +5889,14 @@ class Import_test : public beast::unit_test::suite
             test::jtx::Env env{
                 *this,
                 network::makeGenesisConfig(
-                    features, 21337, keys, "10", "1000000", "200000", 1999998),
+                    features,
+                    21337,
+                    keys,
+                    "10",
+                    "1000000",
+                    "200000",
+                    "1000000",
+                    1999998),
                 features};
 
             // confirm total coins header
@@ -5921,7 +5942,14 @@ class Import_test : public beast::unit_test::suite
             test::jtx::Env env{
                 *this,
                 network::makeGenesisConfig(
-                    features, 21337, keys, "10", "1000000", "200000", 4999999),
+                    features,
+                    21337,
+                    keys,
+                    "10",
+                    "1000000",
+                    "200000",
+                    "1000000",
+                    4999999),
                 features};
 
             // confirm total coins header
@@ -5965,7 +5993,14 @@ class Import_test : public beast::unit_test::suite
             test::jtx::Env env{
                 *this,
                 network::makeGenesisConfig(
-                    features, 21337, keys, "10", "1000000", "200000", 19999999),
+                    features,
+                    21337,
+                    keys,
+                    "10",
+                    "1000000",
+                    "200000",
+                    "1000000",
+                    19999999),
                 features};
 
             // confirm total coins header
@@ -6009,7 +6044,14 @@ class Import_test : public beast::unit_test::suite
             test::jtx::Env env{
                 *this,
                 network::makeGenesisConfig(
-                    features, 21337, keys, "10", "1000000", "200000", 29999998),
+                    features,
+                    21337,
+                    keys,
+                    "10",
+                    "1000000",
+                    "200000",
+                    "1000000",
+                    29999998),
                 features};
 
             // confirm total coins header
@@ -6053,7 +6095,14 @@ class Import_test : public beast::unit_test::suite
             test::jtx::Env env{
                 *this,
                 network::makeGenesisConfig(
-                    features, 21337, keys, "10", "1000000", "200000", 29999998),
+                    features,
+                    21337,
+                    keys,
+                    "10",
+                    "1000000",
+                    "200000",
+                    "1000000",
+                    29999998),
                 features};
 
             // confirm total coins header
@@ -6096,7 +6145,14 @@ class Import_test : public beast::unit_test::suite
             test::jtx::Env env{
                 *this,
                 network::makeGenesisConfig(
-                    features, 21337, keys, "10", "1000000", "200000", 50000000),
+                    features,
+                    21337,
+                    keys,
+                    "10",
+                    "1000000",
+                    "200000",
+                    "1000000",
+                    50000000),
                 features};
 
             // confirm total coins header

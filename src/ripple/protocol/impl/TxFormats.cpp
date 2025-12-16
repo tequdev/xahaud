@@ -196,6 +196,8 @@ TxFormats::TxFormats()
             {sfBaseFeeDrops, soeOPTIONAL},
             {sfReserveBaseDrops, soeOPTIONAL},
             {sfReserveIncrementDrops, soeOPTIONAL},
+            // HookCost
+            {sfHookGasPrice, soeOPTIONAL},
         },
         commonFields);
 

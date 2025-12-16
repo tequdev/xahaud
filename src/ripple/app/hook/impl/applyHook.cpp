@@ -922,13 +922,12 @@ hook::computeCreationFee(uint64_t byteCount)
 }
 
 XRPAmount
-hook::hookCostToFee(uint64_t hookCost)
+hook::hookCostToFee(ReadView const& view, uint64_t hookCost)
 {
     XRPAmount fee{0};
-    // TODO: TEQU should be voted by validators like reserve
-    auto const GAS_PRICE = 100'000;
+    auto const HOOK_GAS_PRICE = view.fees().hookGasPrice;
     double const gas_cost =
-        double(GAS_PRICE) / double(hook::MICRO_DROPS_PER_DROP);
+        double(HOOK_GAS_PRICE) / double(hook::MICRO_DROPS_PER_DROP);
     fee = uint64_t(hookCost * gas_cost);
     return fee;
 }

@@ -98,6 +98,7 @@ public:
         std::string fee,
         std::string a_res,
         std::string o_res,
+        std::string g_res,
         uint32_t ledgerID)
     {
         using namespace jtx;
@@ -224,7 +225,8 @@ public:
             config.append(
                 {"reference_fee = " + fee,
                  "account_reserve = " + a_res,
-                 "owner_reserve = " + o_res});
+                 "owner_reserve = " + o_res,
+                 "hook_gas_price = " + g_res});
             auto setup = setup_FeeVote(config);
             cfg->FEES = setup;
             return cfg;
@@ -1237,7 +1239,8 @@ public:
 
         test::jtx::Env env{
             *this,
-            makePageCapConfig(features, 21337, "10", "1000000", "200000", 0),
+            makePageCapConfig(
+                features, 21337, "10", "1000000", "200000", "1000000", 0),
             features};
 
         bool const hasFix = env.current()->rules().enabled(fixPageCap);
@@ -13467,8 +13470,6 @@ public:
     void
     testWithFeatures(FeatureBitset features)
     {
-        test_emit(features);  //
-        return;
         testHooksOwnerDir(features);
         testHooksDisabled(features);
         testTxStructure(features);

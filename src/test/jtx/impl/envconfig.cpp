@@ -48,6 +48,7 @@ setupConfigForUnitTests(Config& cfg)
     cfg.FEES.reference_fee = 10;
     cfg.FEES.account_reserve = XRP(200).value().xrp().drops();
     cfg.FEES.owner_reserve = XRP(50).value().xrp().drops();
+    cfg.FEES.hook_gas_price = 1'000'000;
 
     cfg.overwrite(ConfigSection::nodeDatabase(), "type", "rwdb");
     cfg.overwrite(ConfigSection::nodeDatabase(), "path", "main");

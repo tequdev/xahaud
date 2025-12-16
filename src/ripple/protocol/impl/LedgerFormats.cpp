@@ -185,6 +185,8 @@ LedgerFormats::LedgerFormats()
             {sfXahauActivationLgrSeq,  soeOPTIONAL},
             {sfAccountCount,           soeOPTIONAL},
             {sfNetworkID,              soeOPTIONAL},
+            // Hooks Cost
+            {sfHookGasPrice,           soeOPTIONAL},
         },
         commonFields);
 
