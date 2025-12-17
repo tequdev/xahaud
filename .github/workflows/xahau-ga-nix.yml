@@ -421,7 +421,7 @@ jobs:
 
       - name: Upload coverage report
         if: matrix.job_type == 'coverage'
-        uses: wandalen/wretry.action@v1.4.10
+        uses: wandalen/wretry.action/main@v3
         with:
           action: codecov/codecov-action@v4.3.0
           with: |
