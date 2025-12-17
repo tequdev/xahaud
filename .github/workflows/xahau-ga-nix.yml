@@ -303,7 +303,7 @@ jobs:
 
           # Install gcovr for coverage jobs
           if [ "${{ matrix.job_type }}" = "coverage" ]; then
-            pip install "gcovr>=7,<9"
+            pipx install "gcovr>=7,<9"
           fi
 
       - name: Check environment
