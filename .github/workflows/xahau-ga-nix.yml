@@ -230,7 +230,7 @@ jobs:
           apt-get install -y software-properties-common
           add-apt-repository ppa:ubuntu-toolchain-r/test -y
           apt-get update
-          apt-get install -y python3 python-is-python3 pipx
+          apt-get install -y git python3 python-is-python3 pipx
           pipx ensurepath
           apt-get install -y cmake ninja-build ${{ matrix.cc }} ${{ matrix.cxx }} ccache
           apt-get install -y perl # for openssl build
