@@ -187,6 +187,13 @@ jobs:
               print(f"Using MINIMAL matrix (3 configs) - feature branch/PR")
               matrix = minimal_matrix
           
+          # Add runs_on based on job_type
+          for entry in matrix:
+              if entry.get("job_type") == "coverage":
+                  entry["runs_on"] = '["self-hosted", "generic", 24.04]'
+              else:
+                  entry["runs_on"] = '["self-hosted", "generic", 20.04]'
+          
           # Output the matrix as JSON
           output = json.dumps({"include": matrix})
           with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
@@ -194,7 +201,7 @@ jobs:
 
   build:
     needs: matrix-setup
-    runs-on: [self-hosted, generic, 20.04]
+    runs-on: ${{ fromJSON(matrix.runs_on) }}
     container:
       image: ubuntu:24.04
       volumes:
