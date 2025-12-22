@@ -50,6 +50,8 @@ setupConfigForUnitTests(Config& cfg)
     cfg.FEES.owner_reserve = XRP(50).value().xrp().drops();
     cfg.FEES.hook_gas_price = 1'000'000;
 
+    cfg["voting"].set("hook_gas_price", to_string(10'000));
+
     cfg.overwrite(ConfigSection::nodeDatabase(), "type", "rwdb");
     cfg.overwrite(ConfigSection::nodeDatabase(), "path", "main");
     cfg.overwrite(SECTION_RELATIONAL_DB, "backend", "rwdb");

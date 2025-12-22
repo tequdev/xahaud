@@ -243,9 +243,12 @@ public:
                 {"reference_fee = " + fee,
                  "account_reserve = " + a_res,
                  "owner_reserve = " + o_res,
-                 "hook_gas_price = " + g_res});
+                 "hook_gas_price = 1000"});
             auto setup = setup_FeeVote(config);
             cfg->FEES = setup;
+            cfg->section("voting") = config;
+            // override hook gas price for doVoting
+            cfg->section("voting").set("hook_gas_price", g_res);
             return cfg;
         });
     }
@@ -3623,7 +3626,7 @@ public:
                 HSFEE);
             env.close();
 
-            env(pay(bob, alice, XRP(1)), M("test float_compare"), fee(XRP(1)));
+            env(pay(bob, alice, XRP(1)), M("test float_compare"), HSFEE);
             env.close();
         }
     }
@@ -3953,7 +3956,7 @@ public:
                 HSFEE);
             env.close();
 
-            env(pay(bob, alice, XRP(1)), M("test float_int"), fee(XRP(1)));
+            env(pay(bob, alice, XRP(1)), M("test float_int"), HSFEE);
             env.close();
         }
     }
@@ -13546,7 +13549,7 @@ public:
                 // invoke the hook
                 env(pay(caller, acc, XRP(1)),
                     M("test hookcanemit 3"),
-                    fee(XRP(1)));
+                    fee(XRP(10)));
                 env.close();
 
                 auto meta = env.meta();
