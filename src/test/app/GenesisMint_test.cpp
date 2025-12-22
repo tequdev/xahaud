@@ -24,6 +24,23 @@ namespace ripple {
 namespace test {
 struct GenesisMint_test : public beast::unit_test::suite
 {
+    // Close the ledger until doVoting for FeatureHookFeeV2 is called
+    void
+    incLgrSeqForGasPriceEnabled(jtx::Env& env)
+    {
+        if (!env.current()->rules().enabled(featureHookFeeV2))
+            return;
+
+        BEAST_EXPECT(!env.le(keylet::fees())->isFieldPresent(sfHookGasPrice));
+
+        auto const seq = env.current()->info().seq;
+        BEAST_EXPECT(seq <= 256);
+        for (int i = seq; i <= 256; ++i)
+            env.close();
+        env.close();
+        BEAST_EXPECT(env.le(keylet::fees())->getFieldU32(sfHookGasPrice) > 0);
+    }
+
     void
     validateEmittedTxn(jtx::Env& env, std::string result, uint64_t lineno)
     {
@@ -95,6 +112,8 @@ struct GenesisMint_test : public beast::unit_test::suite
         using namespace std::literals::chrono_literals;
 
         Env env{*this, envconfig(), features};
+        incLgrSeqForGasPriceEnabled(env);
+
         auto const alice = Account("alice");
         auto const bob = Account("bob");
         auto const invoker = Account("invoker");
@@ -139,6 +158,8 @@ struct GenesisMint_test : public beast::unit_test::suite
             features,
             nullptr,
             beast::severities::kDisabled};
+        incLgrSeqForGasPriceEnabled(env);
+
         auto const alice = Account("alice");
         auto const bob = Account("bob");
         auto const invoker = Account("invoker");
@@ -233,14 +254,20 @@ struct GenesisMint_test : public beast::unit_test::suite
             auto acc = env.le(keylet::account(carol.id()));
             BEAST_EXPECT(
                 acc->getFieldAmount(sfBalance).xrp().drops() == 67890000000ULL);
-            BEAST_EXPECT(acc->getFieldU32(sfSequence) == 60);
+            if (env.current()->rules().enabled(featureHookFeeV2))
+                BEAST_EXPECT(acc->getFieldU32(sfSequence) == 2610);
+            else
+                BEAST_EXPECT(acc->getFieldU32(sfSequence) == 60);
         }
 
         {
             auto acc = env.le(keylet::account(david.id()));
             BEAST_EXPECT(
                 acc->getFieldAmount(sfBalance).xrp().drops() == 12345000000ULL);
-            BEAST_EXPECT(acc->getFieldU32(sfSequence) == 60);
+            if (env.current()->rules().enabled(featureHookFeeV2))
+                BEAST_EXPECT(acc->getFieldU32(sfSequence) == 2610);
+            else
+                BEAST_EXPECT(acc->getFieldU32(sfSequence) == 60);
         }
 
         // lots of entries
@@ -646,6 +673,8 @@ struct GenesisMint_test : public beast::unit_test::suite
         using namespace std::literals::chrono_literals;
 
         Env env{*this, envconfig(), features};
+        incLgrSeqForGasPriceEnabled(env);
+
         auto const alice = Account("alice");
         auto const bob = Account("bob");
         env.fund(XRP(10000), alice, bob);
@@ -668,6 +697,8 @@ struct GenesisMint_test : public beast::unit_test::suite
         using namespace std::literals::chrono_literals;
 
         Env env{*this, envconfig(), features};
+        incLgrSeqForGasPriceEnabled(env);
+
         auto const alice = Account("alice");
         auto const bob = Account("bob");
         env.fund(XRP(10000), alice, bob);
@@ -700,6 +731,7 @@ public:
         testWithFeats(sa);
         testWithFeats(sa - fixXahauV1);
         testWithFeats(sa - fixHookAPI20251128);
+        testWithFeats(sa - featureHookFeeV2);
     }
 };
 

@@ -629,6 +629,23 @@ private:
         0x61U, 0x72U, 0x74U, 0x2EU, 0x22U, 0x00U, 0x22U, 0x74U, 0x73U, 0x68U,
         0x2EU, 0x63U, 0x3AU, 0x20U, 0x45U, 0x6EU, 0x64U, 0x2EU, 0x22U};
 
+    // Close the ledger until doVoting for FeatureHookFeeV2 is called
+    void
+    incLgrSeqForGasPriceEnabled(jtx::Env& env)
+    {
+        if (!env.current()->rules().enabled(featureHookFeeV2))
+            return;
+
+        BEAST_EXPECT(!env.le(keylet::fees())->isFieldPresent(sfHookGasPrice));
+
+        auto const seq = env.current()->info().seq;
+        BEAST_EXPECT(seq <= 256);
+        for (int i = seq; i <= 256; ++i)
+            env.close();
+        env.close();
+        BEAST_EXPECT(env.le(keylet::fees())->getFieldU32(sfHookGasPrice) > 0);
+    }
+
     void
     addWeakTSH(jtx::Env& env, jtx::Account const& account)
     {
@@ -789,6 +806,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const account = Account("alice");
             env.fund(XRP(1000), account);
@@ -830,6 +848,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const account = Account("alice");
             auto const bene = Account("bob");
@@ -882,6 +901,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const account = Account("alice");
             auto const dest = Account("bob");
@@ -917,6 +937,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             bool const withIOUIssuerWeakTSH =
                 env.current()->rules().enabled(featureIOUIssuerWeakTSH);
@@ -962,6 +983,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const account = Account("alice");
             auto const dest = Account("bob");
@@ -997,6 +1019,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const account = Account("alice");
             auto const dest = Account("bob");
@@ -1041,6 +1064,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const account = Account("alice");
             auto const dest = Account("bob");
@@ -1073,6 +1097,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const account = Account("alice");
             auto const dest = Account("bob");
@@ -1114,6 +1139,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const account = Account("alice");
             auto const dest = Account("bob");
@@ -1151,6 +1177,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const account = Account("alice");
             auto const dest = Account("bob");
@@ -1188,6 +1215,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             bool const withIOUIssuerWeakTSH =
                 env.current()->rules().enabled(featureIOUIssuerWeakTSH);
@@ -1256,6 +1284,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const account = Account("alice");
             auto const issuer = Account("issuer");
@@ -1289,6 +1318,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const account = Account("alice");
             auto const issuer = Account("issuer");
@@ -1331,6 +1361,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const issuer = Account("gw");
             auto const holder = Account("bob");
@@ -1368,6 +1399,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const issuer = Account("gw");
             auto const holder = Account("bob");
@@ -1420,6 +1452,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const authed = Account("alice");
             auto const account = Account("bob");
@@ -1453,6 +1486,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const authed = Account("alice");
             auto const account = Account("bob");
@@ -1509,6 +1543,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const account = Account("alice");
             auto const dest = Account("bob");
@@ -1553,6 +1588,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             bool const withIOUIssuerWeakTSH =
                 env.current()->rules().enabled(featureIOUIssuerWeakTSH);
@@ -1607,6 +1643,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const account = Account("alice");
             auto const dest = Account("bob");
@@ -1651,6 +1688,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const account = Account("alice");
             auto const dest = Account("bob");
@@ -1695,6 +1733,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             bool const withIOUIssuerWeakTSH =
                 env.current()->rules().enabled(featureIOUIssuerWeakTSH);
@@ -1766,6 +1805,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const account = Account("alice");
             auto const dest = Account("bob");
@@ -1817,6 +1857,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             bool const withIOUIssuerWeakTSH =
                 env.current()->rules().enabled(featureIOUIssuerWeakTSH);
@@ -1878,6 +1919,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const account = Account("alice");
             auto const dest = Account("bob");
@@ -1929,6 +1971,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const account = Account("alice");
             auto const dest = Account("bob");
@@ -1984,6 +2027,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             bool const withIOUIssuerWeakTSH =
                 env.current()->rules().enabled(featureIOUIssuerWeakTSH);
@@ -2062,6 +2106,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const account = Account("alice");
             auto const dest = Account("bob");
@@ -2099,6 +2144,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const account = Account("alice");
             auto const dest = Account("bob");
@@ -2136,6 +2182,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             bool const withIOUIssuerWeakTSH =
                 env.current()->rules().enabled(featureIOUIssuerWeakTSH);
@@ -2200,6 +2247,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const account = Account("alice");
             auto const dest = Account("bob");
@@ -2241,6 +2289,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const account = Account("alice");
             auto const dest = Account("bob");
@@ -2282,6 +2331,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const account = Account("alice");
             auto const dest = Account("bob");
@@ -2323,6 +2373,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const account = Account("alice");
             auto const dest = Account("bob");
@@ -2364,6 +2415,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             bool const withIOUIssuerWeakTSH =
                 env.current()->rules().enabled(featureIOUIssuerWeakTSH);
@@ -2432,6 +2484,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const account = Account("alice");
             auto const dest = Account("bob");
@@ -2480,6 +2533,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const account = Account("alice");
             auto const dest = Account("bob");
@@ -2532,6 +2586,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const account = Account("alice");
             auto const dest = Account("bob");
@@ -2580,6 +2635,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const account = Account("alice");
             auto const dest = Account("bob");
@@ -2632,6 +2688,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             bool const withIOUIssuerWeakTSH =
                 env.current()->rules().enabled(featureIOUIssuerWeakTSH);
@@ -2715,6 +2772,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const account = Account("alice");
             auto const issuer = env.master;
@@ -2766,6 +2824,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const account = Account("alice");
             auto const issuer = env.master;
@@ -2818,6 +2877,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const account = Account("alice");
             auto const issuer = env.master;
@@ -2905,6 +2965,7 @@ private:
                 network::makeNetworkVLConfig(
                     21337, keys, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const account = Account("alice");
             auto const issuer = Account("bob");
@@ -2945,6 +3006,7 @@ private:
                 network::makeNetworkVLConfig(
                     21337, keys, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const account = Account("alice");
             auto const issuer = Account("bob");
@@ -3002,6 +3064,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const account = Account("alice");
             auto const dest = Account("bob");
@@ -3035,6 +3098,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const account = Account("alice");
             auto const dest = Account("bob");
@@ -3082,6 +3146,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const account = Account("alice");
             auto const gw = Account{"gateway"};
@@ -3131,6 +3196,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const account = Account("alice");
             auto const gw = Account{"gateway"};
@@ -3168,6 +3234,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const account = Account("alice");
             auto const cross = Account("bob");
@@ -3212,6 +3279,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const account = Account("carol");
             auto const cross = Account("bob");
@@ -3272,6 +3340,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const account = Account("alice");
             auto const dest = Account{"bob"};
@@ -3302,6 +3371,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const account = Account("alice");
             auto const dest = Account{"bob"};
@@ -3332,6 +3402,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const account = Account("alice");
             auto const cross = Account("bob");
@@ -3373,6 +3444,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const account = Account("alice");
             auto const cross = Account("bob");
@@ -3451,6 +3523,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const account = Account("alice");
             auto const dest = Account{"bob"};
@@ -3496,6 +3569,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const account = Account("alice");
             auto const dest = Account{"bob"};
@@ -3542,6 +3616,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const account = Account("alice");
             auto const dest = Account{"bob"};
@@ -3590,6 +3665,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const account = Account("alice");
             auto const dest = Account{"bob"};
@@ -3638,6 +3714,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             bool const withIOUIssuerWeakTSH =
                 env.current()->rules().enabled(featureIOUIssuerWeakTSH);
@@ -3709,6 +3786,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const account = Account("alice");
             auto const dest = Account{"bob"};
@@ -3743,6 +3821,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const account = Account("alice");
             auto const dest = Account{"bob"};
@@ -3777,6 +3856,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             bool const withIOUIssuerWeakTSH =
                 env.current()->rules().enabled(featureIOUIssuerWeakTSH);
@@ -3837,6 +3917,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const account = Account("alice");
             auto const dest = Account{"bob"};
@@ -3877,6 +3958,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const account = Account("alice");
             auto const dest = Account{"bob"};
@@ -3918,6 +4000,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             bool const withIOUIssuerWeakTSH =
                 env.current()->rules().enabled(featureIOUIssuerWeakTSH);
@@ -3987,6 +4070,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const account = Account("alice");
             env.fund(XRP(1000), account);
@@ -4033,6 +4117,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const account = Account("alice");
             auto const dest = Account{"bob"};
@@ -4063,6 +4148,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const account = Account("alice");
             auto const dest = Account{"bob"};
@@ -4106,6 +4192,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const account = Account("alice");
             auto const signer1 = Account{"bob"};
@@ -4139,6 +4226,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const account = Account("alice");
             auto const signer1 = Account{"bob"};
@@ -4201,6 +4289,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const account = Account("alice");
             env.fund(XRP(1000), account);
@@ -4243,6 +4332,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const account = Account("alice");
             auto const issuer = Account{"gw"};
@@ -4274,6 +4364,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const account = Account("alice");
             auto const issuer = Account{"gw"};
@@ -4334,6 +4425,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const issuer = Account("alice");
             auto const buyer = Account("carol");
@@ -4373,6 +4465,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const issuer = Account("alice");
             auto const buyer = Account("carol");
@@ -4416,6 +4509,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const issuer = Account("alice");
             auto const buyer = Account("carol");
@@ -4456,6 +4550,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const issuer = Account("alice");
             auto const buyer = Account("carol");
@@ -4509,6 +4604,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const issuer = Account("alice");
             auto const owner = Account("bob");
@@ -4557,6 +4653,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const issuer = Account("alice");
             auto const owner = Account("bob");
@@ -4614,6 +4711,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const issuer = Account("alice");
             auto const owner = Account("bob");
@@ -4663,6 +4761,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const issuer = Account("alice");
             auto const owner = Account("bob");
@@ -4720,6 +4819,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const issuer = Account("alice");
             auto const owner = Account("bob");
@@ -4778,6 +4878,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const issuer = Account("alice");
             auto const owner = Account("bob");
@@ -4836,6 +4937,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const issuer = Account("alice");
             auto const owner = Account("bob");
@@ -4897,6 +4999,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const issuer = Account("alice");
             auto const owner = Account("bob");
@@ -4957,6 +5060,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const issuer = Account("alice");
             auto const owner = Account("bob");
@@ -5016,6 +5120,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const issuer = Account("alice");
             auto const owner = Account("bob");
@@ -5075,6 +5180,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             bool const withIOUIssuerWeakTSH =
                 env.current()->rules().enabled(featureIOUIssuerWeakTSH);
@@ -5145,6 +5251,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const issuer = Account("alice");
             auto const owner = Account("bob");
@@ -5201,6 +5308,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             bool const withIOUIssuerWeakTSH =
                 env.current()->rules().enabled(featureIOUIssuerWeakTSH);
@@ -5267,6 +5375,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             bool const withIOUIssuerWeakTSH =
                 env.current()->rules().enabled(featureIOUIssuerWeakTSH);
@@ -5334,6 +5443,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const issuer = Account("alice");
             auto const owner = Account("bob");
@@ -5400,6 +5510,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const issuer = Account("alice");
             auto const owner = Account("bob");
@@ -5453,6 +5564,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const issuer = Account("alice");
             auto const owner = Account("bob");
@@ -5507,6 +5619,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const issuer = Account("alice");
             auto const owner = Account("bob");
@@ -5560,6 +5673,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const issuer = Account("alice");
             auto const owner = Account("bob");
@@ -5613,6 +5727,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const issuer = Account("alice");
             auto const owner = Account("bob");
@@ -5667,6 +5782,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const issuer = Account("alice");
             auto const owner = Account("bob");
@@ -5724,6 +5840,7 @@ private:
             *this,
             network::makeNetworkConfig(21337, "10", "1000000", "200000"),
             features};
+        incLgrSeqForGasPriceEnabled(env);
 
         auto const account = Account("alice");
         auto const dest = Account("bob");
@@ -5817,6 +5934,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const account = Account("alice");
             auto const issuer = Account{"gw"};
@@ -5848,6 +5966,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const account = Account("alice");
             auto const issuer = Account{"gw"};
@@ -5877,6 +5996,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const account = Account("alice");
             env.fund(XRP(1000), account);
@@ -5914,6 +6034,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const account = Account("alice");
             auto const issuer = Account{"gw"};
@@ -5955,6 +6076,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const account = Account("alice");
             env.fund(XRP(1000), account);
@@ -6015,6 +6137,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const account = Account("alice");
             auto const dest = Account{"bob"};
@@ -6045,6 +6168,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const account = Account("alice");
             auto const dest = Account{"bob"};
@@ -6075,6 +6199,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const account = Account("alice");
             auto const dest = Account("bob");
@@ -6110,6 +6235,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
             bool const withIOUIssuerWeakTSH =
                 env.current()->rules().enabled(featureIOUIssuerWeakTSH);
 
@@ -6163,6 +6289,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const account = Account("alice");
             auto const dest = Account("bob");
@@ -6219,6 +6346,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const account = Account("alice");
             auto const dest = Account("bob");
@@ -6284,6 +6412,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const account = Account("alice");
             env.fund(XRP(1000), account);
@@ -6328,6 +6457,7 @@ private:
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
                 features};
+            incLgrSeqForGasPriceEnabled(env);
 
             auto const account = Account("alice");
             env.fund(XRP(1000), account);
@@ -6531,11 +6661,13 @@ public:
         using namespace test::jtx;
         static FeatureBitset const all{supported_amendments()};
 
-        static std::array<FeatureBitset, 4> const feats{
+        static std::array<FeatureBitset, 5> const feats{
             all,
-            all - fixXahauV1 - fixXahauV2 - featureIOUIssuerWeakTSH,
-            all - fixXahauV2 - featureIOUIssuerWeakTSH,
-            all - featureIOUIssuerWeakTSH,
+            all - fixXahauV1 - fixXahauV2 - featureIOUIssuerWeakTSH -
+                featureHookFeeV2,
+            all - fixXahauV2 - featureIOUIssuerWeakTSH - featureHookFeeV2,
+            all - featureIOUIssuerWeakTSH - featureHookFeeV2,
+            all - featureHookFeeV2,
         };
 
         if (BEAST_EXPECT(instance < feats.size()))
@@ -6566,12 +6698,14 @@ public:
 
 SETHOOKTSH_TEST(1, false)
 SETHOOKTSH_TEST(2, false)
-SETHOOKTSH_TEST(3, true)
+SETHOOKTSH_TEST(3, false)
+SETHOOKTSH_TEST(4, true)
 
 BEAST_DEFINE_TESTSUITE_PRIO(SetHookTSH0, app, ripple, 2);
 BEAST_DEFINE_TESTSUITE_PRIO(SetHookTSH1, app, ripple, 2);
 BEAST_DEFINE_TESTSUITE_PRIO(SetHookTSH2, app, ripple, 2);
 BEAST_DEFINE_TESTSUITE_PRIO(SetHookTSH3, app, ripple, 2);
+BEAST_DEFINE_TESTSUITE_PRIO(SetHookTSH4, app, ripple, 2);
 
 }  // namespace test
 }  // namespace ripple

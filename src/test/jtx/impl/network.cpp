@@ -52,7 +52,6 @@ makeNetworkConfig(
         auto setup = setup_FeeVote(config);
         cfg->FEES = setup;
         cfg->section("voting") = config;
-        // cfg->START_UP = Config::FRESH;
         return cfg;
     });
 }
