@@ -13700,14 +13700,15 @@ public:
         static std::array<FeatureBitset, 8> const feats{
             all,
             all - featureHookFeeV2,
-            all - fixXahauV2,
-            all - fixXahauV1 - fixXahauV2,
-            all - fixXahauV1 - fixXahauV2 - fixNSDelete,
-            all - fixXahauV1 - fixXahauV2 - fixNSDelete - fixPageCap,
+            all - fixXahauV2 - featureHookFeeV2,
+            all - fixXahauV1 - fixXahauV2 - featureHookFeeV2,
+            all - fixXahauV1 - fixXahauV2 - fixNSDelete - featureHookFeeV2,
             all - fixXahauV1 - fixXahauV2 - fixNSDelete - fixPageCap -
-                featureHookCanEmit,
+                featureHookFeeV2,
             all - fixXahauV1 - fixXahauV2 - fixNSDelete - fixPageCap -
-                featureExtendedHookState,
+                featureHookCanEmit - featureHookFeeV2,
+            all - fixXahauV1 - fixXahauV2 - fixNSDelete - fixPageCap -
+                featureExtendedHookState - featureHookFeeV2,
         };
 
         if (BEAST_EXPECT(instance < feats.size()))
