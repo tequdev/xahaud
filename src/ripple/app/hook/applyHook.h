@@ -63,14 +63,17 @@ namespace hook_api {
 
 #pragma push_macro("HOOK_API_DEFINITION")
 #undef HOOK_API_DEFINITION
+#undef HOOK_API_COST
 
 #define HOOK_WRAP_PARAMS(...) __VA_ARGS__
 #define HOOK_API_DEFINITION(RETURN_TYPE, FUNCTION_NAME, PARAMS_TUPLE, ...) \
     DECLARE_HOOK_FUNCTION(                                                 \
         RETURN_TYPE, FUNCTION_NAME, HOOK_WRAP_PARAMS PARAMS_TUPLE);
+#define HOOK_API_COST(...)
 
 #include <ripple/app/hook/hook_api.macro>
 
+#undef HOOK_API_COST
 #undef HOOK_API_DEFINITION
 #undef HOOK_WRAP_PARAMS
 #pragma pop_macro("HOOK_API_DEFINITION")
@@ -461,14 +464,17 @@ public:
 
 #pragma push_macro("HOOK_API_DEFINITION")
 #undef HOOK_API_DEFINITION
+#undef HOOK_API_COST
 
 #define HOOK_WRAP_PARAMS(...) __VA_ARGS__
 #define HOOK_API_DEFINITION(RETURN_TYPE, FUNCTION_NAME, PARAMS_TUPLE, ...) \
     ADD_HOOK_FUNCTION(FUNCTION_NAME, ctx, 0);
+#define HOOK_API_COST(...)
 
 #include <ripple/app/hook/hook_api.macro>
 
 #undef HOOK_API_DEFINITION
+#undef HOOK_API_COST
 #undef HOOK_WRAP_PARAMS
 #pragma pop_macro("HOOK_API_DEFINITION")
 
