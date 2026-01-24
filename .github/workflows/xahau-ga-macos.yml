@@ -43,8 +43,9 @@ jobs:
       # To isolate environments for each Runner, instead of installing globally with brew, 
       # use mise to isolate environments for each Runner directory.
       - name: Setup toolchain (mise)
-        uses: jdx/mise-action@v2
+        uses: jdx/mise-action@v3.6.1
         with:
+          cache: false
           install: true
 
       - name: Install tools via mise
