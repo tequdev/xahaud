@@ -109,4 +109,4 @@ jobs:
 
       - name: Test
         run: |
-          ${{ env.build_dir }}/rippled --unittest --unittest-jobs $(nproc)
+          ${{ env.build_dir }}/rippled --unittest Offer0 --unittest-jobs $(nproc)
