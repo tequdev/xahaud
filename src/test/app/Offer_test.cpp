@@ -20,6 +20,7 @@
 #include <ripple/protocol/Feature.h>
 #include <ripple/protocol/Quality.h>
 #include <ripple/protocol/jss.h>
+#include "ripple/beast/utility/Journal.h"
 #include <test/jtx.h>
 #include <test/jtx/PathSet.h>
 #include <test/jtx/WSClient.h>
@@ -136,7 +137,7 @@ public:
         testcase("Removing Canceled Offers");
 
         using namespace jtx;
-        Env env{*this, features};
+        Env env{*this, nullptr, features, nullptr, beast::severities::kAll};
 
         auto const gw = Account{"gateway"};
         auto const alice = Account{"alice"};
