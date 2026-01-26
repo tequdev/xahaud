@@ -484,61 +484,44 @@ OverlayImpl::start()
     m_peerFinder->setConfig(config);
     m_peerFinder->start();
 
-    auto addIps = [this](std::vector<std::string> ips, bool fixed) {
+    auto addIps = [&](std::vector<std::string> bootstrapIps) -> void {
         beast::Journal const& j = app_.journal("Overlay");
-        for (auto& ip : ips)
+        for (auto& ip : bootstrapIps)
         {
             std::size_t pos = ip.find('#');
             if (pos != std::string::npos)
                 ip.erase(pos);
 
-            JLOG(j.trace())
-                << "Found " << (fixed ? "fixed" : "bootstrap") << " IP: " << ip;
+            JLOG(j.trace()) << "Found boostrap IP: " << ip;
         }
 
         m_resolver.resolve(
-            ips,
-            [this, fixed](
-                std::string const& name,
+            bootstrapIps,
+            [&](std::string const& name,
                 std::vector<beast::IP::Endpoint> const& addresses) {
+                std::vector<std::string> ips;
+                ips.reserve(addresses.size());
                 beast::Journal const& j = app_.journal("Overlay");
-                std::string const base("config: ");
-
-                std::vector<beast::IP::Endpoint> eps;
-                eps.reserve(addresses.size());
                 for (auto const& addr : addresses)
                 {
-                    auto ep = addr.port() == 0 ? addr.at_port(DEFAULT_PEER_PORT)
-                                               : addr;
-                    JLOG(j.trace())
-                        << "Parsed " << (fixed ? "fixed" : "bootstrap")
-                        << " IP: " << ep;
-                    eps.push_back(ep);
+                    std::string addrStr = addr.port() == 0
+                        ? to_string(addr.at_port(DEFAULT_PEER_PORT))
+                        : to_string(addr);
+                    JLOG(j.trace()) << "Parsed boostrap IP: " << addrStr;
+                    ips.push_back(addrStr);
                 }
 
-                if (eps.empty())
-                    return;
-
-                if (fixed)
-                {
-                    m_peerFinder->addFixedPeer(base + name, eps);
-                }
-                else
-                {
-                    std::vector<std::string> strs;
-                    strs.reserve(eps.size());
-                    for (auto const& ep : eps)
-                        strs.push_back(to_string(ep));
-                    m_peerFinder->addFallbackStrings(base + name, strs);
-                }
+                std::string const base("config: ");
+                if (!ips.empty())
+                    m_peerFinder->addFallbackStrings(base + name, ips);
             });
     };
 
     if (!app_.config().IPS.empty())
-        addIps(app_.config().IPS, false);
+        addIps(app_.config().IPS);
 
     if (!app_.config().IPS_FIXED.empty())
-        addIps(app_.config().IPS_FIXED, true);
+        addIps(app_.config().IPS_FIXED);
 
     auto const timer = std::make_shared<Timer>(*this);
     std::lock_guard lock(mutex_);
