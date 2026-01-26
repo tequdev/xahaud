@@ -61,6 +61,7 @@ jobs:
           echo "${PATH}" | tr ':' '\n'
           which python && python --version || echo "Python not found"
           which conan && conan --version || echo "Conan not found"
+          conan cache clean
           which cmake && cmake --version || echo "CMake not found"
           clang --version
           ccache --version
