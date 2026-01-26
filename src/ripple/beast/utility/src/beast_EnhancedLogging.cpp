@@ -17,8 +17,6 @@
 */
 //==============================================================================
 
-#ifdef BEAST_ENHANCED_LOGGING
-
 #include <ripple/beast/utility/EnhancedLogging.h>
 #include <cstdlib>
 #include <cstring>
@@ -114,5 +112,3 @@ log_write_location_string(std::ostream& os, const char* file, int line)
 
 }  // namespace detail
 }  // namespace beast
-
-#endif  // BEAST_ENHANCED_LOGGING
