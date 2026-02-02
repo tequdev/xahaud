@@ -57,8 +57,18 @@ jobs:
       # Install wasienv (WebAssembly SDK) if not cached
       - name: Install wasienv
         if: steps.cache-wasienv.outputs.cache-hit != 'true'
+        continue-on-error: true
         run: |
-          curl https://raw.githubusercontent.com/wasienv/wasienv/master/install.sh | sh
+          # Download install.sh
+          curl -o /tmp/wasienv-install.sh https://raw.githubusercontent.com/wasienv/wasienv/master/install.sh
+
+          # Delete `pip install wasienv --user` and `pip3 install wasienv --user` from install.sh
+          # so that the binary is installed to ~/.wasienv/bin
+          sed -i '127d' /tmp/wasienv-install.sh  # delete `pip install wasienv --user`
+          sed -i '121d' /tmp/wasienv-install.sh  # delete `pip3 install wasienv --user`
+
+          # Execute the installed script
+          bash /tmp/wasienv-install.sh
 
       # Add wasienv to PATH for subsequent steps
       - name: Setup wasienv PATH
