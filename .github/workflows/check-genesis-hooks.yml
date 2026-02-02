@@ -1,0 +1,119 @@
+name: Check Genesis Hooks
+
+on:
+  push:
+      paths:
+        - 'hook/genesis/**'
+  pull_request:
+      paths:
+        - 'hook/genesis/**'
+
+jobs:
+  check-genesis-hooks:
+    runs-on: ubuntu-22.04
+    env:
+      CLANG_VERSION: 10
+    name: Verify xahau.h is in sync with genesis hooks
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Cache wasienv installation to speed up workflow
+      - name: Cache wasienv
+        id: cache-wasienv
+        uses: actions/cache@v4
+        with:
+          path: ~/.wasienv
+          key: ${{ runner.os }}-wasienv-${{ hashFiles('**/build_xahau_h.sh') }}
+          restore-keys: |
+            ${{ runner.os }}-wasienv-
+
+      # Cache guard_checker binary to avoid rebuilding
+      - name: Cache guard_checker
+        id: cache-guard-checker
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/bin/guard_checker
+          key: ${{ runner.os }}-guard-checker-v1
+          restore-keys: |
+            ${{ runner.os }}-guard-checker-
+
+      # Install system dependencies required for WASM compilation
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y binaryen
+
+      - name: install clang-format
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y libtinfo5
+          curl -LO https://github.com/llvm/llvm-project/releases/download/llvmorg-10.0.1/clang+llvm-10.0.1-x86_64-linux-gnu-ubuntu-16.04.tar.xz
+          tar -xf clang+llvm-10.0.1-x86_64-linux-gnu-ubuntu-16.04.tar.xz
+          sudo mv clang+llvm-10.0.1-x86_64-linux-gnu-ubuntu-16.04 /opt/clang-10
+          sudo ln -s /opt/clang-10/bin/clang-format /usr/local/bin/clang-format-10
+
+      # Install wasienv (WebAssembly SDK) if not cached
+      - name: Install wasienv
+        if: steps.cache-wasienv.outputs.cache-hit != 'true'
+        run: |
+          curl https://raw.githubusercontent.com/wasienv/wasienv/master/install.sh | sh
+
+      # Add wasienv to PATH for subsequent steps
+      - name: Setup wasienv PATH
+        run: |
+          echo "$HOME/.wasienv/bin" >> $GITHUB_PATH
+
+      # Build and install hook-cleaner tool if not cached
+      - name: Build and install hook-cleaner
+        run: |
+          git clone https://github.com/richardah/hook-cleaner-c.git /tmp/hook-cleaner
+          cd /tmp/hook-cleaner
+          make
+          make install
+          chmod +x /usr/bin/hook-cleaner
+
+      # Build and install guard_checker tool if not cached
+      - name: Build and install guard_checker
+        run: |
+          cd src/ripple/app/hook
+          make
+          make install
+          chmod +x /usr/bin/guard_checker
+
+      # Verify all required tools are available
+      - name: Verify required tools
+        run: |
+          echo "Checking tool availability..."
+          command -v wasmcc || (echo "Error: wasmcc not found" && exit 1)
+          command -v wasm-opt || (echo "Error: wasm-opt not found" && exit 1)
+          command -v hook-cleaner || (echo "Error: hook-cleaner not found" && exit 1)
+          command -v guard_checker || (echo "Error: guard_checker not found" && exit 1)
+          command -v xxd || (echo "Error: xxd not found" && exit 1)
+          command -v clang-format || (echo "Error: clang-format not found" && exit 1)
+          echo "All tools verified successfully"
+
+      # Execute build script to regenerate xahau.h
+      - name: Run build_xahau_h.sh
+        run: |
+          cd hook/genesis
+          ./build_xahau_h.sh
+
+      # Check if xahau.h has changed (fail if out of sync)
+      - name: Verify xahau.h is in sync
+        run: |
+          if ! git diff --exit-code src/ripple/app/hook/xahau.h; then
+            echo ""
+            echo "❌ ERROR: xahau.h is out of sync with genesis hooks"
+            echo ""
+            echo "The generated xahau.h differs from the committed version."
+            echo "Please run the following command and commit the changes:"
+            echo ""
+            echo "    cd hook/genesis && ./build_xahau_h.sh"
+            echo ""
+            echo "Diff:"
+            git diff src/ripple/app/hook/xahau.h
+            exit 1
+          fi
+          echo "✅ xahau.h is in sync with genesis hooks"
