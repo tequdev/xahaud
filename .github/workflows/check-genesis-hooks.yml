@@ -81,16 +81,16 @@ jobs:
           git clone https://github.com/richardah/hook-cleaner-c.git /tmp/hook-cleaner
           cd /tmp/hook-cleaner
           make
-          make install
-          chmod +x /usr/bin/hook-cleaner
+          cp hook-cleaner /usr/local/bin/
+          chmod +x /usr/local/bin/hook-cleaner
 
       # Build and install guard_checker tool if not cached
       - name: Build and install guard_checker
         run: |
           cd src/ripple/app/hook
           make
-          make install
-          chmod +x /usr/bin/guard_checker
+          cp guard_checker /usr/local/bin/
+          chmod +x /usr/local/bin/guard_checker
 
       # Verify all required tools are available
       - name: Verify required tools
