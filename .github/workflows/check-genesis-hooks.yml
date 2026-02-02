@@ -61,11 +61,9 @@ jobs:
         run: |
           # Download install.sh
           curl -o /tmp/wasienv-install.sh https://raw.githubusercontent.com/wasienv/wasienv/master/install.sh
-
-          # Delete `pip install wasienv --user` and `pip3 install wasienv --user` from install.sh
-          # so that the binary is installed to ~/.wasienv/bin
-          sed -i '127d' /tmp/wasienv-install.sh  # delete `pip install wasienv --user`
-          sed -i '121d' /tmp/wasienv-install.sh  # delete `pip3 install wasienv --user`
+          
+          # Replace /bin to /local/bin
+          sed -i 's|/bin|/local/bin|g' /tmp/wasienv-install.sh
 
           # Execute the installed script
           bash /tmp/wasienv-install.sh
