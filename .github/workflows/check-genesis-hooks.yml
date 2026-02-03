@@ -69,9 +69,10 @@ jobs:
           bash /tmp/wasienv-install.sh
 
       # Add wasienv to PATH for subsequent steps
-      - name: Setup wasienv PATH
+      - name: Setup wasienv
         run: |
           echo "$HOME/.wasienv/bin" >> $GITHUB_PATH
+          wasmcc -v || true
 
       # Build and install hook-cleaner tool if not cached
       - name: Build and install hook-cleaner
