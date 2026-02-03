@@ -10,7 +10,7 @@ on:
 
 jobs:
   check-genesis-hooks:
-    runs-on: ubuntu-22.04-arm
+    runs-on: ubuntu-22.04
     env:
       CLANG_VERSION: 10
     name: Verify xahau.h is in sync with genesis hooks
