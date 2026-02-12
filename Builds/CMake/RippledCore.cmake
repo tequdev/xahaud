@@ -745,6 +745,7 @@ if (tests)
     src/test/app/DNS_test.cpp
     src/test/app/Escrow_test.cpp
     src/test/app/FeeVote_test.cpp
+    src/test/app/FixGovernanceHook_test.cpp
     src/test/app/Flow_test.cpp
     src/test/app/Freeze_test.cpp
     src/test/app/GenesisMint_test.cpp

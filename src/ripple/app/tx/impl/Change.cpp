@@ -890,6 +890,174 @@ Change::activateTrustLinesToSelfFix()
     }
 }
 
+void
+Change::activateGovernanceHookFix()
+{
+    using namespace XahauGenesis;
+
+    bool const isTest =
+        (ctx_.tx.getFlags() & tfTestSuite) && ctx_.app.config().standalone();
+
+    if ((ctx_.app.config().NETWORK_ID / 10) != 2133 && !isTest)
+        return;
+
+    // compute the new governance hook hash
+    uint256 const newHookHash = ripple::sha512Half_s(
+        ripple::Slice(GovernanceHook.data(), GovernanceHook.size()));
+
+    // validate the wasm
+    std::stringstream loggerStream;
+    auto result = validateGuards(
+        GovernanceHook,
+        loggerStream,
+        "rHb9CJAWyB4rj91VRWn96DkukG4bwdtyTh",
+        (ctx_.view().rules().enabled(featureHooksUpdate1) ? 1 : 0) +
+            (ctx_.view().rules().enabled(fix20250131) ? 2 : 0));
+
+    if (!result)
+    {
+        JLOG(ctx_.journal.fatal()) << "fixGovernanceHook: GovernanceHook wasm "
+                                      "validation failed (guards): "
+                                   << loggerStream.str();
+        return;
+    }
+
+    auto wasmValidation = hook::HookExecutor::validateWasm(
+        GovernanceHook.data(), GovernanceHook.size());
+    if (wasmValidation)
+    {
+        JLOG(ctx_.journal.fatal())
+            << "fixGovernanceHook: GovernanceHook wasm validation failed (vm): "
+            << *wasmValidation;
+        return;
+    }
+
+    Sandbox sb(&view());
+
+    // create the new hook definition if it doesn't already exist
+    auto const newHookDefKL = keylet::hookDefinition(newHookHash);
+    auto newHookDef = sb.peek(newHookDefKL);
+    bool const newDefExists = !!newHookDef;
+
+    if (!newDefExists)
+    {
+        newHookDef = std::make_shared<SLE>(newHookDefKL);
+        newHookDef->setFieldH256(sfHookHash, newHookHash);
+        newHookDef->setFieldH256(sfHookOn, GovernanceHookOn);
+        newHookDef->setFieldH256(sfHookNamespace, uint256(0));
+        newHookDef->setFieldU16(sfHookApiVersion, 0);
+        newHookDef->setFieldVL(sfCreateCode, GovernanceHook);
+        newHookDef->setFieldH256(sfHookSetTxnID, ctx_.tx.getTransactionID());
+        newHookDef->setFieldU64(sfReferenceCount, 0);
+        newHookDef->setFieldAmount(
+            sfFee, XRPAmount{hook::computeExecutionFee(result->first)});
+        if (result->second > 0)
+            newHookDef->setFieldAmount(
+                sfHookCallbackFee,
+                XRPAmount{hook::computeExecutionFee(result->second)});
+        sb.insert(newHookDef);
+    }
+
+    // build the list of accounts to update
+    std::vector<AccountID> accounts;
+
+    // genesis account
+    auto const genesisAccID = calcAccountID(
+        generateKeyPair(KeyType::secp256k1, generateSeed("masterpassphrase"))
+            .first);
+    accounts.push_back(genesisAccID);
+
+    // L1Membership accounts (includes L2 table accounts)
+    auto const& l1src = isTest ? TestL1Membership : L1Membership;
+    for (auto const& [key, amount] : l1src)
+    {
+        auto const pk = parseBase58<PublicKey>(TokenType::NodePublic, key);
+        if (pk)
+            accounts.push_back(calcAccountID(*pk));
+    }
+
+    // update each account's governance hook
+    for (auto const& accountID : accounts)
+    {
+        auto const hookKL = keylet::hook(accountID);
+        auto hookSLE = sb.peek(hookKL);
+
+        if (!hookSLE)
+        {
+            JLOG(ctx_.journal.warn())
+                << "fixGovernanceHook: account " << toBase58(accountID)
+                << " has no hook SLE, skipping";
+            continue;
+        }
+
+        auto& hooks = hookSLE->peekFieldArray(sfHooks);
+
+        if (hooks.empty())
+        {
+            JLOG(ctx_.journal.warn())
+                << "fixGovernanceHook: account " << toBase58(accountID)
+                << " has empty hooks array, skipping";
+            continue;
+        }
+
+        auto& hookObj = hooks[0];
+
+        if (!hookObj.isFieldPresent(sfHookHash))
+        {
+            JLOG(ctx_.journal.warn())
+                << "fixGovernanceHook: account " << toBase58(accountID)
+                << " hook[0] has no HookHash, skipping";
+            continue;
+        }
+
+        uint256 const oldHookHash = hookObj.getFieldH256(sfHookHash);
+
+        // skip if already up to date
+        if (oldHookHash == newHookHash)
+        {
+            JLOG(ctx_.journal.info())
+                << "fixGovernanceHook: account " << toBase58(accountID)
+                << " already has the latest governance hook";
+            continue;
+        }
+
+        // decrement ref count on old hook definition
+        auto const oldHookDefKL = keylet::hookDefinition(oldHookHash);
+        auto oldHookDef = sb.peek(oldHookDefKL);
+        if (oldHookDef)
+        {
+            uint64_t oldRefCount = oldHookDef->getFieldU64(sfReferenceCount);
+            if (oldRefCount <= 1)
+            {
+                sb.erase(oldHookDef);
+            }
+            else
+            {
+                oldHookDef->setFieldU64(sfReferenceCount, oldRefCount - 1);
+                sb.update(oldHookDef);
+            }
+        }
+
+        // update the hook hash (preserving HookParameters)
+        hookObj.setFieldH256(sfHookHash, newHookHash);
+
+        // increment ref count on new hook definition
+        newHookDef = sb.peek(newHookDefKL);
+        if (newHookDef)
+        {
+            uint64_t newRefCount = newHookDef->getFieldU64(sfReferenceCount);
+            newHookDef->setFieldU64(sfReferenceCount, newRefCount + 1);
+            sb.update(newHookDef);
+        }
+
+        sb.update(hookSLE);
+    }
+
+    JLOG(ctx_.journal.warn()) << "fixGovernanceHook amendment activated";
+
+    sb.apply(ctx_.rawView());
+}
+
 TER
 Change::applyAmendment()
 {
@@ -970,6 +1138,8 @@ Change::applyAmendment()
             activateTrustLinesToSelfFix();
         else if (amendment == featureXahauGenesis)
             activateXahauGenesis();
+        else if (amendment == fixGovernanceHook)
+            activateGovernanceHookFix();
 
         ctx_.app.getAmendmentTable().enable(amendment);
 
