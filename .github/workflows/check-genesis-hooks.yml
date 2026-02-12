@@ -2,11 +2,7 @@ name: Check Genesis Hooks
 
 on:
   push:
-      paths:
-        - 'hook/genesis/**'
   pull_request:
-      paths:
-        - 'hook/genesis/**'
 
 jobs:
   check-genesis-hooks:
