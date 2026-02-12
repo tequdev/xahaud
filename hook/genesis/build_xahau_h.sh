@@ -42,7 +42,7 @@ trap cleanup EXIT INT TERM
 
 # Tool verification
 echo -e "${BLUE}==> Checking required tools...${NC}"
-REQUIRED_TOOLS=("make" "xxd" "sed" "clang-format")
+REQUIRED_TOOLS=("make" "xxd" "sed" "clang-format" "wasm-opt")
 for tool in "${REQUIRED_TOOLS[@]}"; do
     if ! command -v "${tool}" &> /dev/null; then
         echo -e "${RED}Error: Required tool '${tool}' not found${NC}" >&2
@@ -50,6 +50,14 @@ for tool in "${REQUIRED_TOOLS[@]}"; do
     fi
     echo -e "${GREEN}    ✓ ${tool}${NC}"
 done
+
+# Verify wasm-opt version is exactly 100
+WASM_OPT_VERSION=$(wasm-opt --version | grep -oE '[0-9]+' | head -1)
+if [ "${WASM_OPT_VERSION}" != "100" ]; then
+    echo -e "${RED}Error: wasm-opt version must be 100, but found ${WASM_OPT_VERSION}${NC}" >&2
+    exit 1
+fi
+echo -e "${GREEN}    ✓ wasm-opt version 100${NC}"
 
 # Verify xahau.h exists
 if [ ! -f "${XAHAU_H}" ]; then
