@@ -13,27 +13,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
-
-      # Cache wasienv installation to speed up workflow
-      - name: Cache wasienv
-        id: cache-wasienv
-        uses: actions/cache@v4
-        with:
-          path: ~/.wasienv
-          key: ${{ runner.os }}-wasienv-${{ hashFiles('**/build_xahau_h.sh') }}
-          restore-keys: |
-            ${{ runner.os }}-wasienv-
-
-      # Cache guard_checker binary to avoid rebuilding
-      - name: Cache guard_checker
-        id: cache-guard-checker
-        uses: actions/cache@v4
-        with:
-          path: ~/.local/bin/guard_checker
-          key: ${{ runner.os }}-guard-checker-v1
-          restore-keys: |
-            ${{ runner.os }}-guard-checker-
+        uses: actions/checkout@v6
 
       # Install binaryen from GitHub Releases (pinned to version 100)
       - name: Install binaryen (version 100)
@@ -52,10 +32,8 @@ jobs:
           sudo mv clang+llvm-10.0.1-x86_64-linux-gnu-ubuntu-16.04 /opt/clang-10
           sudo ln -s /opt/clang-10/bin/clang-format /usr/local/bin/clang-format-10
 
-      # Install wasienv (WebAssembly SDK) if not cached
+      # Install wasienv (WebAssembly SDK)
       - name: Install wasienv
-        if: steps.cache-wasienv.outputs.cache-hit != 'true'
-        continue-on-error: true
         run: |
           # Download install.sh
           curl -o /tmp/wasienv-install.sh https://raw.githubusercontent.com/wasienv/wasienv/master/install.sh
@@ -72,7 +50,7 @@ jobs:
           echo "$HOME/.wasienv/bin" >> $GITHUB_PATH
           wasmcc -v || true
 
-      # Build and install hook-cleaner tool if not cached
+      # Build and install hook-cleaner tool
       - name: Build and install hook-cleaner
         run: |
           git clone https://github.com/richardah/hook-cleaner-c.git /tmp/hook-cleaner
@@ -81,7 +59,7 @@ jobs:
           cp hook-cleaner /usr/local/bin/
           chmod +x /usr/local/bin/hook-cleaner
 
-      # Build and install guard_checker tool if not cached
+      # Build and install guard_checker tool
       - name: Build and install guard_checker
         run: |
           cd src/ripple/app/hook
