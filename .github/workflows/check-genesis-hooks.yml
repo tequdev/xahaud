@@ -39,11 +39,13 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-guard-checker-
 
-      # Install system dependencies required for WASM compilation
-      - name: Install system dependencies
+      # Install binaryen from GitHub Releases (pinned to version 100)
+      - name: Install binaryen (version 100)
         run: |
-          sudo apt-get update
-          sudo apt-get install -y binaryen
+          curl -LO https://github.com/WebAssembly/binaryen/releases/download/version_100/binaryen-version_100-x86_64-linux.tar.gz
+          tar -xzf binaryen-version_100-x86_64-linux.tar.gz
+          sudo cp binaryen-version_100/bin/* /usr/local/bin/
+          wasm-opt --version
 
       - name: install clang-format
         run: |
