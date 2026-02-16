@@ -602,7 +602,6 @@ Change::activateXahauGenesis()
         for (auto const& [hookOn, wasmBytes, params] : genesis_hooks)
         {
             std::ostringstream loggerStream;
-
             auto result = validateGuards(
                 wasmBytes,  // wasm to verify
                 loggerStream,

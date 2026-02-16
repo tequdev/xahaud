@@ -18,10 +18,10 @@
 //==============================================================================
 #include <ripple/app/hook/HookAPI.h>
 #include <ripple/basics/StringUtilities.h>
+#include <ripple/beast/unit_test/suite.hpp>
 #include <ripple/json/json_writer.h>
+#include <ripple/protocol/SField.h>
 #include <ripple/protocol/STAccount.h>
-#include "ripple/beast/unit_test/suite.hpp"
-#include "ripple/protocol/SField.h"
 #include <limits>
 #include <test/app/Import_json.h>
 #include <test/jtx.h>
@@ -93,21 +93,7 @@ public:
         OpenView ov{*env.current()};
         ApplyContext applyCtx = createApplyContext(env, ov, invokeTx);
 
-        STTx const emitInvokeTx = STTx(ttINVOKE, [&](STObject& obj) {
-            // obj[sfAccount] = alice.id();
-            // obj[sfSequence] = 1;
-            // obj[sfSigningPubKey] = PublicKey();
-            // obj[sfFirstLedgerSequence] = 0;
-            // obj[sfLastLedgerSequence] = 0;
-            // obj[sfFee] = XRPAmount(0);
-
-            // auto& emitDetails = obj.peekFieldObject(sfEmitDetails);
-            // emitDetails[sfEmitGeneration] = 1;
-            // emitDetails[sfEmitBurden] = 1;
-            // emitDetails[sfEmitParentTxnID] = invokeTx.getTransactionID();
-            // emitDetails[sfEmitNonce] = uint256();
-            // emitDetails[sfEmitHookHash] = uint256();
-        });
+        STTx const emitInvokeTx = STTx(ttINVOKE, [&](STObject& obj) {});
 
         {
             // PREREQUISITE_NOT_MET
@@ -146,7 +132,6 @@ public:
                 alice.id(),
                 {
                     .expected_etxn_count = 1,
-                    // .nonce_used = {{uint256(0), true}},
                 });
             auto& api = hookCtx.api();
             auto tx = emitInvokeTx;

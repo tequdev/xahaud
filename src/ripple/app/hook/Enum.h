@@ -444,5 +444,4 @@ getGuardRulesVersion(Rules const& rules)
 }
 
 };  // namespace hook_api
-
 #endif
