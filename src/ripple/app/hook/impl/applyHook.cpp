@@ -2725,6 +2725,7 @@ DEFINE_HOOK_FUNCTION(
     HOOK_TEARDOWN();
 }
 
+// Deterministic nonces (can be called multiple times)
 // Writes nonce into the write_ptr
 DEFINE_HOOK_FUNCTION(
     int64_t,
@@ -2738,16 +2739,21 @@ DEFINE_HOOK_FUNCTION(
     if (NOT_IN_BOUNDS(write_ptr, write_len, memory_length))
         return OUT_OF_BOUNDS;
 
+    // It is also checked in api.etxn_nonce, but for backwards compatibility, it
+    // must be checked before the TOO_SMALL check.
+    if (hookCtx.emit_nonce_counter > hook_api::max_nonce)
+        return TOO_MANY_NONCES;
+
     if (write_len < 32)
         return TOO_SMALL;
 
-    auto hash = api.etxn_nonce();
-
-    if (!hash.has_value())
-        return TOO_MANY_NONCES;
+    auto const result = api.etxn_nonce();
+    if (!result)
+        return result.error();
+    auto const& hash = result.value();
 
     WRITE_WASM_MEMORY_AND_RETURN(
-        write_ptr, 32, hash->data(), 32, memory, memory_length);
+        write_ptr, 32, hash.data(), 32, memory, memory_length);
 
     HOOK_TEARDOWN();
 }
@@ -3270,6 +3276,14 @@ DEFINE_HOOK_FUNCTION(
 
     if (NOT_IN_BOUNDS(write_ptr, write_len, memory_length))
         return OUT_OF_BOUNDS;
+
+    int64_t expected_size = 138U;
+    if (!hookCtx.result.hasCallback)
+        expected_size -= 22U;
+
+    if (write_len < expected_size)
+        return TOO_SMALL;
+
     auto const result = api.etxn_details(memory + write_ptr);
     if (!result)
         return result.error();
