@@ -454,16 +454,25 @@ SetHook::validateHookSetEntry(SetHookCtx& ctx, STObject const& hookSetObj)
             // validate sfHookOn
             if (!hookSetObj.isFieldPresent(sfHookOn))
             {
-                if (!ctx.rules.enabled(featureHookOnV2) ||
-                    !(hookSetObj.isFieldPresent(sfHookOnOutgoing) &&
-                      hookSetObj.isFieldPresent(sfHookOnIncoming)))
+                if (!ctx.rules.enabled(featureHookOnV2))
                 {
                     JLOG(ctx.j.trace())
                         << "HookSet(" << hook::log::HOOKON_MISSING << ")["
                         << HS_ACC()
                         << "]: Malformed transaction: SetHook must include "
-                           "sfHookOn or sfHookOnOutgoing and sfHookOnIncoming "
-                           "when creating a new hook.";
+                           "sfHookOn before featureHookOnV2 is enabled.";
+                    return false;
+                }
+
+                if (!hookSetObj.isFieldPresent(sfHookOnOutgoing) ||
+                    !hookSetObj.isFieldPresent(sfHookOnIncoming))
+                {
+                    JLOG(ctx.j.trace())
+                        << "HookSet(" << hook::log::HOOKON_MISSING << ")["
+                        << HS_ACC()
+                        << "]: Malformed transaction: SetHook must include "
+                           "sfHookOnOutgoing and sfHookOnIncoming "
+                           "when creating a new hook without sfHookOn.";
                     return false;
                 }
 
@@ -487,10 +496,9 @@ SetHook::validateHookSetEntry(SetHookCtx& ctx, STObject const& hookSetObj)
                     JLOG(ctx.j.trace())
                         << "HookSet(" << hook::log::HOOKON_MISSING << ")["
                         << HS_ACC()
-                        << "]: Malformed transaction: SetHook must "
+                        << "]: Malformed transaction: SetHook must no"
                            "include sfHookOnOutgoing and sfHookOnIncoming "
-                           "when "
-                           "creating a new hook without sfHookOn.";
+                           "when creating a new hook with sfHookOn.";
                     return false;
                 }
             }
