@@ -1,6 +1,7 @@
 #ifndef APPLY_HOOK_INCLUDED
 #define APPLY_HOOK_INCLUDED 1
 #include <ripple/app/hook/Enum.h>
+#include <ripple/app/hook/HookAPI.h>
 #include <ripple/app/hook/Macro.h>
 #include <ripple/app/hook/Misc.h>
 #include <ripple/app/misc/Transaction.h>
@@ -132,7 +133,6 @@ struct HookResult
     ripple::uint256 const hookHash;
     ripple::uint256 const hookCanEmit;
     ripple::Keylet const accountKeylet;
-    ripple::Keylet const ownerDirKeylet;
     ripple::Keylet const hookKeylet;
     ripple::AccountID const account;
     ripple::AccountID const otxnAccount;
@@ -209,6 +209,18 @@ struct HookContext
                       // emitted txn then this optional becomes
                       // populated with the SLE
     const HookExecutor* module = 0;
+
+    // Lazy-initialized HookAPI member
+    mutable std::unique_ptr<HookAPI> api_;
+
+    // Access the HookAPI instance (lazy initialization)
+    HookAPI&
+    api() const
+    {
+        if (!api_)
+            api_ = std::make_unique<HookAPI>(const_cast<HookContext&>(*this));
+        return *api_;
+    }
 };
 
 bool
