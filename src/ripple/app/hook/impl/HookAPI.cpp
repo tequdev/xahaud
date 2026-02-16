@@ -631,6 +631,10 @@ HookAPI::prepare(Slice const& txBlob) const
 {
     auto& applyCtx = hookCtx.applyCtx;
     auto j = applyCtx.app.journal("View");
+
+    if (hookCtx.expected_etxn_count < 0)
+        return Unexpected(PREREQUISITE_NOT_MET);
+
     Json::Value json;
 
     // std::shared_ptr<STObject const> stpTrans;
