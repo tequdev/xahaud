@@ -375,10 +375,10 @@ extern uint256 const featureDeepFreeze;
 extern uint256 const featureIOUIssuerWeakTSH;
 extern uint256 const featureCron;
 extern uint256 const fixInvalidTxFlags;
-extern uint256 const featureHookOnV2;
 extern uint256 const featureExtendedHookState;
 extern uint256 const fixCronStacking;
 extern uint256 const fixHookAPI20251128;
+extern uint256 const featureHookOnV2;
 }  // namespace ripple
 
 #endif
