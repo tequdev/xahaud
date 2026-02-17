@@ -238,7 +238,12 @@ public:
 
         using namespace jtx;
 
-        Env env{*this, features};
+        Env env{
+            *this,
+            envconfig(),
+            features,
+            nullptr,
+            beast::severities::kDisabled};
 
         auto const alice = Account{"alice"};
         auto const gw = Account{"gateway"};
@@ -710,12 +715,18 @@ public:
             env.close();
         }
 
-        // grants, parameters, hookon, hookcanemit, hookapiversion,
-        // hooknamespace keys must be absent
+        // grants, parameters, hookon, hookonincoming, hookonoutgoing,
+        // hookcanemit, hookapiversion, hooknamespace keys must be absent
         for (auto const& [key, value] : JSSMap{
                  {jss::HookGrants, Json::arrayValue},
                  {jss::HookParameters, Json::arrayValue},
                  {jss::HookOn,
+                  "000000000000000000000000000000000000000000000000000000000000"
+                  "0000"},
+                 {jss::HookOnIncoming,
+                  "000000000000000000000000000000000000000000000000000000000000"
+                  "0000"},
+                 {jss::HookOnOutgoing,
                   "000000000000000000000000000000000000000000000000000000000000"
                   "0000"},
                  {jss::HookCanEmit,
@@ -733,7 +744,8 @@ public:
             jv[jss::Hooks][0U][jss::Hook] = iv;
             env(jv,
                 M("Hook DELETE operation cannot include: grants, params, "
-                  "hookon, hookcanemit, apiversion, namespace"),
+                  "hookon, HookOnIncoming, HookOnOutgoing, hookcanemit, "
+                  "apiversion, namespace"),
                 HSFEE,
                 ter(temMALFORMED));
             env.close();
@@ -894,6 +906,12 @@ public:
                  {jss::HookOn,
                   "000000000000000000000000000000000000000000000000000000000000"
                   "0000"},
+                 {jss::HookOnIncoming,
+                  "000000000000000000000000000000000000000000000000000000000000"
+                  "0000"},
+                 {jss::HookOnOutgoing,
+                  "000000000000000000000000000000000000000000000000000000000000"
+                  "0000"},
                  {jss::HookCanEmit,
                   "000000000000000000000000000000000000000000000000000000000000"
                   "0000"},
@@ -910,7 +928,8 @@ public:
             jv[jss::Hooks][0U][jss::Hook] = iv;
             env(jv,
                 M("Hook NSDELETE operation cannot include: grants, params, "
-                  "hookon, hookcanemit, apiversion"),
+                  "hookon, hookonincoming, hookonoutgoing, hookcanemit, "
+                  "apiversion"),
                 HSFEE,
                 ter(temMALFORMED));
             env.close();
@@ -1292,6 +1311,367 @@ public:
         BEAST_EXPECT(
             (*env.le(alice))[sfOwnerCount] == hasFix ? preHookCount + 202
                                                      : preHookCount + 66);
+    }
+
+    void
+    testFeeRPC(jtx::Env& env, Json::Value tx, std::string expected)
+    {
+        auto const jtx = env.jt(tx);
+
+        auto const feeDrops = env.current()->fees().base;
+
+        // build tx_blob
+        Json::Value params;
+        params[jss::tx_blob] = strHex(jtx.stx->getSerializer().slice());
+
+        // fee request
+        auto const jrr = env.rpc("json", "fee", to_string(params));
+        // std::cout << "RESULT: " << jrr << "\n";
+
+        // verify base fee & open ledger fee
+        auto const drops = jrr[jss::result][jss::drops];
+        auto const baseFee = drops[jss::base_fee_no_hooks];
+        BEAST_EXPECT(baseFee == to_string(feeDrops));
+        auto const openLedgerFee = drops[jss::open_ledger_fee];
+        BEAST_EXPECT(openLedgerFee == expected);
+
+        // verify hooks fee
+        auto const hooksFee = jrr[jss::result][jss::fee_hooks_feeunits];
+        BEAST_EXPECT(hooksFee == expected);
+    }
+
+    void
+    testHookOnV2(FeatureBitset features)
+    {
+        testcase("Test hook on v2");
+        using namespace jtx;
+        Env env{*this, features};
+
+        bool const hookOnV2 = env.current()->rules().enabled(featureHookOnV2);
+
+        auto const alice = Account{"alice"};
+        auto const bob = Account{"bob"};
+        env.fund(XRP(10000), alice);
+        env.fund(XRP(10000), bob);
+        env.close();
+
+        auto const deleteHook = [&env](Account const& account) {
+            Json::Value jv;
+            jv[jss::Account] = account.human();
+            jv[jss::TransactionType] = jss::SetHook;
+            jv[jss::Flags] = 0;
+            jv[jss::Hooks] = Json::Value{Json::arrayValue};
+            Json::Value iv;
+            iv[jss::CreateCode] = "";
+            iv[jss::Flags] = hsfOVERRIDE;
+            jv[jss::Hooks][0U][jss::Hook] = iv;
+
+            env(jv, M("hook DELETE"), HSFEE);
+            env.close();
+        };
+
+        // Disabled
+        {
+            auto jv = hso(accept_wasm);
+            jv.removeMember(jss::HookOn);
+            jv[jss::HookOnIncoming] =
+                "00000000000000000000000000000000000000000000000000000000000000"
+                "01";
+            jv[jss::HookOnOutgoing] =
+                "00000000000000000000000000000000000000000000000000000000000000"
+                "02";
+            // create
+            env(ripple::test::jtx::hook(alice, {{jv}}, 0),
+                M("Create: Disabled"),
+                HSFEE,
+                !hookOnV2 ? ter(temMALFORMED) : ter(tesSUCCESS));
+            deleteHook(alice);
+
+            // install
+            env(ripple::test::jtx::hook(bob, {{hso(accept_wasm)}}, 0),
+                M("Install: Disabled prepare"),
+                HSFEE);
+            env.close();
+            jv[jss::Flags] = hsfOVERRIDE;
+            env(ripple::test::jtx::hook(alice, {{jv}}, 0),
+                M("Install: Disabled"),
+                HSFEE,
+                !hookOnV2 ? ter(temMALFORMED) : ter(tesSUCCESS));
+            env.close();
+            deleteHook(alice);
+            deleteHook(bob);
+
+            // update
+            env(ripple::test::jtx::hook(alice, {{hso(accept_wasm)}}, 0),
+                M("Update: Disabled prepare"),
+                HSFEE);
+            env.close();
+            jv[jss::Flags] = hsfOVERRIDE;
+            env(ripple::test::jtx::hook(alice, {{jv}}, 0),
+                M("Update: Disabled"),
+                HSFEE,
+                !hookOnV2 ? ter(temMALFORMED) : ter(tesSUCCESS));
+            env.close();
+            deleteHook(alice);
+            deleteHook(bob);
+        }
+        if (!hookOnV2)
+            return;
+
+        for (int i = 0; i < 3; i++)
+        {
+            if (i == 0)
+            {
+                // Create
+            }
+            if (i == 1)
+            {
+                // Install
+                env(ripple::test::jtx::hook(bob, {{hso(accept_wasm)}}, 0),
+                    M("Install: prepare"),
+                    HSFEE);
+                env.close();
+            }
+            if (i == 2)
+            {
+                // Update
+                env(ripple::test::jtx::hook(alice, {{hso(accept_wasm)}}, 0),
+                    M("Update: prepare"),
+                    HSFEE);
+                env.close();
+            }
+            auto jv = hso(accept_wasm);
+            jv[jss::Flags] = hsfOVERRIDE;
+            jv.removeMember(jss::HookOn);
+
+            for (auto const& key : {jss::HookOnIncoming, jss::HookOnOutgoing})
+            {
+                jv[key] =
+                    "0000000000000000000000000000000000000000000000000000000000"
+                    "0000"
+                    "00";
+                env(ripple::test::jtx::hook(alice, {{jv}}, 0),
+                    M("Only Incomig/Outgoing HookOn"),
+                    HSFEE,
+                    ter(temMALFORMED));
+
+                jv[jss::HookOn] =
+                    "0000000000000000000000000000000000000000000000000000000000"
+                    "0000"
+                    "00";
+                env(ripple::test::jtx::hook(alice, {{jv}}, 0),
+                    M("One Incomig/Outgoing HookOn and HookOn"),
+                    HSFEE,
+                    ter(temMALFORMED));
+                jv.removeMember(key);
+                jv.removeMember(jss::HookOn);
+            }
+            // Incoming == Outgoing
+            jv[jss::HookOnIncoming] =
+                "0000000000000000000000000000000000000000000000000000000000"
+                "000123";
+            jv[jss::HookOnOutgoing] =
+                "0000000000000000000000000000000000000000000000000000000000"
+                "000123";
+            env(ripple::test::jtx::hook(alice, {{jv}}, 0),
+                M("Incoming == Outgoing"),
+                ter(temMALFORMED));
+            jv.removeMember(jss::HookOnIncoming);
+            jv.removeMember(jss::HookOnOutgoing);
+
+            // HookOn and both Fields
+            jv[jss::HookOn] =
+                "0000000000000000000000000000000000000000000000000000000000"
+                "000000";
+            jv[jss::HookOnIncoming] =
+                "0000000000000000000000000000000000000000000000000000000000"
+                "000001";
+            jv[jss::HookOnOutgoing] =
+                "0000000000000000000000000000000000000000000000000000000000"
+                "000002";
+            env(ripple::test::jtx::hook(alice, {{jv}}, 0),
+                M("HookOn and both Fields"),
+                ter(temMALFORMED));
+            deleteHook(alice);
+            deleteHook(bob);
+        }
+
+        // Execution
+        for (int i = 1; i < 3; i++)
+        {
+            if (i == 0)
+            {
+                // HookOn from HookDefinition object
+            }
+            if (i == 1)
+            {
+                // HookOn from Hook Object (definition: incoming/outgoing)
+                auto jv = hso(accept_wasm);
+                jv.removeMember(jss::HookOn);
+                jv[jss::HookOnIncoming] =
+                    "0000000000000000000000000000000000000000000000000000000000"
+                    "0000"
+                    "00";
+                jv[jss::HookOnOutgoing] =
+                    "0000000000000000000000000000000000000000000000000000000000"
+                    "0000"
+                    "01";
+                env(ripple::test::jtx::hook(alice, {{jv}}, 0),
+                    M("Execution: Install"),
+                    HSFEE);
+                env.close();
+            }
+            if (i == 2)
+            {
+                // HookOn from Hook Object (definition: HookOn)
+                auto jv = hso(accept_wasm);
+                env(ripple::test::jtx::hook(alice, {{jv}}, 0),
+                    M("Execution: Install"),
+                    HSFEE);
+                env.close();
+            }
+
+            auto jv = hso(accept_wasm);
+            jv.removeMember(jss::HookOn);
+            jv[jss::Flags] = hsfOVERRIDE;
+            jv[jss::HookOnIncoming] =
+                "fffffffffffffffffffffffffffffffffffffff7ffffffffffffffffffbfff"
+                "ff";  // Invoke high
+            jv[jss::HookOnOutgoing] =
+                "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffbfff"
+                "fe";  // Payment high
+            env(ripple::test::jtx::hook(alice, {{jv}}, 0),
+                M("Execution: Install"),
+                HSFEE);
+            env.close();
+
+            auto hookExecuted = [this, &env]() -> bool {
+                auto meta = env.meta();
+                BEAST_EXPECT(meta);
+                return meta->isFieldPresent(sfHookExecutions);
+            };
+
+            // Check Incoming high
+            env(invoke::invoke(bob),
+                invoke::dest(alice),
+                M("Incoming high"),
+                fee(XRP(1)));
+            env.close();
+            BEAST_EXPECT(hookExecuted());
+            // Check Incoming low
+            env(pay(bob, alice, XRP(1)), M("Incoming low"), fee(XRP(1)));
+            env.close();
+            BEAST_EXPECT(!hookExecuted());
+            // Check Outgoing high
+            env(pay(alice, bob, XRP(1)), M("Outgoing high"), fee(XRP(1)));
+            env.close();
+            BEAST_EXPECT(hookExecuted());
+            // Check Outgoing low
+            env(invoke::invoke(alice), M("Outgoing high"), fee(XRP(1)));
+            env.close();
+            BEAST_EXPECT(!hookExecuted());
+            deleteHook(alice);
+        }
+
+        {
+            // sfHookOn from Hook Object (definition: incoming/outgoing)
+            {
+                auto jv = hso(accept_wasm);
+                jv.removeMember(jss::HookOn);
+                jv[jss::HookOnIncoming] =
+                    "fffffffffffffffffffffffffffffffffffffff7ffffffffffffffffff"
+                    "bfff"
+                    "ff";  // Invoke high
+                jv[jss::HookOnOutgoing] =
+                    "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+                    "bfff"
+                    "fe";  // Payment high
+                env(ripple::test::jtx::hook(alice, {{jv}}, 0),
+                    M("Execution: Install"),
+                    HSFEE);
+                env.close();
+            }
+
+            auto jv = hso(accept_wasm);
+            jv[jss::Flags] = hsfOVERRIDE;
+            jv[jss::HookOn] =
+                "0000000000000000000000000000000000000000000000000000000000"
+                "0000"
+                "00";
+            env(ripple::test::jtx::hook(alice, {{jv}}, 0),
+                M("Execution: Install"),
+                HSFEE);
+            env.close();
+
+            auto hookExecuted = [this, &env]() -> bool {
+                auto meta = env.meta();
+                BEAST_EXPECT(meta);
+                return meta->isFieldPresent(sfHookExecutions);
+            };
+
+            // Check Incoming high
+            env(invoke::invoke(bob),
+                invoke::dest(alice),
+                M("Incoming high"),
+                fee(XRP(1)));
+            env.close();
+            BEAST_EXPECT(hookExecuted());
+            // Check Incoming low
+            env(pay(bob, alice, XRP(1)), M("Incoming low"), fee(XRP(1)));
+            env.close();
+            BEAST_EXPECT(hookExecuted());
+            // Check Outgoing high
+            env(pay(alice, bob, XRP(1)), M("Outgoing high"), fee(XRP(1)));
+            env.close();
+            BEAST_EXPECT(hookExecuted());
+            // Check Outgoing low
+            env(invoke::invoke(alice), M("Outgoing high"), fee(XRP(1)));
+            env.close();
+            BEAST_EXPECT(hookExecuted());
+            deleteHook(alice);
+        }
+
+        // Fee RPC
+        {
+            auto jv = hso(accept_wasm);
+            jv.removeMember(jss::HookOn);
+            jv[jss::HookOnIncoming] =
+                "fffffffffffffffffffffffffffffffffffffff7ffffffffffffffffff"
+                "bfff"
+                "ff";  // Invoke high
+            jv[jss::HookOnOutgoing] =
+                "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+                "bfff"
+                "fe";  // Payment high
+            env(ripple::test::jtx::hook(alice, {{jv}}, 0), HSFEE);
+            env.close();
+
+            {
+                // incoming high
+                auto tx = invoke::invoke(bob);
+                tx[jss::Destination] = alice.human();
+                std::string const feeResult = "19";
+                testFeeRPC(env, tx, feeResult);
+            }
+            {
+                // incoming low
+                auto tx = pay(bob, alice, XRP(1));
+                std::string const feeResult = "10";
+                testFeeRPC(env, tx, feeResult);
+            }
+            {
+                // outgoing high
+                auto tx = pay(alice, bob, XRP(1));
+                std::string const feeResult = "19";
+                testFeeRPC(env, tx, feeResult);
+            }
+            {
+                // outgoing low
+                auto tx = invoke::invoke(alice);
+                std::string const feeResult = "10";
+                testFeeRPC(env, tx, feeResult);
+            }
+        }
     }
 
     void
@@ -13845,6 +14225,8 @@ public:
         testNSDelete(features);
         testNSDeletePartial(features);
         testPageCap(features);
+
+        testHookOnV2(features);
 
         testFillCopy(features);
 
