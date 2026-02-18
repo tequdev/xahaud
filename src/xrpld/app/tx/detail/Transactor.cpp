@@ -2165,8 +2165,8 @@ Transactor::operator()()
             SField const& metaType = node.getFName();
             uint16_t nodeType = node.getFieldU16(sfLedgerEntryType);
 
-            // we only care about ltACCOUNT_ROOT objects being modified or
-            // created
+            // we only care about ltACCOUNT_ROOT and ltRIPPLE_STATE objects
+            // being modified or created
             if ((nodeType != ltACCOUNT_ROOT && nodeType != ltRIPPLE_STATE) ||
                 metaType == sfDeletedNode)
                 continue;
@@ -2235,6 +2235,7 @@ Transactor::operator()()
                 }
 
                 view().update(sle);
+                continue;
             }
 
             // ltAccountRoot

@@ -69,7 +69,10 @@ ClaimReward::preflight(PreflightContext const& ctx)
         bool const isMPT = claimAsset.holds<MPTIssue>();
 
         if (isMPT)
+        {
+            JLOG(ctx.j.debug()) << "ClaimReward: MPT is not supported yet.";
             return temMALFORMED;
+        }
 
         auto const claimIssue = claimAsset.get<Issue>();
         if (claimIssue.account == beast::zero || isXRP(claimIssue.currency))
@@ -84,8 +87,15 @@ ClaimReward::preflight(PreflightContext const& ctx)
                 generateKeyPair(
                     KeyType::secp256k1, generateSeed("masterpassphrase"))
                     .first);
-            if (ctx.tx.getAccountID(sfIssuer) == genesisAccountId)
+
+            if (ctx.rules.enabled(featureXahauGenesis) &&
+                ctx.tx.getAccountID(sfIssuer) == genesisAccountId)
+            {
+                JLOG(ctx.j.debug())
+                    << "ClaimReward: Issuer cannot be the Genesis account if "
+                       "featureXahauGenesis is enabled.";
                 return temMALFORMED;
+            }
         }
     }
     return preflight2(ctx);
@@ -119,7 +129,7 @@ ClaimReward::preclaim(PreclaimContext const& ctx)
         bool const isMPT = claimCurrency.holds<MPTIssue>();
 
         if (isMPT)
-            return tecINTERNAL;
+            return tefINTERNAL;
 
         auto const claimIssue = claimCurrency.get<Issue>();
 
@@ -158,7 +168,7 @@ ClaimReward::doApply()
         bool const isMPT = claimCurrency.holds<MPTIssue>();
 
         if (isMPT)
-            return tecINTERNAL;
+            return tefINTERNAL;
 
         auto const claimIssue = claimCurrency.get<Issue>();
 
