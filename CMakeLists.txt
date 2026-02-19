@@ -89,8 +89,8 @@ set_target_properties(OpenSSL::SSL PROPERTIES
   INTERFACE_COMPILE_DEFINITIONS OPENSSL_NO_SSL2
 )
 set(SECP256K1_INSTALL TRUE)
-add_subdirectory(src/secp256k1)
-add_subdirectory(src/ed25519-donna)
+add_subdirectory(external/secp256k1)
+add_subdirectory(external/ed25519-donna)
 add_library(secp256k1::secp256k1 ALIAS secp256k1)
 find_package(lz4 REQUIRED)
 # Target names with :: are not allowed in a generator expression.
