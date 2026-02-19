@@ -28,7 +28,7 @@ class Xrpl(ConanFile):
     requires = [
         'date/3.0.3',
         'grpc/1.50.1',
-        'libarchive/3.6.2',
+        'libarchive/3.7.6',
         'nudb/2.0.8',
         'openssl/3.6.0',
         'soci/4.0.3@xahaud/stable',
@@ -111,12 +111,12 @@ class Xrpl(ConanFile):
 
     def requirements(self):
         # Force sqlite3 version to avoid conflicts with soci
-        self.requires('sqlite3/3.42.0', override=True)
+        self.requires('sqlite3/3.47.0', override=True)
         # Force our custom snappy build for all dependencies
         self.requires('snappy/1.1.10@xahaud/stable', override=True)
         # Force boost version for all dependencies to avoid conflicts
         self.requires('boost/1.86.0', override=True)
-        self.requires('lz4/1.9.4', force=True)
+        self.requires('lz4/1.10.0', force=True)
 
         if self.options.with_wasmedge:
             self.requires('wasmedge/0.11.2@xahaud/stable')
