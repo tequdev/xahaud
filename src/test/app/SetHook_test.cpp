@@ -16,17 +16,17 @@
     OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 */
 //==============================================================================
-#include <ripple/app/hook/Enum.h>
-#include <ripple/app/ledger/LedgerMaster.h>
-#include <ripple/app/tx/impl/SetHook.h>
-#include <ripple/json/json_reader.h>
-#include <ripple/json/json_writer.h>
-#include <ripple/protocol/TxFlags.h>
-#include <ripple/protocol/jss.h>
 #include <test/app/Import_json.h>
 #include <test/app/SetHook_wasm.h>
 #include <test/jtx.h>
 #include <test/jtx/hook.h>
+#include <xrpld/app/hook/Enum.h>
+#include <xrpld/app/ledger/LedgerMaster.h>
+#include <xrpld/app/tx/detail/SetHook.h>
+#include <xrpl/json/json_reader.h>
+#include <xrpl/json/json_writer.h>
+#include <xrpl/protocol/TxFlags.h>
+#include <xrpl/protocol/jss.h>
 #include <unordered_map>
 
 namespace ripple {

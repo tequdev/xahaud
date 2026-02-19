@@ -1,16 +1,16 @@
 #ifndef APPLY_HOOK_INCLUDED
 #define APPLY_HOOK_INCLUDED 1
-#include <ripple/app/hook/Enum.h>
-#include <ripple/app/hook/HookAPI.h>
-#include <ripple/app/hook/Macro.h>
-#include <ripple/app/hook/Misc.h>
-#include <ripple/app/misc/Transaction.h>
-#include <ripple/app/tx/impl/ApplyContext.h>
-#include <ripple/basics/Blob.h>
-#include <ripple/beast/utility/Journal.h>
-#include <ripple/protocol/SField.h>
-#include <ripple/protocol/TER.h>
-#include <ripple/protocol/digest.h>
+#include <xrpld/app/hook/Enum.h>
+#include <xrpld/app/hook/HookAPI.h>
+#include <xrpld/app/hook/Macro.h>
+#include <xrpld/app/hook/Misc.h>
+#include <xrpld/app/misc/Transaction.h>
+#include <xrpld/app/tx/detail/ApplyContext.h>
+#include <xrpl/basics/Blob.h>
+#include <xrpl/beast/utility/Journal.h>
+#include <xrpl/protocol/SField.h>
+#include <xrpl/protocol/TER.h>
+#include <xrpl/protocol/digest.h>
 #include <any>
 #include <memory>
 #include <optional>
@@ -70,7 +70,7 @@ namespace hook_api {
     DECLARE_HOOK_FUNCTION(                                                 \
         RETURN_TYPE, FUNCTION_NAME, HOOK_WRAP_PARAMS PARAMS_TUPLE);
 
-#include <ripple/app/hook/hook_api.macro>
+#include <xrpld/app/hook/hook_api.macro>
 
 #undef HOOK_API_DEFINITION
 #undef HOOK_WRAP_PARAMS
@@ -472,7 +472,7 @@ public:
 #define HOOK_API_DEFINITION(RETURN_TYPE, FUNCTION_NAME, PARAMS_TUPLE, ...) \
     ADD_HOOK_FUNCTION(FUNCTION_NAME, ctx);
 
-#include <ripple/app/hook/hook_api.macro>
+#include <xrpld/app/hook/hook_api.macro>
 
 #undef HOOK_API_DEFINITION
 #undef HOOK_WRAP_PARAMS

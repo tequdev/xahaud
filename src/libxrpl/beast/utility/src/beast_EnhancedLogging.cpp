@@ -19,7 +19,7 @@
 
 #ifdef BEAST_ENHANCED_LOGGING
 
-#include <ripple/beast/utility/EnhancedLogging.h>
+#include <xrpl/beast/utility/EnhancedLogging.h>
 #include <cstdlib>
 #include <cstring>
 #include <ostream>

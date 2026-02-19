@@ -17,17 +17,17 @@
 */
 //==============================================================================
 
-#include <ripple/app/misc/LoadFeeTrack.h>
-#include <ripple/app/misc/TxQ.h>
-#include <ripple/basics/contract.h>
-#include <ripple/beast/unit_test.h>
-#include <ripple/core/ConfigSections.h>
-#include <ripple/json/json_reader.h>
-#include <ripple/protocol/ErrorCodes.h>
-#include <ripple/protocol/Feature.h>
-#include <ripple/rpc/impl/TransactionSign.h>
 #include <test/jtx.h>
 #include <test/jtx/envconfig.h>
+#include <xrpld/app/misc/LoadFeeTrack.h>
+#include <xrpld/app/misc/TxQ.h>
+#include <xrpld/core/ConfigSections.h>
+#include <xrpld/rpc/detail/TransactionSign.h>
+#include <xrpl/basics/contract.h>
+#include <xrpl/beast/unit_test.h>
+#include <xrpl/json/json_reader.h>
+#include <xrpl/protocol/ErrorCodes.h>
+#include <xrpl/protocol/Feature.h>
 
 namespace ripple {
 
@@ -2550,7 +2550,7 @@ public:
             NetworkOPs::FailHard failType,
             Role role,
             std::chrono::seconds validatedLedgerAge,
-            Application & app,
+            Application& app,
             ProcessTransactionFn const& processTransaction);
 
         using TestStuff =

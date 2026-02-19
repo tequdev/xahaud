@@ -19,11 +19,11 @@
 
 #include <date/date.h>
 
-#include <ripple/basics/Log.h>
-#include <ripple/basics/chrono.h>
-#include <ripple/basics/contract.h>
+#include <xrpl/basics/Log.h>
+#include <xrpl/basics/chrono.h>
+#include <xrpl/basics/contract.h>
 #ifdef BEAST_ENHANCED_LOGGING
-#include <ripple/beast/utility/EnhancedLogging.h>
+#include <xrpl/beast/utility/EnhancedLogging.h>
 #include <date/tz.h>
 #endif
 #include <boost/algorithm/string.hpp>

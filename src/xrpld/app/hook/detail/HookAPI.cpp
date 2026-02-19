@@ -1,10 +1,10 @@
 // Implementation of decoupled Hook APIs for emit and related helpers.
 
-#include <ripple/app/hook/HookAPI.h>
-#include <ripple/app/ledger/OpenLedger.h>
-#include <ripple/app/ledger/TransactionMaster.h>
-#include <ripple/app/tx/impl/Import.h>
-#include <ripple/protocol/STParsedJSON.h>
+#include <xrpld/app/hook/HookAPI.h>
+#include <xrpld/app/ledger/OpenLedger.h>
+#include <xrpld/app/ledger/TransactionMaster.h>
+#include <xrpld/app/tx/detail/Import.h>
+#include <xrpl/protocol/STParsedJSON.h>
 #include <cfenv>
 
 namespace hook {
