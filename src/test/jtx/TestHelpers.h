@@ -433,6 +433,38 @@ STPathElement
 allpe(AccountID const& a, Issue const& iss);
 /***************************************************************/
 
+/* Check */
+/***************************************************************/
+namespace check {
+
+/** Create a check. */
+// clang-format off
+template <typename A>
+    requires std::is_same_v<A, AccountID>
+Json::Value
+create(A const& account, A const& dest, STAmount const& sendMax)
+{
+    Json::Value jv;
+    jv[sfAccount.jsonName] = to_string(account);
+    jv[sfSendMax.jsonName] = sendMax.getJson(JsonOptions::none);
+    jv[sfDestination.jsonName] = to_string(dest);
+    jv[sfTransactionType.jsonName] = jss::CheckCreate;
+    jv[sfFlags.jsonName] = tfUniversal;
+    return jv;
+}
+// clang-format on
+
+inline Json::Value
+create(
+    jtx::Account const& account,
+    jtx::Account const& dest,
+    STAmount const& sendMax)
+{
+    return create(account.id(), dest.id(), sendMax);
+}
+
+}  // namespace check
+
 }  // namespace jtx
 }  // namespace test
 }  // namespace ripple

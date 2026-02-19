@@ -70,6 +70,7 @@ LedgerFormats::LedgerFormats()
             {sfTouchCount,           soeOPTIONAL},
             {sfHookStateScale,       soeOPTIONAL},
             {sfCron,                 soeOPTIONAL},
+            {sfAMMID,                soeOPTIONAL},
         },
         commonFields);
 
@@ -392,7 +393,7 @@ LedgerFormats::LedgerFormats()
             {sfAuctionSlot, soeOPTIONAL},
             {sfLPTokenBalance, soeREQUIRED},
             {sfAsset, soeREQUIRED},
-            {sfAsset2, soeREQUIRED}
+            {sfAsset2, soeREQUIRED},
         },
         commonFields);
 

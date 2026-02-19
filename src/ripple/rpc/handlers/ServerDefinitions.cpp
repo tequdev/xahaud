@@ -451,12 +451,13 @@ private:
                 static_cast<uint32_t>(entry.value);
         }
         // AMM Deposit
-        std::array<FlagData, 5> ammDepositFlags{
+        std::array<FlagData, 6> ammDepositFlags{
             {{"tfLPToken", tfLPToken},
              {"tfSingleAsset", tfSingleAsset},
              {"tfTwoAsset", tfTwoAsset},
              {"tfOneAssetLPToken", tfOneAssetLPToken},
-             {"tfLimitLPToken", tfLimitLPToken}}};
+             {"tfLimitLPToken", tfLimitLPToken},
+             {"tfTwoAssetIfEmpty", tfTwoAssetIfEmpty}}};
         for (auto const& entry : ammDepositFlags)
         {
             ret[jss::TRANSACTION_FLAGS]["AMMDeposit"][entry.name] =

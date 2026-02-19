@@ -319,7 +319,9 @@ enum TECcodes : TERUnderlyingType {
     tecAMM_BALANCE = 163,
     tecAMM_FAILED = 164,
     tecAMM_INVALID_TOKENS = 165,
-    // 166-168: free
+    tecAMM_EMPTY = 166,
+    tecAMM_NOT_EMPTY = 167,
+    tecAMM_ACCOUNT = 168,
     tecREQUIRES_FLAG = 169,
     tecPRECISION_LOSS = 170,
     tecBAD_XCHAIN_TRANSFER_ISSUE = 171,           // RESERVED - XCHAIN
@@ -342,6 +344,7 @@ enum TECcodes : TERUnderlyingType {
     tecIMMUTABLE = 188,
     tecTOO_MANY_REMARKS = 189,
     tecHAS_HOOK_STATE = 190,
+    tecINCOMPLETE = 191,
     tecLAST_POSSIBLE_ENTRY = 255,
 };
 
@@ -437,7 +440,8 @@ public:
     }
 
     // Conversion to bool.
-    explicit operator bool() const
+    explicit
+    operator bool() const
     {
         return code_ < tesSUCCESS || code_ >= tecCLAIM;
     }
@@ -483,60 +487,66 @@ public:
 // Only enabled if both arguments return int if TERtiInt is called with them.
 template <typename L, typename R>
 constexpr auto
-operator==(L const& lhs, R const& rhs) -> std::enable_if_t<
-    std::is_same<decltype(TERtoInt(lhs)), int>::value &&
-        std::is_same<decltype(TERtoInt(rhs)), int>::value,
-    bool>
+operator==(L const& lhs, R const& rhs)
+    -> std::enable_if_t<
+        std::is_same<decltype(TERtoInt(lhs)), int>::value &&
+            std::is_same<decltype(TERtoInt(rhs)), int>::value,
+        bool>
 {
     return TERtoInt(lhs) == TERtoInt(rhs);
 }
 
 template <typename L, typename R>
 constexpr auto
-operator!=(L const& lhs, R const& rhs) -> std::enable_if_t<
-    std::is_same<decltype(TERtoInt(lhs)), int>::value &&
-        std::is_same<decltype(TERtoInt(rhs)), int>::value,
-    bool>
+operator!=(L const& lhs, R const& rhs)
+    -> std::enable_if_t<
+        std::is_same<decltype(TERtoInt(lhs)), int>::value &&
+            std::is_same<decltype(TERtoInt(rhs)), int>::value,
+        bool>
 {
     return TERtoInt(lhs) != TERtoInt(rhs);
 }
 
 template <typename L, typename R>
 constexpr auto
-operator<(L const& lhs, R const& rhs) -> std::enable_if_t<
-    std::is_same<decltype(TERtoInt(lhs)), int>::value &&
-        std::is_same<decltype(TERtoInt(rhs)), int>::value,
-    bool>
+operator<(L const& lhs, R const& rhs)
+    -> std::enable_if_t<
+        std::is_same<decltype(TERtoInt(lhs)), int>::value &&
+            std::is_same<decltype(TERtoInt(rhs)), int>::value,
+        bool>
 {
     return TERtoInt(lhs) < TERtoInt(rhs);
 }
 
 template <typename L, typename R>
 constexpr auto
-operator<=(L const& lhs, R const& rhs) -> std::enable_if_t<
-    std::is_same<decltype(TERtoInt(lhs)), int>::value &&
-        std::is_same<decltype(TERtoInt(rhs)), int>::value,
-    bool>
+operator<=(L const& lhs, R const& rhs)
+    -> std::enable_if_t<
+        std::is_same<decltype(TERtoInt(lhs)), int>::value &&
+            std::is_same<decltype(TERtoInt(rhs)), int>::value,
+        bool>
 {
     return TERtoInt(lhs) <= TERtoInt(rhs);
 }
 
 template <typename L, typename R>
 constexpr auto
-operator>(L const& lhs, R const& rhs) -> std::enable_if_t<
-    std::is_same<decltype(TERtoInt(lhs)), int>::value &&
-        std::is_same<decltype(TERtoInt(rhs)), int>::value,
-    bool>
+operator>(L const& lhs, R const& rhs)
+    -> std::enable_if_t<
+        std::is_same<decltype(TERtoInt(lhs)), int>::value &&
+            std::is_same<decltype(TERtoInt(rhs)), int>::value,
+        bool>
 {
     return TERtoInt(lhs) > TERtoInt(rhs);
 }
 
 template <typename L, typename R>
 constexpr auto
-operator>=(L const& lhs, R const& rhs) -> std::enable_if_t<
-    std::is_same<decltype(TERtoInt(lhs)), int>::value &&
-        std::is_same<decltype(TERtoInt(rhs)), int>::value,
-    bool>
+operator>=(L const& lhs, R const& rhs)
+    -> std::enable_if_t<
+        std::is_same<decltype(TERtoInt(lhs)), int>::value &&
+            std::is_same<decltype(TERtoInt(rhs)), int>::value,
+        bool>
 {
     return TERtoInt(lhs) >= TERtoInt(rhs);
 }

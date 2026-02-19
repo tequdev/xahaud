@@ -20,6 +20,7 @@
 #include <ripple/app/tx/applySteps.h>
 #include <ripple/app/tx/impl/AMMBid.h>
 #include <ripple/app/tx/impl/AMMCreate.h>
+#include <ripple/app/tx/impl/AMMDelete.h>
 #include <ripple/app/tx/impl/AMMDeposit.h>
 #include <ripple/app/tx/impl/AMMVote.h>
 #include <ripple/app/tx/impl/AMMWithdraw.h>
@@ -202,6 +203,8 @@ invoke_preflight(PreflightContext const& ctx)
             return invoke_preflight_helper<AMMVote>(ctx);
         case ttAMM_BID:
             return invoke_preflight_helper<AMMBid>(ctx);
+        case ttAMM_DELETE:
+            return invoke_preflight_helper<AMMDelete>(ctx);
         default:
             assert(false);
             return {temUNKNOWN, TxConsequences{temUNKNOWN}};
@@ -341,6 +344,8 @@ invoke_preclaim(PreclaimContext const& ctx)
             return invoke_preclaim<AMMVote>(ctx);
         case ttAMM_BID:
             return invoke_preclaim<AMMBid>(ctx);
+        case ttAMM_DELETE:
+            return invoke_preclaim<AMMDelete>(ctx);
         default:
             assert(false);
             return temUNKNOWN;
@@ -442,6 +447,8 @@ invoke_calculateBaseFee(ReadView const& view, STTx const& tx)
             return AMMVote::calculateBaseFee(view, tx);
         case ttAMM_BID:
             return AMMBid::calculateBaseFee(view, tx);
+        case ttAMM_DELETE:
+            return AMMDelete::calculateBaseFee(view, tx);
         default:
             return XRPAmount{0};
     }
@@ -661,6 +668,10 @@ invoke_apply(ApplyContext& ctx)
         }
         case ttAMM_BID: {
             AMMBid p(ctx);
+            return p();
+        }
+        case ttAMM_DELETE: {
+            AMMDelete p(ctx);
             return p();
         }
         default:
