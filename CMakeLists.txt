@@ -99,7 +99,7 @@ find_package(LibArchive REQUIRED)
 find_package(SOCI REQUIRED)
 find_package(SQLite3 REQUIRED)
 find_package(Snappy REQUIRED)
-# find_package(wasmedge REQUIRED)
+
 option(rocksdb "Enable RocksDB" ON)
 if(rocksdb)
   find_package(RocksDB REQUIRED)
@@ -108,10 +108,10 @@ if(rocksdb)
   )
   target_link_libraries(ripple_libs INTERFACE RocksDB::rocksdb)
 endif()
+
 find_package(nudb REQUIRED)
 find_package(date REQUIRED)
-include(deps/Protobuf)
-include(deps/gRPC)
+
 include(deps/WasmEdge) 
   if(TARGET nudb::core)
   set(nudb nudb::core)
@@ -130,14 +130,13 @@ if(reporting)
     PostgreSQL::PostgreSQL
   )
 endif()
+
 target_link_libraries(ripple_libs INTERFACE
   ed25519::ed25519
   LibArchive::LibArchive
   lz4::lz4
   OpenSSL::Crypto
   OpenSSL::SSL
-  Ripple::grpc_pbufs
-  Ripple::pbufs
   secp256k1::secp256k1
   soci::soci
   SQLite::SQLite3
@@ -146,6 +145,8 @@ target_link_libraries(ripple_libs INTERFACE
 ###
 
 include(RippledCore)
+include(deps/Protobuf)
+include(deps/gRPC)
 include(RippledInstall)
 include(RippledCov)
 include(RippledMultiConfig)
