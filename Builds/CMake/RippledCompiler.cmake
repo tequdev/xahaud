@@ -132,7 +132,16 @@ else ()
       >)
 endif ()
 
-if (use_gold AND is_gcc)
+if (use_mold)
+  # use mold linker if available
+  execute_process (
+    COMMAND ${CMAKE_CXX_COMPILER} -fuse-ld=mold -Wl,--version
+    ERROR_QUIET OUTPUT_VARIABLE LD_VERSION)
+  if ("${LD_VERSION}" MATCHES "mold")
+    target_link_libraries (common INTERFACE -fuse-ld=mold)
+  endif ()
+  unset (LD_VERSION)
+elseif (use_gold AND is_gcc)
   # use gold linker if available
   execute_process (
     COMMAND ${CMAKE_CXX_COMPILER} -fuse-ld=gold -Wl,--version
@@ -164,9 +173,7 @@ if (use_gold AND is_gcc)
         $<$<NOT:$<BOOL:${static}>>:-Wl,--disable-new-dtags>)
   endif ()
   unset (LD_VERSION)
-endif ()
-
-if (use_lld)
+elseif (use_lld)
   # use lld linker if available
   execute_process (
     COMMAND ${CMAKE_CXX_COMPILER} -fuse-ld=lld -Wl,--version
@@ -176,6 +183,7 @@ if (use_lld)
   endif ()
   unset (LD_VERSION)
 endif()
+
 
 if (assert)
   foreach (var_ CMAKE_C_FLAGS_RELEASE CMAKE_CXX_FLAGS_RELEASE)
