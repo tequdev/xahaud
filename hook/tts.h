@@ -58,6 +58,7 @@
 #define ttCREDENTIAL_CREATE 67
 #define ttCREDENTIAL_ACCEPT 68
 #define ttCREDENTIAL_DELETE 69
+#define ttNFTOKEN_MODIFY 70
 #define ttCRON 92
 #define ttCRON_SET 93
 #define ttREMARKS_SET 94
