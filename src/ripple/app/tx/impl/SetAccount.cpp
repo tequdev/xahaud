@@ -699,6 +699,7 @@ SetAccount::doApply()
             sle->setFieldU16(sfHookStateScale, newScale);
         }
     }
+    ctx_.view().update(sle);
 
     return tesSUCCESS;
 }
