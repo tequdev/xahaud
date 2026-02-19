@@ -240,7 +240,7 @@ public:
         */
         Stream(Sink& sink, Severity level) : m_sink(sink), m_level(level)
         {
-            ASSERT(
+            XRPL_ASSERT(
                 m_level < severities::kDisabled,
                 "beast::Journal::Stream::Stream : maximum level");
         }

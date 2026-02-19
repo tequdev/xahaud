@@ -513,7 +513,7 @@ AccountRootsDeletedClean::finalize(
             JLOG(j.fatal())
                 << "Invariant failed: account deletion left behind a "
                 << typeName << " object";
-            ASSERT(
+            XRPL_ASSERT(
                 enforce,
                 "ripple::AccountRootsDeletedClean::finalize::objectExists : "
                 "account deletion left no objects behind");
@@ -776,7 +776,7 @@ TransfersNotFrozen::finalize(
         // just in case so rippled doesn't crash in release.
         if (!issuerSle)
         {
-            ASSERT(
+            XRPL_ASSERT(
                 enforce,
                 "ripple::TransfersNotFrozen::finalize : enforce invariant.");
             if (enforce)
@@ -801,7 +801,8 @@ TransfersNotFrozen::isValidEntry(
     std::shared_ptr<SLE const> const& after)
 {
     // `after` can never be null, even if the trust line is deleted.
-    ASSERT(after, "ripple::TransfersNotFrozen::isValidEntry : valid after.");
+    XRPL_ASSERT(
+        after, "ripple::TransfersNotFrozen::isValidEntry : valid after.");
     if (!after)
     {
         return false;
@@ -855,7 +856,7 @@ TransfersNotFrozen::calculateBalanceChange(
 void
 TransfersNotFrozen::recordBalance(Issue const& issue, BalanceChange change)
 {
-    ASSERT(
+    XRPL_ASSERT(
         change.balanceChangeSign,
         "ripple::TransfersNotFrozen::recordBalance : valid trustline "
         "balance sign.");
@@ -974,7 +975,7 @@ TransfersNotFrozen::validateFrozenState(
 
     JLOG(j.fatal()) << "Invariant failed: Attempting to move frozen funds for "
                     << tx.getTransactionID();
-    ASSERT(
+    XRPL_ASSERT(
         enforce,
         "ripple::TransfersNotFrozen::validateFrozenState : enforce "
         "invariant.");

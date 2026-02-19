@@ -535,7 +535,7 @@ NFTokenAcceptOffer::checkAcceptAsset(
         return tesSUCCESS;
     }
 
-    ASSERT(
+    XRPL_ASSERT(
         !isXRP(issue.currency),
         "NFTokenAcceptOffer::checkAcceptAsset : valid to check.");
     auto const issuerAccount = view.read(keylet::account(issue.account));
