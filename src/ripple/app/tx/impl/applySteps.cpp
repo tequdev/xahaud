@@ -38,6 +38,7 @@
 #include <ripple/app/tx/impl/CronSet.h>
 #include <ripple/app/tx/impl/DID.h>
 #include <ripple/app/tx/impl/DeleteAccount.h>
+#include <ripple/app/tx/impl/DeleteOracle.h>
 #include <ripple/app/tx/impl/DepositPreauth.h>
 #include <ripple/app/tx/impl/Escrow.h>
 #include <ripple/app/tx/impl/GenesisMint.h>
@@ -53,6 +54,7 @@
 #include <ripple/app/tx/impl/Remit.h>
 #include <ripple/app/tx/impl/SetAccount.h>
 #include <ripple/app/tx/impl/SetHook.h>
+#include <ripple/app/tx/impl/SetOracle.h>
 #include <ripple/app/tx/impl/SetRegularKey.h>
 #include <ripple/app/tx/impl/SetRemarks.h>
 #include <ripple/app/tx/impl/SetSignerList.h>
@@ -196,6 +198,10 @@ with_txn_type(TxType txnType, F&& f)
             return f.template operator()<DIDSet>();
         case ttDID_DELETE:
             return f.template operator()<DIDDelete>();
+        case ttORACLE_SET:
+            return f.template operator()<SetOracle>();
+        case ttORACLE_DELETE:
+            return f.template operator()<DeleteOracle>();
         default:
             throw UnknownTxnType(txnType);
     }

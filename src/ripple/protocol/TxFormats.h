@@ -197,6 +197,12 @@ enum TxType : std::uint16_t
     /** This transaction type deletes a DID */
     ttDID_DELETE = 59,
 
+    /** This transaction type creates an Oracle instance */
+    ttORACLE_SET = 60,
+
+    /** This transaction type deletes an Oracle instance */
+    ttORACLE_DELETE = 61,
+
     /* A pseudo-txn alarm signal for invoking a hook, emitted by validators after alarm set conditions are met */
     ttCRON = 92,
 

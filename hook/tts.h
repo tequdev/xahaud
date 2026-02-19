@@ -50,6 +50,8 @@
 #define ttXCHAIN_CREATE_BRIDGE 57
 #define ttDID_SET 58
 #define ttDID_DELETE 59
+#define ttORACLE_SET 60
+#define ttORACLE_DELETE 61
 #define ttCRON 92
 #define ttCRON_SET 93
 #define ttREMARKS_SET 94
