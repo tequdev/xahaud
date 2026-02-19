@@ -49,7 +49,7 @@ export LDFLAGS="-static-libstdc++"
 
 git config --global --add safe.directory /io &&
 git checkout src/libxrpl/protocol/BuildInfo.cpp &&
-sed -i s/\"0.0.0\"/\"$(date +%Y).$(date +%-m).$(date +%-d)-$(git rev-parse --abbrev-ref HEAD)$(if [ -n "$4" ]; then echo "+$4"; fi)\"/g src/ripple/protocol/impl/BuildInfo.cpp &&
+sed -i s/\"0.0.0\"/\"$(date +%Y).$(date +%-m).$(date +%-d)-$(git rev-parse --abbrev-ref HEAD)$(if [ -n "$4" ]; then echo "+$4"; fi)\"/g src/libxrpl/protocol/BuildInfo.cpp  &&
 conan export external/snappy --version 1.1.10 --user xahaud --channel stable &&
 conan export external/soci --version 4.0.3 --user xahaud --channel stable &&
 conan export external/wasmedge --version 0.11.2 --user xahaud --channel stable &&
