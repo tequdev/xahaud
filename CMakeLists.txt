@@ -155,8 +155,6 @@ endif()
 
 set(PROJECT_EXPORT_SET RippleExports)
 include(RippledCore)
-include(deps/Protobuf)
-include(deps/gRPC)
 include(RippledInstall)
 include(RippledDocs)
 include(RippledValidatorKeys)

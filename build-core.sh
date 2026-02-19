@@ -34,7 +34,7 @@ fi
 
 BUILD_TYPE=Release
 
-mv Builds/CMake/deps/WasmEdge.cmake Builds/CMake/deps/WasmEdge.old &&
+mv cmake/deps/WasmEdge.cmake cmake/deps/WasmEdge.old &&
 echo "find_package(LLVM REQUIRED CONFIG)
 message(STATUS \"Found LLVM \${LLVM_PACKAGE_VERSION}\")
 message(STATUS \"Using LLVMConfig.cmake in: \${LLVM_DIR}\")
@@ -43,12 +43,12 @@ set_target_properties(wasmedge PROPERTIES IMPORTED_LOCATION \${WasmEdge_LIB})
 target_link_libraries (ripple_libs INTERFACE wasmedge)
 add_library (wasmedge::wasmedge ALIAS wasmedge)
 message(\"WasmEdge DONE\")
-" > Builds/CMake/deps/WasmEdge.cmake &&
+" > cmake/deps/WasmEdge.cmake &&
 
 export LDFLAGS="-static-libstdc++"
 
 git config --global --add safe.directory /io &&
-git checkout src/ripple/protocol/impl/BuildInfo.cpp &&
+git checkout src/libxrpl/protocol/BuildInfo.cpp &&
 sed -i s/\"0.0.0\"/\"$(date +%Y).$(date +%-m).$(date +%-d)-$(git rev-parse --abbrev-ref HEAD)$(if [ -n "$4" ]; then echo "+$4"; fi)\"/g src/ripple/protocol/impl/BuildInfo.cpp &&
 conan export external/snappy --version 1.1.10 --user xahaud --channel stable &&
 conan export external/soci --version 4.0.3 --user xahaud --channel stable &&
@@ -101,9 +101,9 @@ fi
 
 cd ..;
 
-mv src/ripple/net/impl/RegisterSSLCerts.cpp.old src/ripple/net/impl/RegisterSSLCerts.cpp;
-mv Builds/CMake/deps/WasmEdge.old Builds/CMake/deps/WasmEdge.cmake;
+mv src/xrpld/net/detail/RegisterSSLCerts.cpp.old src/xrpld/net/detail/RegisterSSLCerts.cpp;
+mv cmake/deps/WasmEdge.old cmake/deps/WasmEdge.cmake;
 rm src/certs/certbundle.h;
-git checkout src/ripple/protocol/impl/BuildInfo.cpp;
+git checkout src/libxrpl/protocol/BuildInfo.cpp;
 
 echo "END INSIDE CONTAINER - CORE"

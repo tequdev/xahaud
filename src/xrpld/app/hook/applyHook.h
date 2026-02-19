@@ -1,13 +1,13 @@
 #ifndef APPLY_HOOK_INCLUDED
 #define APPLY_HOOK_INCLUDED 1
-#include <xrpld/app/hook/Enum.h>
 #include <xrpld/app/hook/HookAPI.h>
-#include <xrpld/app/hook/Macro.h>
-#include <xrpld/app/hook/Misc.h>
 #include <xrpld/app/misc/Transaction.h>
 #include <xrpld/app/tx/detail/ApplyContext.h>
 #include <xrpl/basics/Blob.h>
 #include <xrpl/beast/utility/Journal.h>
+#include <xrpl/hook/Enum.h>
+#include <xrpl/hook/Macro.h>
+#include <xrpl/hook/Misc.h>
 #include <xrpl/protocol/SField.h>
 #include <xrpl/protocol/TER.h>
 #include <xrpl/protocol/digest.h>
@@ -70,7 +70,7 @@ namespace hook_api {
     DECLARE_HOOK_FUNCTION(                                                 \
         RETURN_TYPE, FUNCTION_NAME, HOOK_WRAP_PARAMS PARAMS_TUPLE);
 
-#include <xrpld/app/hook/hook_api.macro>
+#include <xrpl/hook/hook_api.macro>
 
 #undef HOOK_API_DEFINITION
 #undef HOOK_WRAP_PARAMS
@@ -472,7 +472,7 @@ public:
 #define HOOK_API_DEFINITION(RETURN_TYPE, FUNCTION_NAME, PARAMS_TUPLE, ...) \
     ADD_HOOK_FUNCTION(FUNCTION_NAME, ctx);
 
-#include <xrpld/app/hook/hook_api.macro>
+#include <xrpl/hook/hook_api.macro>
 
 #undef HOOK_API_DEFINITION
 #undef HOOK_WRAP_PARAMS

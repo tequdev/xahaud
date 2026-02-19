@@ -4,10 +4,10 @@ set -eu
 SCRIPT_DIR=$(dirname "$0")
 SCRIPT_DIR=$(cd "$SCRIPT_DIR" && pwd)
 
-RIPPLED_ROOT="$SCRIPT_DIR/../src/ripple"
+RIPPLED_ROOT="$SCRIPT_DIR/../src/libxrpl"
 echo '// For documentation please see: https://xrpl-hooks.readme.io/reference/'
 echo '// Generated using generate_sfcodes.sh'
-cat "$RIPPLED_ROOT/protocol/impl/SField.cpp" | grep -E '^CONSTRUCT_' |
+cat "$RIPPLED_ROOT/protocol/SField.cpp" | grep -E '^CONSTRUCT_' |
     sed 's/UINT16,/1,/g' |
     sed 's/UINT32,/2,/g' |
     sed 's/UINT64,/3,/g' |

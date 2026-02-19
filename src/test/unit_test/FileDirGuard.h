@@ -24,6 +24,8 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #include <xrpl/basics/contract.h>
 #include <boost/filesystem.hpp>
 
+#include <fstream>
+
 namespace ripple {
 namespace test {
 namespace detail {

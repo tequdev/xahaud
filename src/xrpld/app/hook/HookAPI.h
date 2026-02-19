@@ -1,8 +1,8 @@
 #ifndef HOOK_API_INCLUDED
 #define HOOK_API_INCLUDED 1
 
-#include <xrpld/app/hook/Enum.h>
 #include <xrpld/app/misc/Transaction.h>
+#include <xrpl/hook/Enum.h>
 
 namespace hook {
 using namespace ripple;

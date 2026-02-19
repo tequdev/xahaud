@@ -4,7 +4,7 @@ set -eu
 SCRIPT_DIR=$(dirname "$0")
 SCRIPT_DIR=$(cd "$SCRIPT_DIR" && pwd)
 
-RIPPLED_ROOT="$SCRIPT_DIR/../src/ripple"
+RIPPLED_ROOT="$SCRIPT_DIR/../include/xrpl"
 TX_FORMATS="$RIPPLED_ROOT/protocol/TxFormats.h"
 
 echo '// For documentation please see: https://xrpl-hooks.readme.io/reference/'

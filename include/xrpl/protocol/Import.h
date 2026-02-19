@@ -20,8 +20,8 @@
 #ifndef RIPPLE_PROTOCOL_IMPORT_H_INCLUDED
 #define RIPPLE_PROTOCOL_IMPORT_H_INCLUDED
 
-// #include <ripple/basics/Log.h>
-#include <xrpl/app/misc/Manifest.h>
+#include <xrpld/app/misc/Manifest.h>
+#include <xrpl/basics/Log.h>
 #include <xrpl/basics/StringUtilities.h>
 #include <xrpl/basics/base64.h>
 #include <xrpl/json/json_reader.h>
