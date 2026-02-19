@@ -203,6 +203,9 @@ enum TxType : std::uint16_t
     /** This transaction type deletes an Oracle instance */
     ttORACLE_DELETE = 61,
 
+    /** This transaction type fixes a problem in the ledger state */
+    ttLEDGER_STATE_FIX = 62,
+
     /* A pseudo-txn alarm signal for invoking a hook, emitted by validators after alarm set conditions are met */
     ttCRON = 92,
 
