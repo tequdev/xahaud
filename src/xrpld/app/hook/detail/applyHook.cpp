@@ -1018,7 +1018,7 @@ hook::getHookOn(
     if (def->isFieldPresent(sfHookOn))
         return def->getFieldH256(sfHookOn);
     return uint256{0};
-};
+}
 
 // Update HookState ledger objects for the hook... only called after accept()
 // assumes the specified acc has already been checked for authoriation (hook
