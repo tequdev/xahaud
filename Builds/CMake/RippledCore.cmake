@@ -115,7 +115,9 @@ target_sources (xrpl_core PRIVATE
   src/ripple/protocol/impl/STObject.cpp
   src/ripple/protocol/impl/STParsedJSON.cpp
   src/ripple/protocol/impl/STPathSet.cpp
+  src/ripple/protocol/impl/STXChainBridge.cpp
   src/ripple/protocol/impl/STTx.cpp
+  src/ripple/protocol/impl/XChainAttestations.cpp
   src/ripple/protocol/impl/STValidation.cpp
   src/ripple/protocol/impl/STVar.cpp
   src/ripple/protocol/impl/STVector256.cpp
@@ -266,6 +268,7 @@ install (
     src/ripple/protocol/Indexes.h
     src/ripple/protocol/InnerObjectFormats.h
     src/ripple/protocol/Issue.h
+    src/ripple/protocol/json_get_or_throw.h
     src/ripple/protocol/KeyType.h
     src/ripple/protocol/Keylet.h
     src/ripple/protocol/KnownFormats.h
@@ -296,6 +299,8 @@ install (
     src/ripple/protocol/STParsedJSON.h
     src/ripple/protocol/STPathSet.h
     src/ripple/protocol/STTx.h
+    src/ripple/protocol/XChainAttestations.h
+    src/ripple/protocol/STXChainBridge.h
     src/ripple/protocol/STValidation.h
     src/ripple/protocol/STVector256.h
     src/ripple/protocol/SecretKey.h
@@ -561,6 +566,7 @@ target_sources (rippled PRIVATE
   src/ripple/app/tx/impl/SetRegularKey.cpp
   src/ripple/app/tx/impl/SetSignerList.cpp
   src/ripple/app/tx/impl/SetTrust.cpp
+  src/ripple/app/tx/impl/XChainBridge.cpp
   src/ripple/app/tx/impl/SignerEntries.cpp
   src/ripple/app/tx/impl/Taker.cpp
   src/ripple/app/tx/impl/Transactor.cpp
@@ -859,6 +865,7 @@ if (tests)
     src/test/app/Regression_test.cpp
     src/test/app/Remit_test.cpp
     src/test/app/SHAMapStore_test.cpp
+    src/test/app/XChain_test.cpp
     src/test/app/SetAuth_test.cpp
     src/test/app/SetHook_test.cpp
     src/test/app/SetHookTSH_test.cpp
@@ -986,6 +993,7 @@ if (tests)
     src/test/jtx/impl/acctdelete.cpp
     src/test/jtx/impl/account_txn_id.cpp
     src/test/jtx/impl/amount.cpp
+    src/test/jtx/impl/attester.cpp
     src/test/jtx/impl/balance.cpp
     src/test/jtx/impl/check.cpp
     src/test/jtx/impl/cron.cpp
@@ -1016,6 +1024,7 @@ if (tests)
     src/test/jtx/impl/remit.cpp
     src/test/jtx/impl/sendmax.cpp
     src/test/jtx/impl/seq.cpp
+    src/test/jtx/impl/xchain_bridge.cpp
     src/test/jtx/impl/sig.cpp
     src/test/jtx/impl/tag.cpp
     src/test/jtx/impl/TestHelpers.cpp

@@ -1107,33 +1107,36 @@ chooseLedgerEntryType(Json::Value const& params)
     std::pair<RPC::Status, LedgerEntryType> result{RPC::Status::OK, ltANY};
     if (params.isMember(jss::type))
     {
-        static constexpr std::array<std::pair<char const*, LedgerEntryType>, 24>
-            types{{
-                {jss::account, ltACCOUNT_ROOT},
-                {jss::amendments, ltAMENDMENTS},
-                {jss::check, ltCHECK},
-                {jss::deposit_preauth, ltDEPOSIT_PREAUTH},
-                {jss::directory, ltDIR_NODE},
-                {jss::escrow, ltESCROW},
-                {jss::emitted_txn, ltEMITTED_TXN},
-                {jss::hook, ltHOOK},
-                {jss::hook_definition, ltHOOK_DEFINITION},
-                {jss::hook_state, ltHOOK_STATE},
-                {jss::fee, ltFEE_SETTINGS},
-                {jss::hashes, ltLEDGER_HASHES},
-                {jss::import_vlseq, ltIMPORT_VLSEQ},
-                {jss::offer, ltOFFER},
-                {jss::payment_channel, ltPAYCHAN},
-                {jss::uri_token, ltURI_TOKEN},
-                {jss::signer_list, ltSIGNER_LIST},
-                {jss::state, ltRIPPLE_STATE},
-                {jss::ticket, ltTICKET},
-                {jss::nft_offer, ltNFTOKEN_OFFER},
-                {jss::nft_page, ltNFTOKEN_PAGE},
-                {jss::unl_report, ltUNL_REPORT},
-                {jss::cron, ltCRON},
-                {jss::amm, ltAMM},
-            }};
+        static constexpr std::array<std::pair<char const*, LedgerEntryType>, 27>
+            types{
+                {{jss::account, ltACCOUNT_ROOT},
+                 {jss::amendments, ltAMENDMENTS},
+                 {jss::check, ltCHECK},
+                 {jss::deposit_preauth, ltDEPOSIT_PREAUTH},
+                 {jss::directory, ltDIR_NODE},
+                 {jss::escrow, ltESCROW},
+                 {jss::emitted_txn, ltEMITTED_TXN},
+                 {jss::hook, ltHOOK},
+                 {jss::hook_definition, ltHOOK_DEFINITION},
+                 {jss::hook_state, ltHOOK_STATE},
+                 {jss::fee, ltFEE_SETTINGS},
+                 {jss::hashes, ltLEDGER_HASHES},
+                 {jss::import_vlseq, ltIMPORT_VLSEQ},
+                 {jss::offer, ltOFFER},
+                 {jss::payment_channel, ltPAYCHAN},
+                 {jss::uri_token, ltURI_TOKEN},
+                 {jss::signer_list, ltSIGNER_LIST},
+                 {jss::state, ltRIPPLE_STATE},
+                 {jss::ticket, ltTICKET},
+                 {jss::nft_offer, ltNFTOKEN_OFFER},
+                 {jss::nft_page, ltNFTOKEN_PAGE},
+                 {jss::unl_report, ltUNL_REPORT},
+                 {jss::cron, ltCRON},
+                 {jss::amm, ltAMM},
+                 {jss::bridge, ltBRIDGE},
+                 {jss::xchain_owned_claim_id, ltXCHAIN_OWNED_CLAIM_ID},
+                 {jss::xchain_owned_create_account_claim_id,
+                  ltXCHAIN_OWNED_CREATE_ACCOUNT_CLAIM_ID}}};
 
         auto const& p = params[jss::type];
         if (!p.isString())
@@ -1237,11 +1240,13 @@ getLedgerByContext(RPC::JsonContext& context)
             return RPC::make_param_error("Ledger index too small");
 
         auto const j = context.app.journal("RPCHandler");
-        // Try to get the hash of the desired ledger from the validated ledger
+        // Try to get the hash of the desired ledger from the validated
+        // ledger
         auto neededHash = hashOfSeq(*ledger, ledgerIndex, j);
         if (!neededHash)
         {
-            // Find a ledger more likely to have the hash of the desired ledger
+            // Find a ledger more likely to have the hash of the desired
+            // ledger
             auto const refIndex = getCandidateLedger(ledgerIndex);
             auto refHash = hashOfSeq(*ledger, refIndex, j);
             assert(refHash);
@@ -1249,8 +1254,8 @@ getLedgerByContext(RPC::JsonContext& context)
             ledger = ledgerMaster.getLedgerByHash(*refHash);
             if (!ledger)
             {
-                // We don't have the ledger we need to figure out which ledger
-                // they want. Try to get it.
+                // We don't have the ledger we need to figure out which
+                // ledger they want. Try to get it.
 
                 if (auto il = context.app.getInboundLedgers().acquire(
                         *refHash, refIndex, InboundLedger::Reason::GENERIC))
