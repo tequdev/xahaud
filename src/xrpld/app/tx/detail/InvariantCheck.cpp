@@ -1954,7 +1954,7 @@ ValidAMM::finalize(
     if (result != tesSUCCESS && result != tecINCOMPLETE)
         return true;
 
-    bool const enforce = view.rules().enabled(fixAMMv1_3);
+    bool const enforce = true;  // view.rules().enabled(fixAMMv1_3);
 
     switch (tx.getTxnType())
     {

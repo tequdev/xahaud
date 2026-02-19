@@ -79,7 +79,7 @@ AMMBid::preflight(PreflightContext const& ctx)
             JLOG(ctx.j.debug()) << "AMM Bid: Invalid number of AuthAccounts.";
             return temMALFORMED;
         }
-        else if (ctx.rules.enabled(fixAMMv1_3))
+        else
         {
             AccountID account = ctx.tx[sfAccount];
             std::set<AccountID> unique;
