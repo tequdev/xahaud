@@ -28,8 +28,7 @@ ammLPTokens(
     Issue const& lptIssue)
 {
     // AMM invariant: sqrt(asset1 * asset2) >= LPTokensBalance
-    auto const rounding =
-        isFeatureEnabled(fixAMMv1_3) ? Number::downward : Number::getround();
+    auto const rounding = Number::downward;
     NumberRoundModeGuard g(rounding);
     auto const tokens = root2(asset1 * asset2);
     return toSTAmount(lptIssue, tokens);
@@ -52,17 +51,10 @@ lpTokensOut(
     auto const f2 = feeMultHalf(tfee) / f1;
     Number const r = asset1Deposit / asset1Balance;
     auto const c = root2(f2 * f2 + r / f1) - f2;
-    if (!isFeatureEnabled(fixAMMv1_3))
-    {
-        auto const t = lptAMMBalance * (r - c) / (1 + c);
-        return toSTAmount(lptAMMBalance.issue(), t);
-    }
-    else
-    {
-        // minimize tokens out
-        auto const frac = (r - c) / (1 + c);
-        return multiply(lptAMMBalance, frac, Number::downward);
-    }
+
+    // minimize tokens out
+    auto const frac = (r - c) / (1 + c);
+    return multiply(lptAMMBalance, frac, Number::downward);
 }
 
 /* Equation 4 solves equation 3 for b:
@@ -91,17 +83,10 @@ ammAssetIn(
     auto const a = 1 / (t2 * t2);
     auto const b = 2 * d / t2 - 1 / f1;
     auto const c = d * d - f2 * f2;
-    if (!isFeatureEnabled(fixAMMv1_3))
-    {
-        return toSTAmount(
-            asset1Balance.issue(), asset1Balance * solveQuadraticEq(a, b, c));
-    }
-    else
-    {
-        // maximize deposit
-        auto const frac = solveQuadraticEq(a, b, c);
-        return multiply(asset1Balance, frac, Number::upward);
-    }
+
+    // maximize deposit
+    auto const frac = solveQuadraticEq(a, b, c);
+    return multiply(asset1Balance, frac, Number::upward);
 }
 
 /* Equation 7:
@@ -118,17 +103,10 @@ lpTokensIn(
     Number const fr = asset1Withdraw / asset1Balance;
     auto const f1 = getFee(tfee);
     auto const c = fr * f1 + 2 - f1;
-    if (!isFeatureEnabled(fixAMMv1_3))
-    {
-        auto const t = lptAMMBalance * (c - root2(c * c - 4 * fr)) / 2;
-        return toSTAmount(lptAMMBalance.issue(), t);
-    }
-    else
-    {
-        // maximize tokens in
-        auto const frac = (c - root2(c * c - 4 * fr)) / 2;
-        return multiply(lptAMMBalance, frac, Number::upward);
-    }
+
+    // maximize tokens in
+    auto const frac = (c - root2(c * c - 4 * fr)) / 2;
+    return multiply(lptAMMBalance, frac, Number::upward);
 }
 
 /* Equation 8 solves equation 7 for b:
@@ -150,17 +128,10 @@ ammAssetOut(
 {
     auto const f = getFee(tfee);
     Number const t1 = lpTokens / lptAMMBalance;
-    if (!isFeatureEnabled(fixAMMv1_3))
-    {
-        auto const b = assetBalance * (t1 * t1 - t1 * (2 - f)) / (t1 * f - 1);
-        return toSTAmount(assetBalance.issue(), b);
-    }
-    else
-    {
-        // minimize withdraw
-        auto const frac = (t1 * t1 - t1 * (2 - f)) / (t1 * f - 1);
-        return multiply(assetBalance, frac, Number::downward);
-    }
+
+    // minimize withdraw
+    auto const frac = (t1 * t1 - t1 * (2 - f)) / (t1 * f - 1);
+    return multiply(assetBalance, frac, Number::downward);
 }
 
 Number
@@ -194,48 +165,7 @@ adjustAmountsByLPTokens(
     IsDeposit isDeposit)
 {
     // AMMv1_3 amendment adjusts tokens and amounts in deposit/withdraw
-    if (isFeatureEnabled(fixAMMv1_3))
-        return std::make_tuple(amount, amount2, lpTokens);
-
-    auto const lpTokensActual =
-        adjustLPTokens(lptAMMBalance, lpTokens, isDeposit);
-
-    if (lpTokensActual == beast::zero)
-    {
-        auto const amount2Opt =
-            amount2 ? std::make_optional(STAmount{}) : std::nullopt;
-        return std::make_tuple(STAmount{}, amount2Opt, lpTokensActual);
-    }
-
-    if (lpTokensActual < lpTokens)
-    {
-        // Equal trade
-        if (amount2)
-        {
-            Number const fr = lpTokensActual / lpTokens;
-            auto const amountActual = toSTAmount(amount.issue(), fr * amount);
-            auto const amount2Actual =
-                toSTAmount(amount2->issue(), fr * *amount2);
-            return std::make_tuple(amountActual, amount2Actual, lpTokensActual);
-        }
-
-        // Single trade
-        auto const amountActual = [&]() {
-            if (isDeposit == IsDeposit::Yes)
-                return ammAssetIn(
-                    amountBalance, lptAMMBalance, lpTokensActual, tfee);
-            return ammAssetOut(
-                amountBalance, lptAMMBalance, lpTokensActual, tfee);
-        }();
-
-        return std::make_tuple(amountActual, std::nullopt, lpTokensActual);
-    }
-
-    XRPL_ASSERT(
-        lpTokensActual == lpTokens,
-        "ripple::adjustAmountsByLPTokens : LP tokens match actual");
-
-    return {amount, amount2, lpTokensActual};
+    return std::make_tuple(amount, amount2, lpTokens);
 }
 
 Number
@@ -275,9 +205,6 @@ getRoundedAsset(
     std::function<Number()>&& productCb,
     IsDeposit isDeposit)
 {
-    if (!rules.enabled(fixAMMv1_3))
-        return toSTAmount(balance.issue(), noRoundCb());
-
     auto const rm = detail::getAssetRounding(isDeposit);
     if (isDeposit == IsDeposit::Yes)
         return multiply(balance, productCb(), rm);
@@ -292,9 +219,6 @@ getRoundedLPTokens(
     Number const& frac,
     IsDeposit isDeposit)
 {
-    if (!rules.enabled(fixAMMv1_3))
-        return toSTAmount(balance.issue(), balance * frac);
-
     auto const rm = detail::getLPTokenRounding(isDeposit);
     auto const tokens = multiply(balance, frac, rm);
     return adjustLPTokens(balance, tokens, isDeposit);
@@ -308,9 +232,6 @@ getRoundedLPTokens(
     std::function<Number()>&& productCb,
     IsDeposit isDeposit)
 {
-    if (!rules.enabled(fixAMMv1_3))
-        return toSTAmount(lptAMMBalance.issue(), noRoundCb());
-
     auto const tokens = [&] {
         auto const rm = detail::getLPTokenRounding(isDeposit);
         if (isDeposit == IsDeposit::Yes)
@@ -332,8 +253,6 @@ adjustAssetInByTokens(
     STAmount const& tokens,
     std::uint16_t tfee)
 {
-    if (!rules.enabled(fixAMMv1_3))
-        return {tokens, amount};
     auto assetAdj = ammAssetIn(balance, lptAMMBalance, tokens, tfee);
     auto tokensAdj = tokens;
     // Rounding didn't work the right way.
@@ -358,8 +277,6 @@ adjustAssetOutByTokens(
     STAmount const& tokens,
     std::uint16_t tfee)
 {
-    if (!rules.enabled(fixAMMv1_3))
-        return {tokens, amount};
     auto assetAdj = ammAssetOut(balance, lptAMMBalance, tokens, tfee);
     auto tokensAdj = tokens;
     // Rounding didn't work the right way.
@@ -382,8 +299,6 @@ adjustFracByTokens(
     STAmount const& tokens,
     Number const& frac)
 {
-    if (!rules.enabled(fixAMMv1_3))
-        return frac;
     return tokens / lptAMMBalance;
 }
 
