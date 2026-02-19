@@ -118,6 +118,8 @@ JSS(SettleDelay);              // in: TransactionSign
 JSS(SendMax);                  // in: TransactionSign
 JSS(Sequence);                 // in/out: TransactionSign; field.
 JSS(SetFlag);                  // field.
+JSS(Signer);                   // field.
+JSS(Signers);                  // field.
 JSS(HookStateData);            // field.
 JSS(HookStateKey);             // field.
 JSS(EmitDetails);              // field.
