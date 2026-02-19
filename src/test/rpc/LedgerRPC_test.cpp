@@ -753,7 +753,7 @@ public:
 
         using namespace test::jtx;
 
-        Env env(*this);
+        Env env(*this, supported_amendments() | featureCredentials);
         Account const issuer{"issuer"};
         Account const alice{"alice"};
         Account const bob{"bob"};
@@ -1082,7 +1082,7 @@ public:
 
         using namespace test::jtx;
 
-        Env env(*this);
+        Env env(*this, supported_amendments() | featureCredentials);
         Account const issuer{"issuer"};
         Account const alice{"alice"};
         Account const bob{"bob"};
@@ -3830,7 +3830,10 @@ public:
 
         using namespace test::jtx;
 
-        Env env(*this, supported_amendments() | featurePermissionedDomains);
+        Env env(
+            *this,
+            supported_amendments() | featureCredentials |
+                featurePermissionedDomains);
         Account const issuer{"issuer"};
         Account const alice{"alice"};
         Account const bob{"bob"};

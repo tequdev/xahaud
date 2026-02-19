@@ -4548,7 +4548,7 @@ struct Escrow_test : public beast::unit_test::suite
     }
 
     void
-    testCredentials()
+    testCredentials(FeatureBitset features)
     {
         testcase("Test with credentials");
 
@@ -4564,7 +4564,7 @@ struct Escrow_test : public beast::unit_test::suite
 
         {
             // Credentials amendment not enabled
-            Env env(*this, supported_amendments() - featureCredentials);
+            Env env(*this, features - featureCredentials);
             env.fund(XRP(5000), alice, bob);
             env.close();
 
@@ -4582,7 +4582,7 @@ struct Escrow_test : public beast::unit_test::suite
         }
 
         {
-            Env env(*this);
+            Env env(*this, features);
 
             env.fund(XRP(5000), alice, bob, carol, dillon, zelda);
             env.close();
@@ -4634,7 +4634,7 @@ struct Escrow_test : public beast::unit_test::suite
             testcase("Escrow with credentials without depositPreauth");
             using namespace std::chrono;
 
-            Env env(*this);
+            Env env(*this, features);
 
             env.fund(XRP(5000), alice, bob, carol, dillon, zelda);
             env.close();
@@ -4736,13 +4736,13 @@ public:
     run() override
     {
         using namespace test::jtx;
-        FeatureBitset const all{supported_amendments()};
+        FeatureBitset const all{supported_amendments() | featureCredentials};
         testWithFeats(all - featurePaychanAndEscrowForTokens);
         testWithFeats(all);
         testIOUWithFeats(all - featureClawback);
         testIOUWithFeats(all);
         testEscrowID(all);
-        testCredentials();
+        testCredentials(all);
     }
 };
 
