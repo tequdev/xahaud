@@ -130,7 +130,7 @@ public:
         for (auto const& size : validSizes)
         {
             beast::temp_dir tempDir;
-            auto params = createSection(tempDir.path(), to_string(size));
+            auto params = createSection(tempDir.path(), std::to_string(size));
 
             BEAST_EXPECT(testBackendFunctionality(params, size));
         }
