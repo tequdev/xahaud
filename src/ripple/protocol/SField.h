@@ -22,6 +22,7 @@
 
 #include <ripple/basics/safe_cast.h>
 #include <ripple/json/json_value.h>
+
 #include <cstdint>
 #include <map>
 #include <utility>
@@ -42,6 +43,7 @@ Some fields have a different meaning for their
 // Forwards
 class STAccount;
 class STAmount;
+class STIssue;
 class STBlob;
 template <int>
 class STBitString;
@@ -77,6 +79,7 @@ enum SerializedTypeID {
     STI_UINT192 = 21,
     STI_UINT384 = 22,
     STI_UINT512 = 23,
+    STI_ISSUE = 24,
 
     // high level types
     // cannot be serialized inside other types
@@ -314,6 +317,7 @@ using SF_UINT512 = TypedField<STBitString<512>>;
 
 using SF_ACCOUNT = TypedField<STAccount>;
 using SF_AMOUNT = TypedField<STAmount>;
+using SF_ISSUE = TypedField<STIssue>;
 using SF_VL = TypedField<STBlob>;
 using SF_VECTOR256 = TypedField<STVector256>;
 
@@ -341,6 +345,7 @@ extern SF_UINT16 const sfLedgerEntryType;
 extern SF_UINT16 const sfTransactionType;
 extern SF_UINT16 const sfSignerWeight;
 extern SF_UINT16 const sfTransferFee;
+extern SF_UINT16 const sfTradingFee;
 
 // 16-bit integers (uncommon)
 extern SF_UINT16 const sfVersion;
@@ -349,6 +354,7 @@ extern SF_UINT16 const sfHookEmitCount;
 extern SF_UINT16 const sfHookExecutionIndex;
 extern SF_UINT16 const sfHookApiVersion;
 extern SF_UINT16 const sfHookStateScale;
+extern SF_UINT16 const sfDiscountedFee;
 
 // 32-bit integers (common)
 extern SF_UINT32 const sfNetworkID;
@@ -398,6 +404,7 @@ extern SF_UINT32 const sfMintedNFTokens;
 extern SF_UINT32 const sfBurnedNFTokens;
 extern SF_UINT32 const sfHookStateCount;
 extern SF_UINT32 const sfEmitGeneration;
+extern SF_UINT32 const sfVoteWeight;
 extern SF_UINT32 const sfLockCount;
 extern SF_UINT32 const sfRewardTime;
 extern SF_UINT32 const sfRewardLgrFirst;
@@ -461,6 +468,7 @@ extern SF_UINT256 const sfEmitHookHash;
 extern SF_UINT256 const sfObjectID;
 extern SF_UINT256 const sfHookOnIncoming;
 extern SF_UINT256 const sfHookOnOutgoing;
+extern SF_UINT256 const sfAMMID;
 
 // 256-bit (uncommon)
 extern SF_UINT256 const sfBookDirectory;
@@ -500,6 +508,12 @@ extern SF_AMOUNT const sfFee;
 extern SF_AMOUNT const sfSendMax;
 extern SF_AMOUNT const sfDeliverMin;
 extern SF_AMOUNT const sfLockedBalance;
+extern SF_AMOUNT const sfAmount2;
+extern SF_AMOUNT const sfEPrice;
+extern SF_AMOUNT const sfBidMin;
+extern SF_AMOUNT const sfBidMax;
+extern SF_AMOUNT const sfPrice;
+extern SF_AMOUNT const sfLPTokenBalance;
 
 // currency amount (uncommon)
 extern SF_AMOUNT const sfMinimumOffer;
@@ -507,6 +521,8 @@ extern SF_AMOUNT const sfRippleEscrow;
 extern SF_AMOUNT const sfDeliveredAmount;
 extern SF_AMOUNT const sfNFTokenBrokerFee;
 extern SF_AMOUNT const sfHookCallbackFee;
+extern SF_AMOUNT const sfLPTokenOut;
+extern SF_AMOUNT const sfLPTokenIn;
 
 // currency amount (fees)
 extern SF_AMOUNT const sfBaseFeeDrops;
@@ -563,6 +579,10 @@ extern SF_ACCOUNT const sfInform;
 // path set
 extern SField const sfPaths;
 
+// issue
+extern SF_ISSUE const sfAsset;
+extern SF_ISSUE const sfAsset2;
+
 // vector of 256-bit
 extern SF_VECTOR256 const sfIndexes;
 extern SF_VECTOR256 const sfHashes;
@@ -586,6 +606,9 @@ extern SField const sfSignerEntry;
 extern SField const sfNFToken;
 extern SField const sfEmitDetails;
 extern SField const sfHook;
+extern SField const sfVoteEntry;
+extern SField const sfAuctionSlot;
+extern SField const sfAuthAccount;
 
 extern SField const sfSigner;
 extern SField const sfMajority;
@@ -615,6 +638,8 @@ extern SField const sfMemos;
 extern SField const sfNFTokens;
 extern SField const sfHooks;
 extern SField const sfGenesisMint;
+extern SField const sfVoteSlots;
+extern SField const sfAuthAccounts;
 
 // array of objects (uncommon)
 extern SField const sfMajorities;

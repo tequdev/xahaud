@@ -29,6 +29,11 @@
 #define ttNFTOKEN_CANCEL_OFFER 28
 #define ttNFTOKEN_ACCEPT_OFFER 29
 #define ttCLAWBACK 30
+#define ttAMM_CREATE 35
+#define ttAMM_DEPOSIT 36
+#define ttAMM_WITHDRAW 37
+#define ttAMM_VOTE 38
+#define ttAMM_BID 39
 #define ttURITOKEN_MINT 45
 #define ttURITOKEN_BURN 46
 #define ttURITOKEN_BUY 47

@@ -300,6 +300,13 @@ uritoken(AccountID const& issuer, Blob const& uri);
 Keylet
 cron(uint32_t timestamp, std::optional<AccountID> const& id = std::nullopt);
 
+/** AMM entry */
+Keylet
+amm(Issue const& issue1, Issue const& issue2) noexcept;
+
+Keylet
+amm(uint256 const& amm) noexcept;
+
 }  // namespace keylet
 
 // Everything below is deprecated and should be removed in favor of keylets:

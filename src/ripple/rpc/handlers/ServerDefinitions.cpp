@@ -436,6 +436,33 @@ private:
                 static_cast<uint32_t>(entry.value);
         }
 
+        // AMMWithdraw
+        std::array<FlagData, 7> ammWithdrawFlags{
+            {{"tfLPToken", tfLPToken},
+             {"tfSingleAsset", tfSingleAsset},
+             {"tfTwoAsset", tfTwoAsset},
+             {"tfOneAssetLPToken", tfOneAssetLPToken},
+             {"tfLimitLPToken", tfLimitLPToken},
+             {"tfWithdrawAll", tfWithdrawAll},
+             {"tfOneAssetWithdrawAll", tfOneAssetWithdrawAll}}};
+        for (auto const& entry : ammWithdrawFlags)
+        {
+            ret[jss::TRANSACTION_FLAGS]["AMMWithdraw"][entry.name] =
+                static_cast<uint32_t>(entry.value);
+        }
+        // AMM Deposit
+        std::array<FlagData, 5> ammDepositFlags{
+            {{"tfLPToken", tfLPToken},
+             {"tfSingleAsset", tfSingleAsset},
+             {"tfTwoAsset", tfTwoAsset},
+             {"tfOneAssetLPToken", tfOneAssetLPToken},
+             {"tfLimitLPToken", tfLimitLPToken}}};
+        for (auto const& entry : ammDepositFlags)
+        {
+            ret[jss::TRANSACTION_FLAGS]["AMMDeposit"][entry.name] =
+                static_cast<uint32_t>(entry.value);
+        }
+
         // Transaction Indicies Flags:
         ret[jss::TRANSACTION_FLAGS_INDICES] = Json::objectValue;
         for (auto const& entry : magic_enum::enum_entries<AccountFlags>())
@@ -460,7 +487,7 @@ private:
     Json::Value defs;
 
 public:
-    Definitions() : defs(generate()){};
+    Definitions() : defs(generate()) {};
 
     uint256 const&
     getHash() const

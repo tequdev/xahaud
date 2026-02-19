@@ -28,6 +28,7 @@
 #include <ripple/protocol/jss.h>
 #include <test/jtx.h>
 #include <test/jtx/PathSet.h>
+#include <test/jtx/TestHelpers.h>
 
 namespace ripple {
 namespace test {

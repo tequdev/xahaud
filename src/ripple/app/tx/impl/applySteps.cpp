@@ -18,6 +18,11 @@
 //==============================================================================
 
 #include <ripple/app/tx/applySteps.h>
+#include <ripple/app/tx/impl/AMMBid.h>
+#include <ripple/app/tx/impl/AMMCreate.h>
+#include <ripple/app/tx/impl/AMMDeposit.h>
+#include <ripple/app/tx/impl/AMMVote.h>
+#include <ripple/app/tx/impl/AMMWithdraw.h>
 #include <ripple/app/tx/impl/ApplyContext.h>
 #include <ripple/app/tx/impl/CancelCheck.h>
 #include <ripple/app/tx/impl/CancelOffer.h>
@@ -187,6 +192,16 @@ invoke_preflight(PreflightContext const& ctx)
             return invoke_preflight_helper<CronSet>(ctx);
         case ttCRON:
             return invoke_preflight_helper<Cron>(ctx);
+        case ttAMM_CREATE:
+            return invoke_preflight_helper<AMMCreate>(ctx);
+        case ttAMM_DEPOSIT:
+            return invoke_preflight_helper<AMMDeposit>(ctx);
+        case ttAMM_WITHDRAW:
+            return invoke_preflight_helper<AMMWithdraw>(ctx);
+        case ttAMM_VOTE:
+            return invoke_preflight_helper<AMMVote>(ctx);
+        case ttAMM_BID:
+            return invoke_preflight_helper<AMMBid>(ctx);
         default:
             assert(false);
             return {temUNKNOWN, TxConsequences{temUNKNOWN}};
@@ -316,6 +331,16 @@ invoke_preclaim(PreclaimContext const& ctx)
             return invoke_preclaim<CronSet>(ctx);
         case ttCRON:
             return invoke_preclaim<Cron>(ctx);
+        case ttAMM_CREATE:
+            return invoke_preclaim<AMMCreate>(ctx);
+        case ttAMM_DEPOSIT:
+            return invoke_preclaim<AMMDeposit>(ctx);
+        case ttAMM_WITHDRAW:
+            return invoke_preclaim<AMMWithdraw>(ctx);
+        case ttAMM_VOTE:
+            return invoke_preclaim<AMMVote>(ctx);
+        case ttAMM_BID:
+            return invoke_preclaim<AMMBid>(ctx);
         default:
             assert(false);
             return temUNKNOWN;
@@ -407,6 +432,16 @@ invoke_calculateBaseFee(ReadView const& view, STTx const& tx)
             return CronSet::calculateBaseFee(view, tx);
         case ttCRON:
             return Cron::calculateBaseFee(view, tx);
+        case ttAMM_CREATE:
+            return AMMCreate::calculateBaseFee(view, tx);
+        case ttAMM_DEPOSIT:
+            return AMMDeposit::calculateBaseFee(view, tx);
+        case ttAMM_WITHDRAW:
+            return AMMWithdraw::calculateBaseFee(view, tx);
+        case ttAMM_VOTE:
+            return AMMVote::calculateBaseFee(view, tx);
+        case ttAMM_BID:
+            return AMMBid::calculateBaseFee(view, tx);
         default:
             return XRPAmount{0};
     }
@@ -606,6 +641,26 @@ invoke_apply(ApplyContext& ctx)
         }
         case ttCRON: {
             Cron p(ctx);
+            return p();
+        }
+        case ttAMM_CREATE: {
+            AMMCreate p(ctx);
+            return p();
+        }
+        case ttAMM_DEPOSIT: {
+            AMMDeposit p(ctx);
+            return p();
+        }
+        case ttAMM_WITHDRAW: {
+            AMMWithdraw p(ctx);
+            return p();
+        }
+        case ttAMM_VOTE: {
+            AMMVote p(ctx);
+            return p();
+        }
+        case ttAMM_BID: {
+            AMMBid p(ctx);
             return p();
         }
         default:

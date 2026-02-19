@@ -22,6 +22,7 @@
 #include <ripple/protocol/jss.h>
 #include <test/jtx.h>
 #include <test/jtx/PathSet.h>
+#include <test/jtx/TestHelpers.h>
 #include <test/jtx/WSClient.h>
 
 namespace ripple {
@@ -2682,7 +2683,7 @@ public:
         env.close();
 
         // The scenario:
-        //   o alice has USD but wants XPR.
+        //   o alice has USD but wants XRP.
         //   o bob has XRP but wants EUR.
         //   o carol has EUR but wants USD.
         // Note that carol's offer must come last.  If carol's offer is placed
@@ -3281,7 +3282,7 @@ public:
             env.fund(XRP(2) + reserve(env, 3) + (fee * 3), ova, pat, qae);
             env.close();
 
-            //   o ova has USD but wants XPR.
+            //   o ova has USD but wants XRP.
             //   o pat has XRP but wants EUR.
             //   o qae has EUR but wants USD.
             env(trust(ova, USD(200)));

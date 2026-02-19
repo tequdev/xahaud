@@ -28,6 +28,7 @@
 #include <ripple/protocol/jss.h>
 #include <test/app/Import_json.h>
 #include <test/jtx.h>
+#include <test/jtx/TestHelpers.h>
 #include <vector>
 
 namespace ripple {
@@ -1519,7 +1520,7 @@ private:
             auto const seq1 = env.seq(account);
             NetClock::time_point const finishTime = env.now() + 1s;
             NetClock::time_point const cancelTime = env.now() + 2s;
-            auto createTx = escrow::create(account, dest, XRP(10));
+            auto createTx = escrow(account, dest, XRP(10));
             createTx[sfFinishAfter.jsonName] =
                 finishTime.time_since_epoch().count();
             createTx[sfCancelAfter.jsonName] =
@@ -1535,9 +1536,7 @@ private:
             setTSHHook(env, account, testStrong);
 
             // cancel escrow
-            env(escrow::cancel(account, account, seq1),
-                fee(XRP(1)),
-                ter(tesSUCCESS));
+            env(cancel(account, account, seq1), fee(XRP(1)), ter(tesSUCCESS));
             env.close();
 
             // verify tsh hook triggered
@@ -1566,7 +1565,7 @@ private:
             auto const seq1 = env.seq(account);
             NetClock::time_point const finishTime = env.now() + 1s;
             NetClock::time_point const cancelTime = env.now() + 2s;
-            auto createTx = escrow::create(account, dest, XRP(10));
+            auto createTx = escrow(account, dest, XRP(10));
             createTx[sfFinishAfter.jsonName] =
                 finishTime.time_since_epoch().count();
             createTx[sfCancelAfter.jsonName] =
@@ -1582,9 +1581,7 @@ private:
             setTSHHook(env, dest, testStrong);
 
             // cancel escrow
-            env(escrow::cancel(account, account, seq1),
-                fee(XRP(1)),
-                ter(tesSUCCESS));
+            env(cancel(account, account, seq1), fee(XRP(1)), ter(tesSUCCESS));
             env.close();
 
             // verify tsh hook triggered
@@ -1617,7 +1614,7 @@ private:
             auto const seq1 = env.seq(account);
             NetClock::time_point const finishTime = env.now() + 1s;
             NetClock::time_point const cancelTime = env.now() + 2s;
-            auto createTx = escrow::create(account, dest, XRP(10));
+            auto createTx = escrow(account, dest, XRP(10));
             createTx[sfFinishAfter.jsonName] =
                 finishTime.time_since_epoch().count();
             createTx[sfCancelAfter.jsonName] =
@@ -1633,9 +1630,7 @@ private:
             setTSHHook(env, dest, testStrong);
 
             // cancel escrow
-            env(escrow::cancel(dest, account, seq1),
-                fee(XRP(1)),
-                ter(tesSUCCESS));
+            env(cancel(dest, account, seq1), fee(XRP(1)), ter(tesSUCCESS));
             env.close();
 
             // verify tsh hook triggered
@@ -1661,7 +1656,7 @@ private:
             auto const seq1 = env.seq(account);
             NetClock::time_point const finishTime = env.now() + 1s;
             NetClock::time_point const cancelTime = env.now() + 2s;
-            auto createTx = escrow::create(account, dest, XRP(10));
+            auto createTx = escrow(account, dest, XRP(10));
             createTx[sfFinishAfter.jsonName] =
                 finishTime.time_since_epoch().count();
             createTx[sfCancelAfter.jsonName] =
@@ -1677,9 +1672,7 @@ private:
             setTSHHook(env, account, testStrong);
 
             // cancel escrow
-            env(escrow::cancel(dest, account, seq1),
-                fee(XRP(1)),
-                ter(tesSUCCESS));
+            env(cancel(dest, account, seq1), fee(XRP(1)), ter(tesSUCCESS));
             env.close();
 
             // verify tsh hook triggered
@@ -1715,7 +1708,7 @@ private:
             auto const seq1 = env.seq(account);
             NetClock::time_point const finishTime = env.now() + 1s;
             NetClock::time_point const cancelTime = env.now() + 2s;
-            auto createTx = escrow::create(account, dest, USD(10));
+            auto createTx = escrow(account, dest, USD(10));
             createTx[sfFinishAfter.jsonName] =
                 finishTime.time_since_epoch().count();
             createTx[sfCancelAfter.jsonName] =
@@ -1731,9 +1724,7 @@ private:
             setTSHHook(env, gw, testStrong);
 
             // cancel escrow
-            env(escrow::cancel(account, account, seq1),
-                fee(XRP(1)),
-                ter(tesSUCCESS));
+            env(cancel(account, account, seq1), fee(XRP(1)), ter(tesSUCCESS));
             env.close();
 
             // verify tsh hook triggered
@@ -1776,7 +1767,7 @@ private:
             uint256 const escrowId{getEscrowIndex(account, env.seq(account))};
             NetClock::time_point const finishTime = env.now() + 1s;
             NetClock::time_point const cancelTime = env.now() + 2s;
-            auto createTx = escrow::create(account, dest, XRP(10));
+            auto createTx = escrow(account, dest, XRP(10));
             createTx[sfFinishAfter.jsonName] =
                 finishTime.time_since_epoch().count();
             createTx[sfCancelAfter.jsonName] =
@@ -1795,13 +1786,13 @@ private:
             Json::Value tx;
             if (!env.current()->rules().enabled(fixXahauV1))
             {
-                tx = escrow::cancel(account, account, 0);
+                tx = cancel(account, account, 0);
             }
             else
             {
-                tx = escrow::cancel(account, account);
+                tx = cancel(account, account);
             }
-            env(tx, escrow::escrow_id(escrowId), fee(XRP(1)), ter(tesSUCCESS));
+            env(tx, escrow_id(escrowId), fee(XRP(1)), ter(tesSUCCESS));
             env.close();
 
             // verify tsh hook triggered
@@ -1830,7 +1821,7 @@ private:
             uint256 const escrowId{getEscrowIndex(account, env.seq(account))};
             NetClock::time_point const finishTime = env.now() + 1s;
             NetClock::time_point const cancelTime = env.now() + 2s;
-            auto createTx = escrow::create(account, dest, XRP(10));
+            auto createTx = escrow(account, dest, XRP(10));
             createTx[sfFinishAfter.jsonName] =
                 finishTime.time_since_epoch().count();
             createTx[sfCancelAfter.jsonName] =
@@ -1849,13 +1840,13 @@ private:
             Json::Value tx;
             if (!env.current()->rules().enabled(fixXahauV1))
             {
-                tx = escrow::cancel(account, account, 0);
+                tx = cancel(account, account, 0);
             }
             else
             {
-                tx = escrow::cancel(account, account);
+                tx = cancel(account, account);
             }
-            env(tx, escrow::escrow_id(escrowId), fee(XRP(1)), ter(tesSUCCESS));
+            env(tx, escrow_id(escrowId), fee(XRP(1)), ter(tesSUCCESS));
             env.close();
 
             // verify tsh hook triggered
@@ -1888,7 +1879,7 @@ private:
             uint256 const escrowId{getEscrowIndex(account, env.seq(account))};
             NetClock::time_point const finishTime = env.now() + 1s;
             NetClock::time_point const cancelTime = env.now() + 2s;
-            auto createTx = escrow::create(account, dest, XRP(10));
+            auto createTx = escrow(account, dest, XRP(10));
             createTx[sfFinishAfter.jsonName] =
                 finishTime.time_since_epoch().count();
             createTx[sfCancelAfter.jsonName] =
@@ -1907,13 +1898,13 @@ private:
             Json::Value tx;
             if (!env.current()->rules().enabled(fixXahauV1))
             {
-                tx = escrow::cancel(dest, account, 0);
+                tx = cancel(dest, account, 0);
             }
             else
             {
-                tx = escrow::cancel(dest, account);
+                tx = cancel(dest, account);
             }
-            env(tx, escrow::escrow_id(escrowId), fee(XRP(1)), ter(tesSUCCESS));
+            env(tx, escrow_id(escrowId), fee(XRP(1)), ter(tesSUCCESS));
             env.close();
 
             // verify tsh hook triggered
@@ -1939,7 +1930,7 @@ private:
             uint256 const escrowId{getEscrowIndex(account, env.seq(account))};
             NetClock::time_point const finishTime = env.now() + 1s;
             NetClock::time_point const cancelTime = env.now() + 2s;
-            auto createTx = escrow::create(account, dest, XRP(10));
+            auto createTx = escrow(account, dest, XRP(10));
             createTx[sfFinishAfter.jsonName] =
                 finishTime.time_since_epoch().count();
             createTx[sfCancelAfter.jsonName] =
@@ -1959,13 +1950,13 @@ private:
             Json::Value tx;
             if (!fixV1)
             {
-                tx = escrow::cancel(dest, account, 0);
+                tx = cancel(dest, account, 0);
             }
             else
             {
-                tx = escrow::cancel(dest, account);
+                tx = cancel(dest, account);
             }
-            env(tx, escrow::escrow_id(escrowId), fee(XRP(1)), ter(tesSUCCESS));
+            env(tx, escrow_id(escrowId), fee(XRP(1)), ter(tesSUCCESS));
             env.close();
 
             // verify tsh hook triggered
@@ -2004,7 +1995,7 @@ private:
             uint256 const escrowId{getEscrowIndex(account, env.seq(account))};
             NetClock::time_point const finishTime = env.now() + 1s;
             NetClock::time_point const cancelTime = env.now() + 2s;
-            auto createTx = escrow::create(account, dest, USD(10));
+            auto createTx = escrow(account, dest, USD(10));
             createTx[sfFinishAfter.jsonName] =
                 finishTime.time_since_epoch().count();
             createTx[sfCancelAfter.jsonName] =
@@ -2023,13 +2014,13 @@ private:
             Json::Value tx;
             if (!env.current()->rules().enabled(fixXahauV1))
             {
-                tx = escrow::cancel(account, account, 0);
+                tx = cancel(account, account, 0);
             }
             else
             {
-                tx = escrow::cancel(account, account);
+                tx = cancel(account, account);
             }
-            env(tx, escrow::escrow_id(escrowId), fee(XRP(1)), ter(tesSUCCESS));
+            env(tx, escrow_id(escrowId), fee(XRP(1)), ter(tesSUCCESS));
             env.close();
 
             // verify tsh hook triggered
@@ -2078,7 +2069,7 @@ private:
             // create escrow
             NetClock::time_point const finishTime = env.now() + 1s;
             NetClock::time_point const cancelTime = env.now() + 2s;
-            auto createTx = escrow::create(account, dest, XRP(10));
+            auto createTx = escrow(account, dest, XRP(10));
             createTx[sfFinishAfter.jsonName] =
                 finishTime.time_since_epoch().count();
             createTx[sfCancelAfter.jsonName] =
@@ -2115,7 +2106,7 @@ private:
             // create escrow
             NetClock::time_point const finishTime = env.now() + 1s;
             NetClock::time_point const cancelTime = env.now() + 2s;
-            auto createTx = escrow::create(account, dest, XRP(10));
+            auto createTx = escrow(account, dest, XRP(10));
             createTx[sfFinishAfter.jsonName] =
                 finishTime.time_since_epoch().count();
             createTx[sfCancelAfter.jsonName] =
@@ -2162,7 +2153,7 @@ private:
             // create escrow
             NetClock::time_point const finishTime = env.now() + 1s;
             NetClock::time_point const cancelTime = env.now() + 2s;
-            auto createTx = escrow::create(account, dest, USD(10));
+            auto createTx = escrow(account, dest, USD(10));
             createTx[sfFinishAfter.jsonName] =
                 finishTime.time_since_epoch().count();
             createTx[sfCancelAfter.jsonName] =
@@ -2209,7 +2200,7 @@ private:
             // create escrow
             auto const seq1 = env.seq(account);
             NetClock::time_point const finishTime = env.now() + 1s;
-            auto createTx = escrow::create(account, dest, XRP(10));
+            auto createTx = escrow(account, dest, XRP(10));
             createTx[sfFinishAfter.jsonName] =
                 finishTime.time_since_epoch().count();
             env(createTx, ter(tesSUCCESS));
@@ -2223,9 +2214,7 @@ private:
             setTSHHook(env, account, testStrong);
 
             // finish escrow
-            env(escrow::finish(account, account, seq1),
-                fee(XRP(1)),
-                ter(tesSUCCESS));
+            env(finish(account, account, seq1), fee(XRP(1)), ter(tesSUCCESS));
             env.close();
 
             // verify tsh hook triggered
@@ -2250,7 +2239,7 @@ private:
             // create escrow
             auto const seq1 = env.seq(account);
             NetClock::time_point const finishTime = env.now() + 1s;
-            auto createTx = escrow::create(account, dest, XRP(10));
+            auto createTx = escrow(account, dest, XRP(10));
             createTx[sfFinishAfter.jsonName] =
                 finishTime.time_since_epoch().count();
             env(createTx, ter(tesSUCCESS));
@@ -2264,9 +2253,7 @@ private:
             setTSHHook(env, dest, testStrong);
 
             // finish escrow
-            env(escrow::finish(account, account, seq1),
-                fee(XRP(1)),
-                ter(tesSUCCESS));
+            env(finish(account, account, seq1), fee(XRP(1)), ter(tesSUCCESS));
             env.close();
 
             // verify tsh hook triggered
@@ -2291,7 +2278,7 @@ private:
             // create escrow
             auto const seq1 = env.seq(account);
             NetClock::time_point const finishTime = env.now() + 1s;
-            auto createTx = escrow::create(account, dest, XRP(10));
+            auto createTx = escrow(account, dest, XRP(10));
             createTx[sfFinishAfter.jsonName] =
                 finishTime.time_since_epoch().count();
             env(createTx, ter(tesSUCCESS));
@@ -2305,9 +2292,7 @@ private:
             setTSHHook(env, dest, testStrong);
 
             // finish escrow
-            env(escrow::finish(dest, account, seq1),
-                fee(XRP(1)),
-                ter(tesSUCCESS));
+            env(finish(dest, account, seq1), fee(XRP(1)), ter(tesSUCCESS));
             env.close();
 
             // verify tsh hook triggered
@@ -2332,7 +2317,7 @@ private:
             // create escrow
             auto const seq1 = env.seq(account);
             NetClock::time_point const finishTime = env.now() + 1s;
-            auto createTx = escrow::create(account, dest, XRP(10));
+            auto createTx = escrow(account, dest, XRP(10));
             createTx[sfFinishAfter.jsonName] =
                 finishTime.time_since_epoch().count();
             env(createTx, ter(tesSUCCESS));
@@ -2346,9 +2331,7 @@ private:
             setTSHHook(env, account, testStrong);
 
             // finish escrow
-            env(escrow::finish(dest, account, seq1),
-                fee(XRP(1)),
-                ter(tesSUCCESS));
+            env(finish(dest, account, seq1), fee(XRP(1)), ter(tesSUCCESS));
             env.close();
 
             // verify tsh hook triggered
@@ -2383,7 +2366,7 @@ private:
             // create escrow
             auto const seq1 = env.seq(account);
             NetClock::time_point const finishTime = env.now() + 1s;
-            auto createTx = escrow::create(account, dest, USD(10));
+            auto createTx = escrow(account, dest, USD(10));
             createTx[sfFinishAfter.jsonName] =
                 finishTime.time_since_epoch().count();
             env(createTx, ter(tesSUCCESS));
@@ -2397,9 +2380,7 @@ private:
             setTSHHook(env, gw, testStrong);
 
             // finish escrow
-            env(escrow::finish(account, account, seq1),
-                fee(XRP(1)),
-                ter(tesSUCCESS));
+            env(finish(account, account, seq1), fee(XRP(1)), ter(tesSUCCESS));
             env.close();
 
             // verify tsh hook triggered
@@ -2441,7 +2422,7 @@ private:
             // create escrow
             uint256 const escrowId{getEscrowIndex(account, env.seq(account))};
             NetClock::time_point const finishTime = env.now() + 1s;
-            auto createTx = escrow::create(account, dest, XRP(10));
+            auto createTx = escrow(account, dest, XRP(10));
             createTx[sfFinishAfter.jsonName] =
                 finishTime.time_since_epoch().count();
             env(createTx, ter(tesSUCCESS));
@@ -2458,13 +2439,13 @@ private:
             Json::Value tx;
             if (!env.current()->rules().enabled(fixXahauV1))
             {
-                tx = escrow::finish(account, account, 0);
+                tx = finish(account, account, 0);
             }
             else
             {
-                tx = escrow::finish(account, account);
+                tx = finish(account, account);
             }
-            env(tx, escrow::escrow_id(escrowId), fee(XRP(1)), ter(tesSUCCESS));
+            env(tx, escrow_id(escrowId), fee(XRP(1)), ter(tesSUCCESS));
             env.close();
 
             // verify tsh hook triggered
@@ -2489,7 +2470,7 @@ private:
             // create escrow
             uint256 const escrowId{getEscrowIndex(account, env.seq(account))};
             NetClock::time_point const finishTime = env.now() + 1s;
-            auto createTx = escrow::create(account, dest, XRP(10));
+            auto createTx = escrow(account, dest, XRP(10));
             createTx[sfFinishAfter.jsonName] =
                 finishTime.time_since_epoch().count();
             env(createTx, ter(tesSUCCESS));
@@ -2507,13 +2488,13 @@ private:
             Json::Value tx;
             if (!fixV1)
             {
-                tx = escrow::finish(account, account, 0);
+                tx = finish(account, account, 0);
             }
             else
             {
-                tx = escrow::finish(account, account);
+                tx = finish(account, account);
             }
-            env(tx, escrow::escrow_id(escrowId), fee(XRP(1)), ter(tesSUCCESS));
+            env(tx, escrow_id(escrowId), fee(XRP(1)), ter(tesSUCCESS));
             env.close();
 
             // verify tsh hook triggered
@@ -2541,7 +2522,7 @@ private:
             // create escrow
             uint256 const escrowId{getEscrowIndex(account, env.seq(account))};
             NetClock::time_point const finishTime = env.now() + 1s;
-            auto createTx = escrow::create(account, dest, XRP(10));
+            auto createTx = escrow(account, dest, XRP(10));
             createTx[sfFinishAfter.jsonName] =
                 finishTime.time_since_epoch().count();
             env(createTx, ter(tesSUCCESS));
@@ -2558,13 +2539,13 @@ private:
             Json::Value tx;
             if (!env.current()->rules().enabled(fixXahauV1))
             {
-                tx = escrow::finish(dest, account, 0);
+                tx = finish(dest, account, 0);
             }
             else
             {
-                tx = escrow::finish(dest, account);
+                tx = finish(dest, account);
             }
-            env(tx, escrow::escrow_id(escrowId), fee(XRP(1)), ter(tesSUCCESS));
+            env(tx, escrow_id(escrowId), fee(XRP(1)), ter(tesSUCCESS));
             env.close();
 
             // verify tsh hook triggered
@@ -2589,7 +2570,7 @@ private:
             // create escrow
             uint256 const escrowId{getEscrowIndex(account, env.seq(account))};
             NetClock::time_point const finishTime = env.now() + 1s;
-            auto createTx = escrow::create(account, dest, XRP(10));
+            auto createTx = escrow(account, dest, XRP(10));
             createTx[sfFinishAfter.jsonName] =
                 finishTime.time_since_epoch().count();
             env(createTx, ter(tesSUCCESS));
@@ -2607,13 +2588,13 @@ private:
             Json::Value tx;
             if (!fixV1)
             {
-                tx = escrow::finish(dest, account, 0);
+                tx = finish(dest, account, 0);
             }
             else
             {
-                tx = escrow::finish(dest, account);
+                tx = finish(dest, account);
             }
-            env(tx, escrow::escrow_id(escrowId), fee(XRP(1)), ter(tesSUCCESS));
+            env(tx, escrow_id(escrowId), fee(XRP(1)), ter(tesSUCCESS));
             env.close();
 
             // verify tsh hook triggered
@@ -2651,7 +2632,7 @@ private:
             // create escrow
             uint256 const escrowId{getEscrowIndex(account, env.seq(account))};
             NetClock::time_point const finishTime = env.now() + 1s;
-            auto createTx = escrow::create(account, dest, USD(10));
+            auto createTx = escrow(account, dest, USD(10));
             createTx[sfFinishAfter.jsonName] =
                 finishTime.time_since_epoch().count();
             env(createTx, ter(tesSUCCESS));
@@ -2669,13 +2650,13 @@ private:
             Json::Value tx;
             if (!fixV1)
             {
-                tx = escrow::finish(dest, account, 0);
+                tx = finish(dest, account, 0);
             }
             else
             {
-                tx = escrow::finish(dest, account);
+                tx = finish(dest, account);
             }
-            env(tx, escrow::escrow_id(escrowId), fee(XRP(1)), ter(tesSUCCESS));
+            env(tx, escrow_id(escrowId), fee(XRP(1)), ter(tesSUCCESS));
             env.close();
 
             // verify tsh hook triggered
