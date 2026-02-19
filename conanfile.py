@@ -29,7 +29,6 @@ class Xrpl(ConanFile):
         'date/3.0.3',
         'grpc/1.50.1',
         'libarchive/3.6.2',
-        'lz4/1.9.4',
         'nudb/2.0.8',
         'openssl/3.6.0',
         'soci/4.0.3@xahaud/stable',
@@ -120,6 +119,7 @@ class Xrpl(ConanFile):
         self.requires('snappy/1.1.10@xahaud/stable', override=True)
         # Force boost version for all dependencies to avoid conflicts
         self.requires('boost/1.86.0', override=True)
+        self.requires('lz4/1.9.4', force=True)
 
         if self.options.with_wasmedge:
             self.requires('wasmedge/0.11.2@xahaud/stable')
@@ -132,7 +132,12 @@ class Xrpl(ConanFile):
             self.requires('rocksdb/6.29.5')
 
     exports_sources = (
-        'CMakeLists.txt', 'Builds/*', 'bin/getRippledInfo', 'src/*', 'cfg/*', 'external/*'
+        'CMakeLists.txt',
+        'Builds/*',
+        'bin/getRippledInfo',
+        'cfg/*'
+        'external/*',
+        'src/*',
     )
 
     def layout(self):
@@ -179,8 +184,18 @@ class Xrpl(ConanFile):
         libxrpl.includedirs = ['include', 'include/ripple/proto']
         libxrpl.requires = [
             'boost::boost',
-            'openssl::crypto',
             'date::date',
             'grpc::grpc++',
+            'libarchive::libarchive',
+            'lz4::lz4',
+            'nudb::nudb',
+            'openssl::crypto',
+            'protobuf::libprotobuf',
+            'snappy::snappy',
+            'soci::soci',
+            'sqlite3::sqlite',
             'xxhash::xxhash',
+            'zlib::zlib',
         ]
+        if self.options.rocksdb:
+            libxrpl.requires.append('rocksdb::librocksdb')
