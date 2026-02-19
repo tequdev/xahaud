@@ -223,7 +223,8 @@ public:
         {
             JLOG(j.fatal())
                 << "AH is zero: " << getJson({*ledger, {}}).asString();
-            assert(false);
+            UNREACHABLE(
+                "RWDBDatabase::saveValidatedLedger : account hash is zero");
         }
 
         if (ledger->info().accountHash !=
@@ -233,10 +234,13 @@ public:
                             << " != " << ledger->stateMap().getHash();
             JLOG(j.fatal())
                 << "saveAcceptedLedger: seq=" << seq << ", current=" << current;
-            assert(false);
+            UNREACHABLE(
+                "RWDBDatabase::saveValidatedLedger : account hash mismatch");
         }
 
-        assert(ledger->info().txHash == ledger->txMap().getHash().as_uint256());
+        ASSERT(
+            ledger->info().txHash == ledger->txMap().getHash().as_uint256(),
+            "RWDBDatabase::saveValidatedLedger : tx hash mismatch");
 
         // Save the ledger header in the hashed object store
         {

@@ -24,8 +24,8 @@
 #include <xrpld/nodestore/detail/codec.h>
 #include <xrpl/basics/contract.h>
 #include <xrpl/beast/core/LexicalCast.h>
+#include <xrpl/beast/utility/instrumentation.h>
 #include <boost/filesystem.hpp>
-#include <cassert>
 #include <chrono>
 #include <cstdint>
 #include <cstdio>
@@ -128,7 +128,9 @@ public:
         using namespace boost::filesystem;
         if (db_.is_open())
         {
-            assert(false);
+            UNREACHABLE(
+                "ripple::NodeStore::NuDBBackend::open : database is already "
+                "open");
             JLOG(j_.error()) << "database is already open";
             return;
         }

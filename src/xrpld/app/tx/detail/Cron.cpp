@@ -187,7 +187,7 @@ Cron::doApply()
 void
 Cron::preCompute()
 {
-    assert(account_ == beast::zero);
+    ASSERT(account_ == beast::zero, "Cron: account_ is zero");
 }
 
 XRPAmount

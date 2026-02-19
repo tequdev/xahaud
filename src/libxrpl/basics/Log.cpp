@@ -26,6 +26,7 @@
 #include <xrpl/beast/utility/EnhancedLogging.h>
 #include <date/tz.h>
 #endif
+#include <xrpl/beast/utility/instrumentation.h>
 #include <boost/algorithm/string.hpp>
 #include <cassert>
 #include <cstring>
@@ -232,7 +233,7 @@ Logs::fromSeverity(beast::severities::Severity level)
             return lsERROR;
 
         default:
-            assert(false);
+            UNREACHABLE("ripple::Logs::fromSeverity : invalid severity");
             [[fallthrough]];
         case kFatal:
             break;
@@ -258,7 +259,7 @@ Logs::toSeverity(LogSeverity level)
         case lsERROR:
             return kError;
         default:
-            assert(false);
+            UNREACHABLE("ripple::Logs::toSeverity : invalid severity");
             [[fallthrough]];
         case lsFATAL:
             break;
@@ -285,7 +286,7 @@ Logs::toString(LogSeverity s)
         case lsFATAL:
             return "Fatal";
         default:
-            assert(false);
+            UNREACHABLE("ripple::Logs::toString : invalid severity");
             return "Unknown";
     }
 }
@@ -385,7 +386,7 @@ Logs::format(
             output += "ERR ";
             break;
         default:
-            assert(false);
+            UNREACHABLE("ripple::Logs::format : invalid severity");
             [[fallthrough]];
         case kFatal:
             output += "FTL ";
