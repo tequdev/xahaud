@@ -40,29 +40,6 @@ namespace NodeStore {
 class Backend
 {
 public:
-    template <typename T>
-    struct Counters
-    {
-        Counters() = default;
-        Counters(Counters const&) = default;
-
-        template <typename U>
-        Counters(Counters<U> const& other)
-            : writeDurationUs(other.writeDurationUs)
-            , writeRetries(other.writeRetries)
-            , writesDelayed(other.writesDelayed)
-            , readRetries(other.readRetries)
-            , readErrors(other.readErrors)
-        {
-        }
-
-        T writeDurationUs = {};
-        T writeRetries = {};
-        T writesDelayed = {};
-        T readRetries = {};
-        T readErrors = {};
-    };
-
     /** Destroy the backend.
 
         All open files are closed and flushed. If there are batched writes
@@ -180,17 +157,6 @@ public:
      */
     virtual std::optional<std::size_t>
     getBlockSize() const
-    {
-        return std::nullopt;
-    }
-
-    /** Returns read and write stats.
-
-        @note The Counters struct is specific to and only used
-              by CassandraBackend.
-    */
-    virtual std::optional<Counters<std::uint64_t>>
-    counters() const
     {
         return std::nullopt;
     }

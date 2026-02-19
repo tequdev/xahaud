@@ -27,9 +27,6 @@ namespace ripple {
 extern std::unique_ptr<RelationalDatabase>
 getSQLiteDatabase(Application& app, Config const& config, JobQueue& jobQueue);
 
-extern std::unique_ptr<RelationalDatabase>
-getPostgresDatabase(Application& app, Config const& config, JobQueue& jobQueue);
-
 std::unique_ptr<RelationalDatabase>
 RelationalDatabase::init(
     Application& app,
@@ -37,16 +34,11 @@ RelationalDatabase::init(
     JobQueue& jobQueue)
 {
     bool use_sqlite = false;
-    bool use_postgres = false;
     bool use_rwdb = false;
 
-    if (config.reporting())
+    const Section& rdb_section{config.section(SECTION_RELATIONAL_DB)};
+    if (!rdb_section.empty())
     {
-        use_postgres = true;
-    }
-    else
-    {
-        const Section& rdb_section{config.section(SECTION_RELATIONAL_DB)};
         if (!rdb_section.empty())
         {
             if (boost::iequals(get(rdb_section, "backend"), "sqlite"))
@@ -66,17 +58,19 @@ RelationalDatabase::init(
         }
         else
         {
-            use_sqlite = true;
+            Throw<std::runtime_error>(
+                "Invalid rdb_section backend value: " +
+                get(rdb_section, "backend"));
         }
+    }
+    else
+    {
+        use_sqlite = true;
     }
 
     if (use_sqlite)
     {
         return getSQLiteDatabase(app, config, jobQueue);
-    }
-    else if (use_postgres)
-    {
-        return getPostgresDatabase(app, config, jobQueue);
     }
     else if (use_rwdb)
     {
@@ -85,5 +79,4 @@ RelationalDatabase::init(
 
     return std::unique_ptr<RelationalDatabase>();
 }
-
 }  // namespace ripple
