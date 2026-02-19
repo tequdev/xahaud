@@ -51,25 +51,23 @@ strip_source_root(const char* file)
 
 #ifdef SOURCE_ROOT_PATH
     constexpr const char* sourceRoot = SOURCE_ROOT_PATH;
-    constexpr auto strlen_constexpr = [](const char* s) constexpr
-    {
+    constexpr auto strlen_constexpr = [](const char* s) constexpr {
         const char* p = s;
         while (*p)
             ++p;
         return p - s;
     };
     constexpr auto strncmp_constexpr =
-        [](const char* a, const char* b, size_t n) constexpr
-    {
-        for (size_t i = 0; i < n; ++i)
-        {
-            if (a[i] != b[i])
-                return a[i] - b[i];
-            if (a[i] == '\0')
-                break;
-        }
-        return 0;
-    };
+        [](const char* a, const char* b, size_t n) constexpr {
+            for (size_t i = 0; i < n; ++i)
+            {
+                if (a[i] != b[i])
+                    return a[i] - b[i];
+                if (a[i] == '\0')
+                    break;
+            }
+            return 0;
+        };
     constexpr size_t sourceRootLen = strlen_constexpr(sourceRoot);
     return (strncmp_constexpr(file, sourceRoot, sourceRootLen) == 0)
         ? file + sourceRootLen

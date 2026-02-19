@@ -541,8 +541,8 @@ HookAPI::sto_emplace(
     }
 
     std::vector<uint8_t> out(
-        (size_t)(
-            source_object.size() + (field_object ? field_object->size() : 0)),
+        (size_t)(source_object.size() +
+                 (field_object ? field_object->size() : 0)),
         (uint8_t)0);
     uint8_t* write_ptr = out.data();
 
@@ -2635,9 +2635,9 @@ HookAPI::xpop_slot(uint32_t slot_into_tx, uint32_t slot_into_meta) const
 
     size_t free_count = hook_api::max_slots - hookCtx.slot.size();
 
-    size_t needed_count = slot_into_tx == 0 && slot_into_meta == 0
-        ? 2
-        : slot_into_tx != 0 && slot_into_meta != 0 ? 0 : 1;
+    size_t needed_count = slot_into_tx == 0 && slot_into_meta == 0 ? 2
+        : slot_into_tx != 0 && slot_into_meta != 0                 ? 0
+                                                                   : 1;
 
     if (free_count < needed_count)
         return Unexpected(NO_FREE_SLOTS);
