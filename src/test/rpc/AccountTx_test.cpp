@@ -115,7 +115,9 @@ class AccountTx_test : public beast::unit_test::suite
         testcase("Parameters APIv" + std::to_string(apiVersion));
         using namespace test::jtx;
 
-        Env env(*this, supported_amendments() - featureXahauGenesis);
+        Env env(
+            *this,
+            supported_amendments() - featureXahauGenesis - fixHookAPI20251128);
         Account A1{"A1"};
         env.fund(XRP(10000), A1);
         env.close();
@@ -164,8 +166,8 @@ class AccountTx_test : public beast::unit_test::suite
                             (payment[jss::validated] == true) &&
                             (payment[jss::ledger_index] == 3) &&
                             (payment[jss::ledger_hash] ==
-                             "AE2BCAFE1CCE0C42F4EE1C0DED6E2735B2F0E26B0EF63917D"
-                             "BAA85E7DB6FDA3F") &&
+                             "5476DCD816EA04CBBA57D47BBF1FC58A5217CC93A5ADD79CB"
+                             "580A5AFDD727E33") &&
                             (payment[jss::close_time_iso] ==
                              "2000-01-01T00:00:10Z");
                     }
