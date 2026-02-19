@@ -1068,7 +1068,8 @@ isTrustDefault(
     std::shared_ptr<SLE> const& acc,
     std::shared_ptr<SLE> const& line)
 {
-    ASSERT(acc && line, "ripple::isTrustDefault : account and line are not null");
+    ASSERT(
+        acc && line, "ripple::isTrustDefault : account and line are not null");
 
     uint32_t const tlFlags = line->getFieldU32(sfFlags);
 
@@ -1078,7 +1079,9 @@ isTrustDefault(
 
     AccountID const accID = acc->getAccountID(sfAccount);
 
-    ASSERT(accID == highAccID || accID == lowAccID, "ripple::isTrustDefault : account ID mismatch");
+    ASSERT(
+        accID == highAccID || accID == lowAccID,
+        "ripple::isTrustDefault : account ID mismatch");
 
     bool const high = accID == highAccID;
 
@@ -1347,7 +1350,9 @@ rippleSendIOU(
     // Calculate the amount to transfer accounting
     // for any transfer fees:
 
-    ASSERT(waiveFee == WaiveTransferFee::No || senderPaysXferFees == true, "ripple::rippleSendIOU : transfer fees are waived or sender pays");
+    ASSERT(
+        waiveFee == WaiveTransferFee::No || senderPaysXferFees == true,
+        "ripple::rippleSendIOU : transfer fees are waived or sender pays");
 
     STAmount senderPays = saAmount;
     STAmount destReceives = saAmount;
