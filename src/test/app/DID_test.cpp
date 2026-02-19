@@ -30,8 +30,6 @@
 namespace ripple {
 namespace test {
 
-// Helper function that returns the owner count of an account root.
-
 bool
 checkVL(Slice const& result, std::string expected)
 {
