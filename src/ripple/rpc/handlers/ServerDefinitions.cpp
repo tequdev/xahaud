@@ -159,7 +159,9 @@ private:
                     {"ID", "ID"},
                     {"AMM", "AMM"},
                     {"URITOKEN", "URIToken"},
-                    {"URI", "URI"}};
+                    {"URI", "URI"},
+                    {"DID", "DID"},
+                };
 
             std::string out;
             size_t pos = 0;

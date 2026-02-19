@@ -137,6 +137,7 @@ enum TEMcodes : TERUnderlyingType {
     temXCHAIN_BRIDGE_BAD_REWARD_AMOUNT,
 
     temHOOK_DATA_TOO_LARGE,
+    temEMPTY_DID,
 };
 
 //------------------------------------------------------------------------------
@@ -346,6 +347,7 @@ enum TECcodes : TERUnderlyingType {
     tecHAS_HOOK_STATE = 190,
     tecINCOMPLETE = 191,
     // 192: tecXCHAIN_BAD_PUBLIC_KEY_ACCOUNT_PAIR
+    tecEMPTY_DID = 193,
     tecLAST_POSSIBLE_ENTRY = 255,
 };
 

@@ -48,6 +48,8 @@
 #define ttXCHAIN_ADD_ACCOUNT_CREATE_ATTESTATION 55
 #define ttXCHAIN_MODIFY_BRIDGE 56
 #define ttXCHAIN_CREATE_BRIDGE 57
+#define ttDID_SET 58
+#define ttDID_DELETE 59
 #define ttCRON 92
 #define ttCRON_SET 93
 #define ttREMARKS_SET 94

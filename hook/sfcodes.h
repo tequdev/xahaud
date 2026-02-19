@@ -200,6 +200,8 @@
 #define sfHookParameterName ((7U << 16U) + 24U)
 #define sfHookParameterValue ((7U << 16U) + 25U)
 #define sfBlob ((7U << 16U) + 26U)
+#define sfDIDDocument ((7U << 16U) + 27U)
+#define sfData ((7U << 16U) + 28U)
 #define sfRemarkValue ((7U << 16U) + 98U)
 #define sfRemarkName ((7U << 16U) + 99U)
 #define sfAccount ((8U << 16U) + 1U)

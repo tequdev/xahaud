@@ -36,6 +36,7 @@
 #include <test/jtx/cron.h>
 #include <test/jtx/delivermin.h>
 #include <test/jtx/deposit.h>
+#include <test/jtx/did.h>
 #include <test/jtx/fee.h>
 #include <test/jtx/flags.h>
 #include <test/jtx/genesis.h>
