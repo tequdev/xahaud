@@ -27,9 +27,9 @@ class Xrpl(ConanFile):
 
     requires = [
         'date/3.0.3',
-        'libarchive/3.6.0',
-        'lz4/1.9.4',
         'grpc/1.50.1',
+        'libarchive/3.6.2',
+        'lz4/1.9.4',
         'nudb/2.0.8',
         'openssl/3.6.0',
         'protobuf/3.21.12',
@@ -52,6 +52,7 @@ class Xrpl(ConanFile):
         'tool_requires_b2': False,
 
         'cassandra-cpp-driver/*:shared': False,
+        'cassandra-cpp-driver/*:use_atomic': None,
         'date/*:header_only': False,
         'grpc/*:shared': False,
         'grpc/*:secure': True,
@@ -119,12 +120,12 @@ class Xrpl(ConanFile):
         if self.options.with_wasmedge:
             self.requires('wasmedge/0.11.2@xahaud/stable')
         if self.options.jemalloc:
-            self.requires('jemalloc/5.2.1')
+            self.requires('jemalloc/5.3.0')
         if self.options.reporting:
             self.requires('cassandra-cpp-driver/2.15.3')
-            self.requires('libpq/13.6')
+            self.requires('libpq/14.7')
         if self.options.rocksdb:
-            self.requires('rocksdb/6.27.3')
+            self.requires('rocksdb/6.29.5')
 
     exports_sources = (
         'CMakeLists.txt', 'Builds/*', 'bin/getRippledInfo', 'src/*', 'cfg/*'
