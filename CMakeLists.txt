@@ -90,8 +90,9 @@ set_target_properties(OpenSSL::SSL PROPERTIES
 )
 set(SECP256K1_INSTALL TRUE)
 add_subdirectory(external/secp256k1)
-add_subdirectory(external/ed25519-donna)
 add_library(secp256k1::secp256k1 ALIAS secp256k1)
+add_subdirectory(external/ed25519-donna)
+find_package(gRPC REQUIRED)
 find_package(lz4 REQUIRED)
 # Target names with :: are not allowed in a generator expression.
 # We need to pull the include directories and imported location properties

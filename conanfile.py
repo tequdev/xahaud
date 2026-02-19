@@ -32,10 +32,13 @@ class Xrpl(ConanFile):
         'lz4/1.9.4',
         'nudb/2.0.8',
         'openssl/3.6.0',
-        'protobuf/3.21.12',
         'soci/4.0.3@xahaud/stable',
         'xxhash/0.8.2',
         'zlib/1.3.1',
+    ]
+
+    tool_requires = [
+        'protobuf/3.21.12',
     ]
 
     default_options = {
@@ -101,7 +104,6 @@ class Xrpl(ConanFile):
 
     def build_requirements(self):
         # These provide build tools (protoc, grpc plugins) that run during build
-        self.tool_requires('protobuf/3.21.12')
         self.tool_requires('grpc/1.50.1')
         # Explicitly require b2 (e.g. for building from source for glibc compatibility)
         if self.options.tool_requires_b2:
