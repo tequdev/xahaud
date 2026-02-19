@@ -105,6 +105,8 @@ LEDGER_ENTRY(ltHOOK_DEFINITION, 'D', HookDefinition, hook_definition, ({
     {sfReferenceCount,       soeREQUIRED},
     {sfFee,                  soeREQUIRED},
     {sfHookCallbackFee,      soeOPTIONAL},
+    {sfPreviousTxnID,        soeOPTIONAL},
+    {sfPreviousTxnLgrSeq,    soeOPTIONAL},
 }))
 
 /** A ledger object containing a hook-emitted transaction from a previous hook execution.
@@ -136,6 +138,8 @@ LEDGER_ENTRY(ltHOOK, 'H', Hook, hook, ({
 LEDGER_ENTRY(ltIMPORT_VLSEQ, 0x0049, ImportVLSequence, import_vlseq, ({
     {sfPublicKey,            soeREQUIRED},
     {sfImportSequence,       soeREQUIRED},
+    {sfPreviousTxnID,        soeOPTIONAL},
+    {sfPreviousTxnLgrSeq,    soeOPTIONAL},
 }))
 
 /** The ledger object which tracks the current negative UNL state.
@@ -459,6 +463,8 @@ LEDGER_ENTRY(ltHOOK_STATE, 0x0076, HookState, hook_state, ({
     {sfOwnerNode,            soeREQUIRED},
     {sfHookStateKey,         soeREQUIRED},
     {sfHookStateData,        soeREQUIRED},
+    {sfPreviousTxnID,        soeOPTIONAL},
+    {sfPreviousTxnLgrSeq,    soeOPTIONAL},
 }))
 
 /** A ledger object describing a single unidirectional XRP payment channel.
