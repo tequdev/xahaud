@@ -21,6 +21,7 @@ class Xrpl(ConanFile):
         'static': [True, False],
         'tests': [True, False],
         'unity': [True, False],
+        'xrpld': [True, False],
         'with_wasmedge': [True, False],
         'tool_requires_b2': [True, False],
     }
@@ -49,8 +50,9 @@ class Xrpl(ConanFile):
         'rocksdb': True,
         'shared': False,
         'static': True,
-        'tests': True,
+        'tests': False,
         'unity': False,
+        'xrpld': False,
         'with_wasmedge': True,
         'tool_requires_b2': False,
 
@@ -159,6 +161,7 @@ class Xrpl(ConanFile):
         tc.variables['BUILD_SHARED_LIBS'] = self.options.shared
         tc.variables['static'] = self.options.static
         tc.variables['unity'] = self.options.unity
+        tc.variables['xrpld'] = self.options.xrpld
         tc.generate()
 
     def build(self):
