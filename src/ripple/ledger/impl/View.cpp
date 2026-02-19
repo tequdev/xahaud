@@ -1277,7 +1277,7 @@ accountSend(
     WaiveTransferFee waiveFee,
     bool const senderPaysXferFees)
 {
-    if (view.rules().enabled(fixAMMRounding))
+    if (view.rules().enabled(fixAMMv1_1))
     {
         if (saAmount < beast::zero)
         {
