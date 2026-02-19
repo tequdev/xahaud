@@ -46,13 +46,14 @@ message(\"WasmEdge DONE\")
 " > cmake/deps/WasmEdge.cmake &&
 
 export LDFLAGS="-static-libstdc++"
+export CMAKE_EXE_LINKER_FLAGS="-static-libstdc++"
+export CMAKE_STATIC_LINKER_FLAGS="-static-libstdc++"
 
 git config --global --add safe.directory /io &&
 git checkout src/libxrpl/protocol/BuildInfo.cpp &&
 sed -i s/\"0.0.0\"/\"$(date +%Y).$(date +%-m).$(date +%-d)-$(git rev-parse --abbrev-ref HEAD)$(if [ -n "$4" ]; then echo "+$4"; fi)\"/g src/libxrpl/protocol/BuildInfo.cpp  &&
 conan export external/snappy --version 1.1.10 --user xahaud --channel stable &&
 conan export external/soci --version 4.0.3 --user xahaud --channel stable &&
-conan export external/wasmedge --version 0.11.2 --user xahaud --channel stable &&
 cd release-build &&
 # Install dependencies - tool_requires in conanfile.py handles glibc 2.28 compatibility
 # for build tools (protoc, grpc plugins, b2) in HBB environment
@@ -82,7 +83,7 @@ echo "Build host: `hostname`" > release.info &&
 echo "Build date: `date`" >> release.info &&
 echo "Build md5: `md5sum xahaud`" >> release.info &&
 echo "Git remotes:" >> release.info && 
-git remote -v >> release.info 
+git remote -v >> release.info &&
 echo "Git status:" >> release.info &&
 git status -v >> release.info &&
 echo "Git log [last 20]:" >> release.info &&
