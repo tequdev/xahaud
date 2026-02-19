@@ -75,6 +75,7 @@ add_library(xrpl::libxrpl ALIAS libxrpl)
     beast/legacy FILES:
     TODO: review these sources for removal or replacement
 #]===============================]
+# BEGIN LIBXRPL SOURCES
 target_sources (xrpl_core PRIVATE
   src/ripple/beast/clock/basic_seconds_clock.cpp
   src/ripple/beast/core/CurrentThreadName.cpp
@@ -206,6 +207,7 @@ target_sources (xrpl_core PRIVATE
   src/ripple/crypto/impl/RFC1751.cpp
   src/ripple/crypto/impl/csprng.cpp
   src/ripple/crypto/impl/secure_erase.cpp)
+# END LIBXRPL SOURCES
 
 add_library (Ripple::xrpl_core ALIAS xrpl_core)
 target_include_directories (xrpl_core
@@ -248,6 +250,7 @@ target_compile_definitions(xrpl_core PUBLIC
 #[=================================[
    main/core headers installation
 #]=================================]
+# BEGIN LIBXRPL HEADERS
 install (
   FILES
     src/ripple/basics/Archive.h
@@ -508,6 +511,7 @@ install (
     src/ripple/beast/utility/Zero.h
     src/ripple/beast/utility/rngfill.h
   DESTINATION include/ripple/beast/utility)
+# END LIBXRPL HEADERS
 #[===================================================================[
    rippled executable
 #]===================================================================]
@@ -524,6 +528,7 @@ endif ()
 if (tests)
     target_compile_definitions(rippled PUBLIC ENABLE_TESTS)
 endif()
+# BEGIN XRPLD SOURCES
 target_sources (rippled PRIVATE
   #[===============================[
      main sources:
@@ -875,6 +880,7 @@ target_sources (rippled PRIVATE
   src/ripple/shamap/impl/SHAMapSync.cpp
   src/ripple/shamap/impl/SHAMapTreeNode.cpp
   src/ripple/shamap/impl/ShardFamily.cpp)
+# END XRPLD SOURCES
 
   #[===============================[
      test sources:
