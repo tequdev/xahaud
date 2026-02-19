@@ -112,6 +112,7 @@ endif()
 
 find_package(nudb REQUIRED)
 find_package(date REQUIRED)
+find_package(xxHash REQUIRED)
 
 include(deps/WasmEdge) 
   if(TARGET nudb::core)

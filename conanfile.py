@@ -34,6 +34,7 @@ class Xrpl(ConanFile):
         'openssl/3.6.0',
         'protobuf/3.21.12',
         'soci/4.0.3@xahaud/stable',
+        'xxhash/0.8.2',
         'zlib/1.3.1',
     ]
 
@@ -87,6 +88,7 @@ class Xrpl(ConanFile):
         'soci/*:shared': False,
         'soci/*:with_sqlite3': True,
         'soci/*:with_boost': True,
+        'xxhash/*:shared': False,
     }
 
     def set_version(self):
@@ -177,4 +179,5 @@ class Xrpl(ConanFile):
             'openssl::crypto',
             'date::date',
             'grpc::grpc++',
+            'xxHash::xxhash',
         ]
