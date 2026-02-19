@@ -160,6 +160,7 @@ private:
                     {"URITOKEN", "URIToken"},
                     {"URI", "URI"},
                     {"DID", "DID"},
+                    {"MPTOKEN", "MPToken"},
                 };
 
             std::string out;
@@ -426,6 +427,10 @@ private:
         addFlagsToJson<ClaimRewardFlags>(ret, "ClaimReward");
         addFlagsToJson<CronSetFlags>(ret, "CronSet");
         addFlagsToJson<BridgeModifyFlags>(ret, "XChainModifyBridge");
+        addFlagsToJson<MPTokenIssuanceCreateFlags>(
+            ret, "MPTokenIssuanceCreate");
+        addFlagsToJson<MPTokenAuthorizeFlags>(ret, "MPTokenAuthorize");
+        addFlagsToJson<MPTokenIssuanceSetFlags>(ret, "MPTokenIssuanceSet");
         struct FlagData
         {
             std::string name;
