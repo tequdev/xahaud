@@ -779,8 +779,8 @@ class Transaction_test : public beast::unit_test::suite
             BEAST_EXPECT(result[jss::result][jss::ledger_index] == 4);
             BEAST_EXPECT(
                 result[jss::result][jss::ledger_hash] ==
-                "4F979CA2B0C506BC0244B115CA5104E81BD8BB0C4F6496AC8796A3E009B258"
-                "05");
+                "BFA42423AA6DB8327D6B75672CF3D811B42AA3175A6AB1EE37ED4BD7E6954D"
+                "7A");
         }
 
         for (auto memberIt = expected.begin(); memberIt != expected.end();
@@ -855,8 +855,8 @@ class Transaction_test : public beast::unit_test::suite
                     result[jss::result][jss::meta_blob] == expected_meta_blob);
                 BEAST_EXPECT(
                     result[jss::result][jss::ledger_hash] ==
-                    "BC720494ECE70EF8EF078043E71845D9BAC4D1C079181127AF309CC72B"
-                    "ABB1EA");
+                    "C8DC083CF39BA9B03760263440EF236ACE90BD60311E819EF7F3B337F2"
+                    "6FB1B0");
                 BEAST_EXPECT(
                     result[jss::result][jss::close_time_iso] ==
                     "2000-01-01T00:00:10Z");

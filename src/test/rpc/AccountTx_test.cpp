@@ -163,8 +163,8 @@ class AccountTx_test : public beast::unit_test::suite
                             (payment[jss::validated] == true) &&
                             (payment[jss::ledger_index] == 3) &&
                             (payment[jss::ledger_hash] ==
-                             "6A55EEBF003EB79C1BF0B8FF75CBF448161F60E3366808820"
-                             "06903B7CC077EF2") &&
+                             "AE2BCAFE1CCE0C42F4EE1C0DED6E2735B2F0E26B0EF63917D"
+                             "BAA85E7DB6FDA3F") &&
                             (payment[jss::close_time_iso] ==
                              "2000-01-01T00:00:10Z");
                     }
