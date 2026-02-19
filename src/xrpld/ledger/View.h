@@ -139,13 +139,6 @@ isFrozen(
     Currency const& currency,
     AccountID const& issuer);
 
-[[nodiscard]] bool
-isDeepFrozen(
-    ReadView const& view,
-    AccountID const& account,
-    Currency const& currency,
-    AccountID const& issuer);
-
 [[nodiscard]] inline bool
 isFrozen(ReadView const& view, AccountID const& account, Issue const& issue)
 {
@@ -165,6 +158,20 @@ isFrozen(ReadView const& view, AccountID const& account, Asset const& asset)
         [&](auto const& issue) { return isFrozen(view, account, issue); },
         asset.value());
 }
+
+[[nodiscard]] bool
+isDeepFrozen(
+    ReadView const& view,
+    AccountID const& account,
+    Currency const& currency,
+    AccountID const& issuer);
+
+[[nodiscard]] bool
+isLPTokenFrozen(
+    ReadView const& view,
+    AccountID const& account,
+    Issue const& asset,
+    Issue const& asset2);
 
 // Returns the amount an account can spend without going into debt.
 //
