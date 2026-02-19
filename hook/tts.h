@@ -6,12 +6,9 @@
 #define ttACCOUNT_SET 3
 #define ttESCROW_CANCEL 4
 #define ttREGULAR_KEY_SET 5
-// #define ttNICKNAME_SET 6 // deprecated
 #define ttOFFER_CREATE 7
 #define ttOFFER_CANCEL 8
-// #define ttCONTRACT 9 // deprecated
 #define ttTICKET_CREATE 10
-// #define ttSPINAL_TAP 11 // deprecated
 #define ttSIGNER_LIST_SET 12
 #define ttPAYCHAN_CREATE 13
 #define ttPAYCHAN_FUND 14
