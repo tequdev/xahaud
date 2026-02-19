@@ -28,7 +28,6 @@
 #include <ripple/resource/Fees.h>
 #include <ripple/rpc/RPCHandler.h>
 #include <ripple/rpc/impl/RPCHelpers.h>
-#include "ripple/protocol/Feature.h"
 #include <test/jtx.h>
 #include <test/jtx/AMM.h>
 #include <test/jtx/AMMTest.h>

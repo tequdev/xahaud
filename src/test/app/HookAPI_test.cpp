@@ -18,7 +18,7 @@
 //==============================================================================
 #include <ripple/app/hook/HookAPI.h>
 #include <ripple/basics/StringUtilities.h>
-#include <ripple/beast/unit_test/suite.hpp>
+#include <ripple/beast/unit_test/suite.h>
 #include <ripple/json/json_writer.h>
 #include <ripple/protocol/SField.h>
 #include <ripple/protocol/STAccount.h>
