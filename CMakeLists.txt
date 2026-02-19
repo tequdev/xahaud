@@ -129,8 +129,13 @@ if(reporting)
   find_package(cassandra-cpp-driver REQUIRED)
   find_package(PostgreSQL REQUIRED)
   target_link_libraries(ripple_libs INTERFACE
-    cassandra-cpp-driver::cassandra-cpp-driver
-    PostgreSQL::PostgreSQL
+    ed25519::ed25519
+    lz4::lz4
+    OpenSSL::Crypto
+    OpenSSL::SSL
+    secp256k1::secp256k1
+    soci::soci
+    SQLite::SQLite3
   )
 endif()
 
