@@ -121,7 +121,8 @@ private:
 
             if (find("UINT"))
             {
-                if (find("256") || find("192") || find("160") || find("128"))
+                if (find("512") || find("384") || find("256") || find("192") ||
+                    find("160") || find("128"))
                     return replace("UINT", "Hash");
                 else
                     return replace("UINT", "UInt");
@@ -388,6 +389,10 @@ private:
         }
 
         auto const translate_tt = [](std::string inp) -> std::string {
+            if (inp == "Amendment")
+                return "EnableAmendment";
+            if (inp == "Fee")
+                return "SetFee";
             if (inp == "PaychanClaim")
                 return "PaymentChannelClaim";
             if (inp == "PaychanCreate")
@@ -437,6 +442,7 @@ private:
             std::string name;
             std::uint32_t value;
         };
+        // URITokenMint
         std::array<FlagData, 1> uriTokenMintFlags{{{"tfBurnable", tfBurnable}}};
         for (auto const& entry : uriTokenMintFlags)
         {
