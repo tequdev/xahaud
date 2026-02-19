@@ -26,6 +26,7 @@
 #define ttNFTOKEN_CANCEL_OFFER 28
 #define ttNFTOKEN_ACCEPT_OFFER 29
 #define ttCLAWBACK 30
+#define ttAMM_CLAWBACK 31
 #define ttAMM_CREATE 35
 #define ttAMM_DEPOSIT 36
 #define ttAMM_WITHDRAW 37

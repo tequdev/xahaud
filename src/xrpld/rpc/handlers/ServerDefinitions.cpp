@@ -431,6 +431,7 @@ private:
             ret, "MPTokenIssuanceCreate");
         addFlagsToJson<MPTokenAuthorizeFlags>(ret, "MPTokenAuthorize");
         addFlagsToJson<MPTokenIssuanceSetFlags>(ret, "MPTokenIssuanceSet");
+        addFlagsToJson<AMMClawbackFlags>(ret, "AMMClawback");
         struct FlagData
         {
             std::string name;
