@@ -43,6 +43,9 @@
 namespace ripple {
 namespace test {
 
+/**
+ * Tests of AMM that use offers too.
+ */
 struct AMMExtended_test : public jtx::AMMTest
 {
 private:
@@ -3618,6 +3621,8 @@ private:
         int const signerListOwners{features[featureMultiSignReserve] ? 2 : 5};
         env.require(owners(alice, signerListOwners + 0));
 
+        const msig ms{becky, bogie};
+
         // Multisign all AMM transactions
         AMM ammAlice(
             env,
@@ -3629,7 +3634,7 @@ private:
             ammCrtFee(env).drops(),
             std::nullopt,
             std::nullopt,
-            msig(becky, bogie),
+            ms,
             ter(tesSUCCESS));
         BEAST_EXPECT(ammAlice.expectBalances(
             XRP(10'000), USD(10'000), ammAlice.tokens()));
@@ -3645,7 +3650,8 @@ private:
         ammAlice.vote({}, 1'000);
         BEAST_EXPECT(ammAlice.expectTradingFee(1'000));
 
-        ammAlice.bid(alice, 100);
+        env(ammAlice.bid({.account = alice, .bidMin = 100}), ms);
+        env.close();
         BEAST_EXPECT(ammAlice.expectAuctionSlot(100, 0, IOUAmount{4'000}));
         // 4000 tokens burnt
         BEAST_EXPECT(ammAlice.expectBalances(
