@@ -212,7 +212,7 @@ RUN /hbb_exe/activate-exec bash -c "ccache -M 100G && \
     echo '' >> ~/.conan2/profiles/default && \
     echo '[conf]' >> ~/.conan2/profiles/default && \
     echo '# Force building from source for packages with binary compatibility issues' >> ~/.conan2/profiles/default && \
-    echo '*:tools.system.package_manager:mode=build' >> ~/.conan2/profiles/default" && \
+    echo '*:tools.system.package_manager:mode=build' >> ~/.conan2/profiles/default && \
     ln -s ../../bin/ccache /usr/lib64/ccache/g++ && \
     ln -s ../../bin/ccache /usr/lib64/ccache/c++"
 
