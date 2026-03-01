@@ -14,7 +14,7 @@ NC='\033[0m' # No Color
 
 # Script directory and path constants
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-XAHAU_H="${SCRIPT_DIR}/../../src/ripple/app/hook/xahau.h"
+XAHAU_H="${SCRIPT_DIR}/../../include/xrpl/hook/xahau.h"
 TEMP_DIR="${SCRIPT_DIR}/.temp"
 
 # Hook file mappings (space-separated: name:file)
