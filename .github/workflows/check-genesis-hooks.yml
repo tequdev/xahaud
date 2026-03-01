@@ -6,9 +6,9 @@ on:
 
 jobs:
   check-genesis-hooks:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     env:
-      CLANG_VERSION: 10
+      CLANG_VERSION: 18
     name: Verify xahau.h is in sync with genesis hooks
 
     steps:
@@ -23,14 +23,17 @@ jobs:
           sudo cp binaryen-version_100/bin/* /usr/local/bin/
           wasm-opt --version
 
-      - name: install clang-format
+      - name: Install clang-format
         run: |
-          sudo apt-get update -y
-          sudo apt-get install -y libtinfo5
-          curl -LO https://github.com/llvm/llvm-project/releases/download/llvmorg-10.0.1/clang+llvm-10.0.1-x86_64-linux-gnu-ubuntu-16.04.tar.xz
-          tar -xf clang+llvm-10.0.1-x86_64-linux-gnu-ubuntu-16.04.tar.xz
-          sudo mv clang+llvm-10.0.1-x86_64-linux-gnu-ubuntu-16.04 /opt/clang-10
-          sudo ln -s /opt/clang-10/bin/clang-format /usr/local/bin/clang-format-10
+          codename=$( lsb_release --codename --short )
+          sudo tee /etc/apt/sources.list.d/llvm.list >/dev/null <<EOF
+          deb http://apt.llvm.org/${codename}/ llvm-toolchain-${codename}-${CLANG_VERSION} main
+          deb-src http://apt.llvm.org/${codename}/ llvm-toolchain-${codename}-${CLANG_VERSION} main
+          EOF
+          wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add
+          sudo apt-get update
+          sudo apt-get install clang-format-${CLANG_VERSION}
+          clang-format --version
 
       # Install wasienv (WebAssembly SDK)
       - name: Install wasienv
