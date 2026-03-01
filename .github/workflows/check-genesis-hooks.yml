@@ -62,7 +62,7 @@ jobs:
       # Build and install guard_checker tool
       - name: Build and install guard_checker
         run: |
-          cd src/ripple/app/hook
+          cd include/xrpl/hook
           make
           cp guard_checker /usr/local/bin/
           chmod +x /usr/local/bin/guard_checker
@@ -88,7 +88,7 @@ jobs:
       # Check if xahau.h has changed (fail if out of sync)
       - name: Verify xahau.h is in sync
         run: |
-          if ! git diff --exit-code src/ripple/app/hook/xahau.h; then
+          if ! git diff --exit-code include/xrpl/hook/xahau.h; then
             echo ""
             echo "❌ ERROR: xahau.h is out of sync with genesis hooks"
             echo ""
@@ -98,7 +98,7 @@ jobs:
             echo "    cd hook/genesis && ./build_xahau_h.sh"
             echo ""
             echo "Diff:"
-            git diff src/ripple/app/hook/xahau.h
+            git diff include/xrpl/hook/xahau.h
             exit 1
           fi
           echo "✅ xahau.h is in sync with genesis hooks"
