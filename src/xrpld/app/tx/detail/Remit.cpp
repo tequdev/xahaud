@@ -288,6 +288,11 @@ Remit::doApply()
         (flags & lsfDisallowIncomingRemit))
         return tecNO_PERMISSION;
 
+    // AMMs can never receive an XRP payment.
+    // Must use AMMDeposit transaction instead.
+    if (sleDstAcc && sleDstAcc->isFieldPresent(sfAMMID))
+        return tecNO_PERMISSION;
+
     // Check if the destination account requires deposit authorization.
     bool const depositAuth{sb.rules().enabled(featureDepositAuth)};
     if (depositAuth && sleDstAcc && (flags & lsfDepositAuth))
