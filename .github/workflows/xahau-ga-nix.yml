@@ -70,6 +70,15 @@ jobs:
                   "configuration": "Debug"
               },
               {
+                  "compiler_id": "gcc-15-libstdcxx",
+                  "compiler": "gcc",
+                  "cc": "gcc-15",
+                  "cxx": "g++-15",
+                  "compiler_version": 15,
+                  "stdlib": "libstdcxx",
+                  "configuration": "Debug"
+              },
+              {
                   "compiler_id": "clang-14-libstdcxx-gcc11",
                   "compiler": "clang",
                   "cc": "clang-14",
@@ -114,7 +123,8 @@ jobs:
           # Minimal matrix for PRs and feature branches
           minimal_matrix = [
               full_matrix[1],  # gcc-13 (middle-ground gcc)
-              full_matrix[2]   # clang-14 (mature, stable clang)
+              full_matrix[2],  # gcc-15 (latest gcc)
+              full_matrix[3]   # clang-14 (mature, stable clang)
           ]
           
           # Determine which matrix to use based on the target branch
