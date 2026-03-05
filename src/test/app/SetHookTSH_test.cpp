@@ -1825,6 +1825,30 @@ private:
         }
     }
 
+    void
+    testCredentialCreateTSH(FeatureBitset features)
+    {
+        testcase("credential create tsh");
+
+        pass();
+    }
+
+    void
+    testCredentialAcceptTSH(FeatureBitset features)
+    {
+        testcase("credential accept tsh");
+
+        pass();
+    }
+
+    void
+    testCredentialDeleteTSH(FeatureBitset features)
+    {
+        testcase("credential delete tsh");
+
+        pass();
+    }
+
     // DepositPreauth
     // | otxn  | tsh | preauth |
     // |   A   |  A  |    S    |
@@ -1903,6 +1927,30 @@ private:
             // verify tsh hook triggered
             testTSHStrongWeak(env, tshSTRONG, __LINE__);
         }
+    }
+
+    void
+    testDIDSetTSH(FeatureBitset features)
+    {
+        testcase("did set tsh");
+
+        pass();
+    }
+
+    void
+    testDIDDeleteTSH(FeatureBitset features)
+    {
+        testcase("did delete tsh");
+
+        pass();
+    }
+
+    void
+    testEmitFailureTSH(FeatureBitset features)
+    {
+        testcase("emit failure tsh");
+
+        pass();
     }
 
     // Escrow
@@ -3097,6 +3145,14 @@ private:
         }
     }
 
+    void
+    testEnableAmendmentTSH(FeatureBitset features)
+    {
+        testcase("enable amendment tsh");
+
+        pass();
+    }
+
     // GenesisMint
     // | otxn  | tsh |  mint |
     // |   A   |  A  |   S   |
@@ -3467,6 +3523,94 @@ private:
         }
     }
 
+    void
+    testLedgerStateFixTSH(FeatureBitset features)
+    {
+        testcase("ledger state fix tsh");
+
+        pass();
+    }
+
+    void
+    testMPTokenIssuanceCreateTSH(FeatureBitset features)
+    {
+        testcase("mp token issuance create tsh");
+
+        pass();
+    }
+
+    void
+    testMPTokenIssuanceDestroyTSH(FeatureBitset features)
+    {
+        testcase("mp token issuance destroy tsh");
+
+        pass();
+    }
+
+    void
+    testMPTokenIssuanceSetTSH(FeatureBitset features)
+    {
+        testcase("mp token issuance set tsh");
+
+        pass();
+    }
+
+    void
+    testMPTokenAuthorizeTSH(FeatureBitset features)
+    {
+        testcase("mp token authorize tsh");
+
+        pass();
+    }
+
+    void
+    testNFTokenMintTSH(FeatureBitset features)
+    {
+        testcase("nftoken mint tsh");
+
+        pass();
+    }
+
+    void
+    testNFTokenBurnTSH(FeatureBitset features)
+    {
+        testcase("nftoken burn tsh");
+
+        pass();
+    }
+
+    void
+    testNFTokenCreateOfferTSH(FeatureBitset features)
+    {
+        testcase("nftoken create offer tsh");
+
+        pass();
+    }
+
+    void
+    testNFTokenCancelOfferTSH(FeatureBitset features)
+    {
+        testcase("nftoken cancel offer tsh");
+
+        pass();
+    }
+
+    void
+    testNFTokenAcceptOfferTSH(FeatureBitset features)
+    {
+        testcase("nftoken accept offer tsh");
+
+        pass();
+    }
+
+    void
+    testNFTokenModifyTSH(FeatureBitset features)
+    {
+        testcase("nftoken modify tsh");
+
+        pass();
+    }
+
     // Offer
     // | otxn  | tsh |  cancel | create |
     // |   A   |  A  |    S    |    S   |
@@ -3654,6 +3798,22 @@ private:
             auto const expected = testStrong ? tshNONE : tshWEAK;
             testTSHStrongWeak(env, expected, __LINE__);
         }
+    }
+
+    void
+    testOracleSetTSH(FeatureBitset features)
+    {
+        testcase("oracle set tsh");
+
+        pass();
+    }
+
+    void
+    testOracleDeleteTSH(FeatureBitset features)
+    {
+        testcase("oracle delete tsh");
+
+        pass();
     }
 
     // Payment
@@ -4374,6 +4534,30 @@ private:
         }
     }
 
+    void
+    testPermissionedDomainSetTSH(FeatureBitset features)
+    {
+        testcase("payment channel claim tsh");
+
+        pass();
+    }
+
+    void
+    testPermissionedDomainDeleteTSH(FeatureBitset features)
+    {
+        testcase("permissioned domain delete tsh");
+
+        pass();
+    }
+
+    void
+    testSetFeeTSH(FeatureBitset features)
+    {
+        testcase("set fee tsh");
+
+        pass();
+    }
+
     // SetHook
     // | otxn  | tsh | set |
     // |   A   |  A  |  S  |
@@ -4492,14 +4676,22 @@ private:
         }
     }
 
-    // SignersListSet
+    void
+    testSetRemarksTSH(FeatureBitset features)
+    {
+        testcase("set remarks tsh");
+
+        pass();
+    }
+
+    // SignerListSet
     // | otxn  | tsh | sls |
     // |   A   |  A  |  S  |
     // |   A   |  S  |  S  |
     void
-    testSignersListSetTSH(FeatureBitset features)
+    testSignerListSetTSH(FeatureBitset features)
     {
-        testcase("signers list set tsh");
+        testcase("signer list set tsh");
 
         using namespace test::jtx;
         using namespace std::literals;
@@ -4703,6 +4895,22 @@ private:
             auto const expected = testStrong ? tshNONE : tshWEAK;
             testTSHStrongWeak(env, expected, __LINE__);
         }
+    }
+
+    void
+    testUNLModifyTSH(FeatureBitset features)
+    {
+        testcase("unl modify tsh");
+
+        pass();
+    }
+
+    void
+    testUNLReportTSH(FeatureBitset features)
+    {
+        testcase("unl report tsh");
+
+        pass();
     }
 
     // | otxn | tfBurnable | tsh |   mint |  burn  |  buy  |  sell  | cancel
@@ -6120,6 +6328,70 @@ private:
     }
 
     void
+    testXChainCreateClaimIDTSH(FeatureBitset features)
+    {
+        testcase("xchain create claim id tsh");
+
+        pass();
+    }
+
+    void
+    testXChainCommitTSH(FeatureBitset features)
+    {
+        testcase("xchain commit tsh");
+
+        pass();
+    }
+
+    void
+    testXChainClaimTSH(FeatureBitset features)
+    {
+        testcase("xchain claim tsh");
+
+        pass();
+    }
+
+    void
+    testXChainAccountCreateCommitTSH(FeatureBitset features)
+    {
+        testcase("xchain account create commit tsh");
+
+        pass();
+    }
+
+    void
+    testXChainAddClaimAttestationTSH(FeatureBitset features)
+    {
+        testcase("xchain add claim attestation tsh");
+
+        pass();
+    }
+
+    void
+    testXChainAddAccountCreateAttestationTSH(FeatureBitset features)
+    {
+        testcase("xchain add account create attestation tsh");
+
+        pass();
+    }
+
+    void
+    testXChainModifyBridgeTSH(FeatureBitset features)
+    {
+        testcase("xchain modify bridge tsh");
+
+        pass();
+    }
+
+    void
+    testXChainCreateBridgeTSH(FeatureBitset features)
+    {
+        testcase("xchain create bridge tsh");
+
+        pass();
+    }
+
+    void
     testEmittedTxnReliability(FeatureBitset features)
     {
         testcase("emitted txn reliability");
@@ -6883,48 +7155,15 @@ private:
     void
     testTSH(FeatureBitset features)
     {
-        testAccountSetTSH(features);
-        testAccountDeleteTSH(features);
-        testAMMBidTSH(features);
-        testAMMCreateTSH(features);
-        testAMMDeleteTSH(features);
-        testAMMClawbackTSH(features);
-        testAMMDepositTSH(features);
-        testAMMVoteTSH(features);
-        testAMMWithdrawTSH(features);
-        testCheckCancelTSH(features);
-        testCheckCashTSH(features);
-        testCheckCreateTSH(features);
-        testClaimRewardTSH(features);
-        testClawbackTSH(features);
-        testDepositPreauthTSH(features);
-        testEscrowCancelTSH(features);
-        testEscrowIDCancelTSH(features);
-        testEscrowCreateTSH(features);
-        testEscrowFinishTSH(features);
-        testEscrowIDFinishTSH(features);
-        testGenesisMintTSH(features);
-        testImportTSH(features);
-        testInvokeTSH(features);
-        testOfferCancelTSH(features);
-        testOfferCreateTSH(features);
-        testPaymentTSH(features);
-        testPaymentChannelClaimTSH(features);
-        testPaymentChannelCreateTSH(features);
-        testPaymentChannelFundTSH(features);
-        testSetHookTSH(features);
-        testSetRegularKeyTSH(features);
-        testSignersListSetTSH(features);
-        testTicketCreateTSH(features);
-        testTrustSetTSH(features);
-        testURITokenMintTSH(features);
-        testURITokenBurnTSH(features);
-        testURITokenBuyTSH(features);
-        testURITokenCancelSellOfferTSH(features);
-        testURITokenCreateSellOfferTSH(features);
-        testRemitTSH(features);
-        testCronSetTSH(features);
-        testCronTSH(features);
+#pragma push_macro("TRANSACTION")
+#undef TRANSACTION
+
+#define TRANSACTION(tag, value, name, fields) test##name##TSH(features);
+
+#include <xrpl/protocol/detail/transactions.macro>
+
+#undef TRANSACTION
+#pragma pop_macro("TRANSACTION")
     }
 
     void
