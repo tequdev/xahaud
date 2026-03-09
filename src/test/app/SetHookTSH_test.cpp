@@ -1954,6 +1954,7 @@ private:
     {
         testcase("emit failure tsh");
 
+        // pseudo transaction
         pass();
     }
 
@@ -3154,6 +3155,7 @@ private:
     {
         testcase("enable amendment tsh");
 
+        // pseudo transaction
         pass();
     }
 
@@ -5765,6 +5767,7 @@ private:
     {
         testcase("set fee tsh");
 
+        // pseudo transaction
         pass();
     }
 
@@ -6186,6 +6189,7 @@ private:
     {
         testcase("unl modify tsh");
 
+        // pseudo transaction
         pass();
     }
 
@@ -6194,6 +6198,7 @@ private:
     {
         testcase("unl report tsh");
 
+        // pseudo transaction
         pass();
     }
 
