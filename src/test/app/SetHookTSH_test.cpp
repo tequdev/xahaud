@@ -3956,7 +3956,9 @@ private:
             env.close();
 
             // verify tsh hook triggered
-            auto const expected = testStrong ? tshNONE : tshWEAK;
+            auto const expected =
+                testStrong || !features[featureIOUIssuerWeakTSH] ? tshNONE
+                                                                 : tshWEAK;
             testTSHStrongWeak(env, expected, __LINE__);
         }
 
@@ -4001,14 +4003,16 @@ private:
             env.close();
 
             // verify tsh hook triggered
-            auto const expected = testStrong ? tshNONE : tshWEAK;
+            auto const expected =
+                testStrong || !features[featureIOUIssuerWeakTSH] ? tshNONE
+                                                                 : tshWEAK;
             testTSHStrongWeak(env, expected, __LINE__);
         }
 
         // otxn: account
         // tsh issuer
         // nft flag: tfStrongTSH
-        // w/s: string
+        // w/s: strong
         for (bool const testStrong : {true, false})
         {
             test::jtx::Env env{
@@ -4409,7 +4413,9 @@ private:
             env.close();
 
             // verify tsh hook triggered
-            auto const expected = testStrong ? tshNONE : tshWEAK;
+            auto const expected =
+                testStrong || !features[featureIOUIssuerWeakTSH] ? tshNONE
+                                                                 : tshWEAK;
             testTSHStrongWeak(env, expected, __LINE__);
         }
 
@@ -4460,7 +4466,9 @@ private:
             env.close();
 
             // verify tsh hook triggered
-            auto const expected = testStrong ? tshNONE : tshWEAK;
+            auto const expected =
+                testStrong || !features[featureIOUIssuerWeakTSH] ? tshNONE
+                                                                 : tshWEAK;
             testTSHStrongWeak(env, expected, __LINE__);
         }
 
@@ -4516,7 +4524,9 @@ private:
             env.close();
 
             // verify tsh hook triggered
-            auto const expected = testStrong ? tshNONE : tshWEAK;
+            auto const expected =
+                testStrong || !features[featureIOUIssuerWeakTSH] ? tshNONE
+                                                                 : tshWEAK;
             testTSHStrongWeak(env, expected, __LINE__);
         }
     }
@@ -4620,7 +4630,9 @@ private:
             env.close();
 
             // verify tsh hook triggered
-            auto const expected = testStrong ? tshNONE : tshWEAK;
+            auto const expected =
+                testStrong || !features[featureIOUIssuerWeakTSH] ? tshNONE
+                                                                 : tshWEAK;
             testTSHStrongWeak(env, expected, __LINE__);
         }
 
