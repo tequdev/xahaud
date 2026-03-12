@@ -41,7 +41,7 @@ getTransactionalStakeHolders(STTx const& tx, ReadView const& rv)
     if (!otxnAcc)
         return {};
 
-    uint16_t tt = tx.getFieldU16(sfTransactionType);
+    TxType const& tt = tx.getTxnType();
 
     std::map<AccountID, std::pair<int, bool>> tshEntries;
 

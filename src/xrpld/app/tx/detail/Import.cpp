@@ -1121,7 +1121,7 @@ Import::doRegularKey(std::shared_ptr<SLE>& sle, STTx const& stpTrans)
 
     JLOG(ctx_.journal.trace()) << "Import: doRegularKey acc: " << id;
 
-    if (stpTrans.getFieldU16(sfTransactionType) != ttREGULAR_KEY_SET)
+    if (stpTrans.getTxnType() != ttREGULAR_KEY_SET)
     {
         JLOG(ctx_.journal.warn())
             << "Import: doRegularKey called on non-regular key transaction.";
