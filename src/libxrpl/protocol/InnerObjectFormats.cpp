@@ -97,6 +97,7 @@ InnerObjectFormats::InnerObjectFormats()
          {sfHookOnOutgoing, soeOPTIONAL},
          {sfHookCanEmit, soeOPTIONAL},
          {sfHookApiVersion, soeREQUIRED},
+         {sfHookName, soeOPTIONAL},
          {sfFlags, soeREQUIRED},
          {sfFee, soeREQUIRED}});
 
@@ -112,6 +113,7 @@ InnerObjectFormats::InnerObjectFormats()
          {sfHookOnOutgoing, soeOPTIONAL},
          {sfHookCanEmit, soeOPTIONAL},
          {sfHookApiVersion, soeOPTIONAL},
+         {sfHookName, soeOPTIONAL},
          {sfFlags, soeOPTIONAL}});
 
     add(sfHookGrant.jsonName,

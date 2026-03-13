@@ -270,6 +270,22 @@ Transactor::calculateHookChainFee(
             continue;
         }
 
+        std::optional<Blob> requiredHookName;
+        if (hookObj.isFieldPresent(sfHookName) &&
+            hookObj.getFieldVL(sfHookName).size() > 0)
+            requiredHookName = hookObj.getFieldVL(sfHookName);
+        else if (hookDef->isFieldPresent(sfHookName))
+            requiredHookName = hookDef->getFieldVL(sfHookName);
+
+        if (requiredHookName)
+        {
+            // need to specify same hook name in the transaction
+            if (!tx.isFieldPresent(sfHookName))
+                continue;
+            if (*requiredHookName != tx.getFieldVL(sfHookName))
+                continue;
+        }
+
         uint32_t flags = 0;
         if (hookObj.isFieldPresent(sfFlags))
             flags = hookObj.getFieldU32(sfFlags);
@@ -1321,6 +1337,22 @@ Transactor::executeHookChain(
         {
             JLOG(j_.warn()) << "HookError[]: Failure: hook def missing (send)";
             continue;
+        }
+
+        std::optional<Blob> requiredHookName;
+        if (hookObj.isFieldPresent(sfHookName) &&
+            hookObj.getFieldVL(sfHookName).size() > 0)
+            requiredHookName = hookObj.getFieldVL(sfHookName);
+        else if (hookDef->isFieldPresent(sfHookName))
+            requiredHookName = hookDef->getFieldVL(sfHookName);
+
+        if (requiredHookName)
+        {
+            // need to specify same hook name in the transaction
+            if (!ctx_.tx.isFieldPresent(sfHookName))
+                continue;
+            if (*requiredHookName != ctx_.tx.getFieldVL(sfHookName))
+                continue;
         }
 
         // check if the hook can fire
