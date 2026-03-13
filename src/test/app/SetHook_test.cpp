@@ -680,6 +680,8 @@ public:
 
         bool const hasHookCanEmit =
             env.current()->rules().enabled(featureHookCanEmit);
+        bool const hasNamedHooks =
+            env.current()->rules().enabled(featureNamedHooks);
 
         auto const alice = Account{"alice"};
         env.fund(XRP(10000), alice);
@@ -716,7 +718,8 @@ public:
         }
 
         // grants, parameters, hookon, hookonincoming, hookonoutgoing,
-        // hookcanemit, hookapiversion, hooknamespace keys must be absent
+        // hookcanemit, hookapiversion, hooknamespace, hookname keys must be
+        // absent
         for (auto const& [key, value] : JSSMap{
                  {jss::HookGrants, Json::arrayValue},
                  {jss::HookParameters, Json::arrayValue},
@@ -733,9 +736,14 @@ public:
                   "000000000000000000000000000000000000000000000000000000000000"
                   "0000"},
                  {jss::HookApiVersion, "0"},
-                 {jss::HookNamespace, to_string(uint256{beast::zero})}})
+                 {jss::HookNamespace, to_string(uint256{beast::zero})},
+                 {jss::HookName, "DEADBEEF"},
+             })
         {
             if (!hasHookCanEmit && key == jss::HookCanEmit)
+                continue;
+
+            if (!hasNamedHooks && key == jss::HookName)
                 continue;
 
             Json::Value iv;
@@ -745,7 +753,7 @@ public:
             env(jv,
                 M("Hook DELETE operation cannot include: grants, params, "
                   "hookon, HookOnIncoming, HookOnOutgoing, hookcanemit, "
-                  "apiversion, namespace"),
+                  "apiversion, namespace, hookname"),
                 HSFEE,
                 ter(temMALFORMED));
             env.close();
@@ -884,6 +892,8 @@ public:
         bool const fixNS = env.current()->rules().enabled(fixNSDelete);
         bool const hasHookCanEmit =
             env.current()->rules().enabled(featureHookCanEmit);
+        bool const hasNamedHooks =
+            env.current()->rules().enabled(featureNamedHooks);
 
         auto const alice = Account{"alice"};
         env.fund(XRP(10000), alice);
@@ -916,9 +926,13 @@ public:
                   "000000000000000000000000000000000000000000000000000000000000"
                   "0000"},
                  {jss::HookApiVersion, "0"},
+                 {jss::HookName, "DEADBEEF"},
              })
         {
             if (!hasHookCanEmit && key == jss::HookCanEmit)
+                continue;
+
+            if (!hasNamedHooks && key == jss::HookName)
                 continue;
 
             Json::Value iv;
@@ -929,7 +943,7 @@ public:
             env(jv,
                 M("Hook NSDELETE operation cannot include: grants, params, "
                   "hookon, hookonincoming, hookonoutgoing, hookcanemit, "
-                  "apiversion"),
+                  "apiversion, hookname"),
                 HSFEE,
                 ter(temMALFORMED));
             env.close();
@@ -1731,6 +1745,8 @@ public:
 
         bool const hasHookCanEmit =
             env.current()->rules().enabled(featureHookCanEmit);
+        bool const hasNamedHooks =
+            env.current()->rules().enabled(featureNamedHooks);
 
         auto const bob = Account{"bob"};
         env.fund(XRP(10000), bob);
@@ -1779,6 +1795,8 @@ public:
                 iv[jss::HookCanEmit] =
                     "0000000000000000000000000000000000000000000000000000000000"
                     "000000";
+            if (hasNamedHooks)
+                iv[jss::HookName] = "DEADBEEF";
             jv[jss::Hooks][0U] = Json::Value{};
             jv[jss::Hooks][0U][jss::Hook] = iv;
 
@@ -1801,6 +1819,8 @@ public:
                 iv[jss::HookCanEmit] =
                     "0000000000000000000000000000000000000000000000000000000000"
                     "000000";
+            if (hasNamedHooks)
+                iv[jss::HookName] = "DEADBEEF";
             jv[jss::Hooks][0U] = Json::Value{};
             jv[jss::Hooks][0U][jss::Hook] = iv;
 
@@ -1824,6 +1844,8 @@ public:
                 iv[jss::HookCanEmit] =
                     "0000000000000000000000000000000000000000000000000000000000"
                     "000000";
+            if (hasNamedHooks)
+                iv[jss::HookName] = "DEADBEEF";
             jv[jss::Hooks][0U] = Json::Value{};
             jv[jss::Hooks][0U][jss::Hook] = iv;
 
@@ -1844,6 +1866,8 @@ public:
                 iv[jss::HookCanEmit] =
                     "0000000000000000000000000000000000000000000000000000000000"
                     "000000";
+            if (hasNamedHooks)
+                iv[jss::HookName] = "DEADBEEF";
             jv[jss::Hooks][0U] = Json::Value{};
             jv[jss::Hooks][0U][jss::Hook] = iv;
 
@@ -1992,6 +2016,8 @@ public:
 
         bool const hasHookCanEmit =
             env.current()->rules().enabled(featureHookCanEmit);
+        bool const hasNamedHooks =
+            env.current()->rules().enabled(featureNamedHooks);
 
         auto const alice = Account{"alice"};
         env.fund(XRP(10000), alice);
@@ -2018,6 +2044,8 @@ public:
                 iv[jss::HookCanEmit] =
                     "0000000000000000000000000000000000000000000000000000000000"
                     "000000";
+            if (hasNamedHooks)
+                iv[jss::HookName] = "DEADBEEF";
             iv[jss::HookParameters] = Json::Value{Json::arrayValue};
             iv[jss::HookParameters][0U] = Json::Value{};
             iv[jss::HookParameters][0U][jss::HookParameter] = Json::Value{};
@@ -2106,9 +2134,14 @@ public:
                       "CAFECAFECAFECAFECAFECAFECAFECAFECAFECAFECAFECAFECAFECAFE"
                       "CAFECAFE"},
                      {jss::HookParameters, params},
-                     {jss::HookGrants, grants}})
+                     {jss::HookGrants, grants},
+                     {jss::HookName, "DEADBEEF"},
+                 })
             {
                 if (!hasHookCanEmit && key == jss::HookCanEmit)
+                    continue;
+
+                if (!hasNamedHooks && key == jss::HookName)
                     continue;
 
                 Json::Value iv;
@@ -2182,9 +2215,14 @@ public:
                      {jss::HookCanEmit,
                       "00000000000000000000000000000000000000000000000000000000"
                       "00000000"},
-                     {jss::HookNamespace, to_string(uint256{beast::zero})}})
+                     {jss::HookNamespace, to_string(uint256{beast::zero})},
+                     {jss::HookName, "DEADBEEF"},
+                 })
             {
                 if (key == jss::HookCanEmit && !hasHookCanEmit)
+                    continue;
+
+                if (!hasNamedHooks && key == jss::HookName)
                     continue;
 
                 Json::Value iv;
@@ -2435,9 +2473,14 @@ public:
                       "CAFECAFECAFECAFECAFECAFECAFECAFECAFECAFECAFECAFECAFECAFE"
                       "CAFECAFE"},
                      {jss::HookParameters, params},
-                     {jss::HookGrants, grants}})
+                     {jss::HookGrants, grants},
+                     {jss::HookName, "DEADBEEF"},
+                 })
             {
                 if (key == jss::HookCanEmit && !hasHookCanEmit)
+                    continue;
+
+                if (!hasNamedHooks && key == jss::HookName)
                     continue;
 
                 Json::Value iv;
@@ -14603,7 +14646,7 @@ public:
         using namespace test::jtx;
         static FeatureBitset const all{supported_amendments()};
 
-        static std::array<FeatureBitset, 7> const feats{
+        static std::array<FeatureBitset, 8> const feats{
             all,
             all - fixXahauV2,
             all - fixXahauV1 - fixXahauV2,
@@ -14613,6 +14656,7 @@ public:
                 featureHookCanEmit,
             all - fixXahauV1 - fixXahauV2 - fixNSDelete - fixPageCap -
                 featureExtendedHookState,
+            all - featureNamedHooks,
         };
 
         if (BEAST_EXPECT(instance < feats.size()))
@@ -14781,7 +14825,8 @@ SETHOOK_TEST(2, false)
 SETHOOK_TEST(3, false)
 SETHOOK_TEST(4, false)
 SETHOOK_TEST(5, false)
-SETHOOK_TEST(6, true)
+SETHOOK_TEST(6, false)
+SETHOOK_TEST(7, true)
 
 BEAST_DEFINE_TESTSUITE_PRIO(SetHook0, app, ripple, 2);
 BEAST_DEFINE_TESTSUITE_PRIO(SetHook1, app, ripple, 2);
@@ -14790,6 +14835,7 @@ BEAST_DEFINE_TESTSUITE_PRIO(SetHook3, app, ripple, 2);
 BEAST_DEFINE_TESTSUITE_PRIO(SetHook4, app, ripple, 2);
 BEAST_DEFINE_TESTSUITE_PRIO(SetHook5, app, ripple, 2);
 BEAST_DEFINE_TESTSUITE_PRIO(SetHook6, app, ripple, 2);
+BEAST_DEFINE_TESTSUITE_PRIO(SetHook7, app, ripple, 2);
 }  // namespace test
 }  // namespace ripple
 #undef M

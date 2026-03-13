@@ -105,6 +105,7 @@ LEDGER_ENTRY(ltHOOK_DEFINITION, 'D', HookDefinition, hook_definition, ({
     {sfReferenceCount,       soeREQUIRED},
     {sfFee,                  soeREQUIRED},
     {sfHookCallbackFee,      soeOPTIONAL},
+    {sfHookName,             soeOPTIONAL},
     {sfPreviousTxnID,        soeOPTIONAL},
     {sfPreviousTxnLgrSeq,    soeOPTIONAL},
 }))
