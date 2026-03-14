@@ -23,6 +23,7 @@
 #include <xrpld/app/ledger/Ledger.h>
 #include <xrpld/app/ledger/LedgerMaster.h>
 #include <xrpld/app/ledger/OpenLedger.h>
+#include <xrpld/app/tx/detail/URIToken.h>
 #include <xrpld/ledger/ApplyView.h>
 #include <xrpl/basics/Log.h>
 #include <xrpl/hook/Enum.h>
@@ -517,7 +518,7 @@ SetHook::validateHookSetEntry(SetHookCtx& ctx, STObject const& hookSetObj)
             if (hookSetObj.isFieldPresent(sfHookName))
             {
                 auto name = hookSetObj.getFieldVL(sfHookName);
-                if (name.size() != 0 && (name.size() < 3 || 16 < name.size()))
+                if (name.size() != 0 && (name.size() < 4 || 16 < name.size()))
                 {
                     // If size is 0, it means the HookDefinition Name won't be
                     // used as a fallback, and it will be treated as a non-Named
@@ -526,7 +527,17 @@ SetHook::validateHookSetEntry(SetHookCtx& ctx, STObject const& hookSetObj)
                         << "HookSet(" << hook::log::HOOK_INVALID_FIELD << ")["
                         << HS_ACC()
                         << "]: Malformed transaction: SetHook sfHookName must "
-                           "be between 3 and 16 characters.";
+                           "be between 4 and 16 hex characters.";
+                    return false;
+                }
+
+                if (!URIToken::validateUTF8(name))
+                {
+                    JLOG(ctx.j.trace())
+                        << "HookSet(" << hook::log::HOOK_INVALID_FIELD << ")["
+                        << HS_ACC()
+                        << "]: Malformed transaction: SetHook sfHookName must "
+                           "be a valid UTF-8 string.";
                     return false;
                 }
             }

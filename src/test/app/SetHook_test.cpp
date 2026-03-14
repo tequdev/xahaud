@@ -737,7 +737,7 @@ public:
                   "0000"},
                  {jss::HookApiVersion, "0"},
                  {jss::HookNamespace, to_string(uint256{beast::zero})},
-                 {jss::HookName, "DEADBEEF"},
+                 {jss::HookName, strHex(std::string{"DEADBEEF"})},
              })
         {
             if (!hasHookCanEmit && key == jss::HookCanEmit)
@@ -926,7 +926,7 @@ public:
                   "000000000000000000000000000000000000000000000000000000000000"
                   "0000"},
                  {jss::HookApiVersion, "0"},
-                 {jss::HookName, "DEADBEEF"},
+                 {jss::HookName, strHex(std::string{"DEADBEEF"})},
              })
         {
             if (!hasHookCanEmit && key == jss::HookCanEmit)
@@ -1796,7 +1796,7 @@ public:
                     "0000000000000000000000000000000000000000000000000000000000"
                     "000000";
             if (hasNamedHooks)
-                iv[jss::HookName] = "DEADBEEF";
+                iv[jss::HookName] = strHex(std::string{"DEADBEEF"});
             jv[jss::Hooks][0U] = Json::Value{};
             jv[jss::Hooks][0U][jss::Hook] = iv;
 
@@ -1820,7 +1820,7 @@ public:
                     "0000000000000000000000000000000000000000000000000000000000"
                     "000000";
             if (hasNamedHooks)
-                iv[jss::HookName] = "DEADBEEF";
+                iv[jss::HookName] = strHex(std::string{"DEADBEEF"});
             jv[jss::Hooks][0U] = Json::Value{};
             jv[jss::Hooks][0U][jss::Hook] = iv;
 
@@ -1845,7 +1845,7 @@ public:
                     "0000000000000000000000000000000000000000000000000000000000"
                     "000000";
             if (hasNamedHooks)
-                iv[jss::HookName] = "DEADBEEF";
+                iv[jss::HookName] = strHex(std::string{"DEADBEEF"});
             jv[jss::Hooks][0U] = Json::Value{};
             jv[jss::Hooks][0U][jss::Hook] = iv;
 
@@ -1867,7 +1867,7 @@ public:
                     "0000000000000000000000000000000000000000000000000000000000"
                     "000000";
             if (hasNamedHooks)
-                iv[jss::HookName] = "DEADBEEF";
+                iv[jss::HookName] = strHex(std::string{"DEADBEEF"});
             jv[jss::Hooks][0U] = Json::Value{};
             jv[jss::Hooks][0U][jss::Hook] = iv;
 
@@ -2045,7 +2045,7 @@ public:
                     "0000000000000000000000000000000000000000000000000000000000"
                     "000000";
             if (hasNamedHooks)
-                iv[jss::HookName] = "DEADBEEF";
+                iv[jss::HookName] = strHex(std::string{"DEADBEEF"});
             iv[jss::HookParameters] = Json::Value{Json::arrayValue};
             iv[jss::HookParameters][0U] = Json::Value{};
             iv[jss::HookParameters][0U][jss::HookParameter] = Json::Value{};
@@ -2135,7 +2135,7 @@ public:
                       "CAFECAFE"},
                      {jss::HookParameters, params},
                      {jss::HookGrants, grants},
-                     {jss::HookName, "DEADBEEF"},
+                     {jss::HookName, strHex(std::string{"DEADBEEF"})},
                  })
             {
                 if (!hasHookCanEmit && key == jss::HookCanEmit)
@@ -2216,7 +2216,7 @@ public:
                       "00000000000000000000000000000000000000000000000000000000"
                       "00000000"},
                      {jss::HookNamespace, to_string(uint256{beast::zero})},
-                     {jss::HookName, "DEADBEEF"},
+                     {jss::HookName, strHex(std::string{"DEADBEEF"})},
                  })
             {
                 if (key == jss::HookCanEmit && !hasHookCanEmit)
@@ -2474,7 +2474,7 @@ public:
                       "CAFECAFE"},
                      {jss::HookParameters, params},
                      {jss::HookGrants, grants},
-                     {jss::HookName, "DEADBEEF"},
+                     {jss::HookName, strHex(std::string{"DEADBEEF"})},
                  })
             {
                 if (key == jss::HookCanEmit && !hasHookCanEmit)
