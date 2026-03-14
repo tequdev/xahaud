@@ -1689,6 +1689,107 @@ public:
     }
 
     void
+    testHookName(FeatureBitset features)
+    {
+        testcase("Test hook name");
+        using namespace jtx;
+
+        auto const alice = Account{"alice"};
+        auto const bob = Account{"bob"};
+
+        Env env{*this, features};
+
+        env.fund(XRP(10000), alice, bob);
+        env.close();
+
+        // Invalid hook name (length=3,17, not utf-8)
+        for (auto const name : {
+                 "414243",                              // ABC (length=3)
+                 "4142434445464748494A4B4C4D4E4F5051",  // ABCDEFGHIJKLMNOPQ
+                                                        // (length=17)
+                 "DEADBEEF",                            // not utf-8
+             })
+        {
+            auto jvh = hso(accept_wasm);
+            jvh[jss::HookName] = name;
+            env(ripple::test::jtx::hook(alice, {{jvh}}, 0),
+                M("Hook name must be between 4 and 16 characters and be a "
+                  "valid UTF-8 string"),
+                HSFEE,
+                ter(temMALFORMED));
+
+            auto jvi = invoke::invoke(alice);
+            jvi[jss::HookName] = name;
+            env(jvi,
+                M("Call named hook with the invalid hook name"),
+                HSFEE,
+                ter(temMALFORMED));
+        }
+
+        if (!features[featureNamedHooks])
+            return;
+
+        // Install named hook
+        auto jvh = hso(accept_wasm);
+        jvh[jss::HookName] = "41424344";
+        env(ripple::test::jtx::hook(alice, {{jvh}}, 0),
+            M("Install named hook"),
+            HSFEE);
+        env.close();
+
+        // Check hook definition
+        {
+            auto const hookDef = env.le(keylet::hookDefinition(accept_hash));
+            BEAST_EXPECT(hookDef);
+            BEAST_EXPECT(hookDef->isFieldPresent(sfHookName));
+            auto const name = hookDef->getFieldVL(sfHookName);
+            BEAST_EXPECT(name.size() == 4);
+            BEAST_EXPECT(
+                name[0] == 'A' && name[1] == 'B' && name[2] == 'C' &&
+                name[3] == 'D');
+        }
+
+        // Call named hook without specifying the hook name
+        {
+            auto jv = invoke::invoke(alice);
+            auto expectedFee =
+                calculateBaseFee(*env.current(), *env.jt(jv).stx);
+            BEAST_EXPECT(expectedFee == drops(10));
+            env(jv,
+                M("Call named hook without specifying the hook name"),
+                HSFEE);
+            env.close();
+            BEAST_EXPECT(!env.meta()->isFieldPresent(sfHookExecutions));
+        }
+
+        // Call named hook with the wrong hook name
+        {
+            auto jv = invoke::invoke(alice);
+            jv[jss::HookName] = "41424345";
+            auto expectedFee =
+                calculateBaseFee(*env.current(), *env.jt(jv).stx);
+            BEAST_EXPECT(expectedFee == drops(10));
+            env(jv, M("Call named hook with the wrong hook name"), HSFEE);
+            env.close();
+            BEAST_EXPECT(!env.meta()->isFieldPresent(sfHookExecutions));
+        }
+
+        // Call named hook with the correct hook name
+        {
+            auto jv = invoke::invoke(alice);
+            jv[jss::HookName] = "41424344";
+            auto expectedFee =
+                calculateBaseFee(*env.current(), *env.jt(jv).stx);
+            BEAST_EXPECT(expectedFee == drops(19));
+            env(jv, M("Call named hook with the correct hook name"), HSFEE);
+            env.close();
+            BEAST_EXPECT(env.meta()->isFieldPresent(sfHookExecutions));
+        }
+
+        // TODO: Weak, Callback Execution
+    }
+
+    void
     testFillCopy(FeatureBitset features)
     {
         testcase("Test fill/copy");
@@ -14543,6 +14644,7 @@ public:
         testPageCap(features);
 
         testHookOnV2(features);
+        testHookName(features);
 
         testFillCopy(features);
 

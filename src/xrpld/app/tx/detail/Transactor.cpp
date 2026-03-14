@@ -24,6 +24,7 @@
 #include <xrpld/app/misc/LoadFeeTrack.h>
 #include <xrpld/app/tx/apply.h>
 #include <xrpld/app/tx/detail/NFTokenUtils.h>
+#include <xrpld/app/tx/detail/SetHook.h>
 #include <xrpld/app/tx/detail/SignerEntries.h>
 #include <xrpld/app/tx/detail/Transactor.h>
 #include <xrpld/core/Config.h>
@@ -123,28 +124,40 @@ preflight1(PreflightContext const& ctx)
     // if a hook emitted this transaction we bypass signature checks
     // there is a bar to circularing emitted transactions on the network
     // in their prevalidated form so this is safe
-    if (ctx.rules.enabled(featureHooks) && hook::isEmittedTxn(ctx.tx))
+    if (ctx.rules.enabled(featureHooks))
     {
-        if ((ctx.app.getHashRouter().getFlags(ctx.tx.getTransactionID()) &
-             SF_EMITTED) ||
-            (ctx.flags & tapPREFLIGHT_EMIT))
+        if (hook::isEmittedTxn(ctx.tx))
         {
-            if (ctx.tx.getSeqProxy().isTicket() &&
-                ctx.tx.isFieldPresent(sfAccountTxnID))
-                return temINVALID;
+            if ((ctx.app.getHashRouter().getFlags(ctx.tx.getTransactionID()) &
+                 SF_EMITTED) ||
+                (ctx.flags & tapPREFLIGHT_EMIT))
+            {
+                if (ctx.tx.getSeqProxy().isTicket() &&
+                    ctx.tx.isFieldPresent(sfAccountTxnID))
+                    return temINVALID;
 
-            return tesSUCCESS;
+                return tesSUCCESS;
+            }
+            else
+            {
+                // If somehow we end up attempting to apply a transaction that
+                // wasn't placed via the emission directory then we will do a
+                // local failure. We don't want to broadcast this failure,
+                // rather we want to catch up to the network. We also don't want
+                // to fail this transaction because somehow it might end up
+                // being locally produced. It's assumed this can only happen due
+                // to some strange state in the local instance.
+                return telNON_LOCAL_EMITTED_TXN;
+            }
         }
-        else
+        if (ctx.tx.isFieldPresent(sfHookName))
         {
-            // If somehow we end up attempting to apply a transaction that
-            // wasn't placed via the emission directory then we will do a local
-            // failure. We don't want to broadcast this failure, rather we want
-            // to catch up to the network. We also don't want to fail this
-            // transaction because somehow it might end up being locally
-            // produced. It's assumed this can only happen due to some strange
-            // state in the local instance.
-            return telNON_LOCAL_EMITTED_TXN;
+            if (!ctx.rules.enabled(featureNamedHooks))
+                return temMALFORMED;
+
+            if (!SetHook::validateHookName(
+                    ctx.tx.getFieldVL(sfHookName), ctx.j))
+                return temMALFORMED;
         }
     }
 

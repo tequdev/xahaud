@@ -518,28 +518,8 @@ SetHook::validateHookSetEntry(SetHookCtx& ctx, STObject const& hookSetObj)
             if (hookSetObj.isFieldPresent(sfHookName))
             {
                 auto name = hookSetObj.getFieldVL(sfHookName);
-                if (name.size() != 0 && (name.size() < 4 || 16 < name.size()))
-                {
-                    // If size is 0, it means the HookDefinition Name won't be
-                    // used as a fallback, and it will be treated as a non-Named
-                    // Hook instead.
-                    JLOG(ctx.j.trace())
-                        << "HookSet(" << hook::log::HOOK_INVALID_FIELD << ")["
-                        << HS_ACC()
-                        << "]: Malformed transaction: SetHook sfHookName must "
-                           "be between 4 and 16 hex characters.";
+                if (!validateHookName(name, ctx.j))
                     return false;
-                }
-
-                if (!URIToken::validateUTF8(name))
-                {
-                    JLOG(ctx.j.trace())
-                        << "HookSet(" << hook::log::HOOK_INVALID_FIELD << ")["
-                        << HS_ACC()
-                        << "]: Malformed transaction: SetHook sfHookName must "
-                           "be a valid UTF-8 string.";
-                    return false;
-                }
             }
 
             // finally validate web assembly byte code
@@ -639,6 +619,23 @@ SetHook::validateHookSetEntry(SetHookCtx& ctx, STObject const& hookSetObj)
             return false;
         }
     }
+}
+
+bool
+SetHook::validateHookName(Blob const& name, beast::Journal const& j)
+{
+    if (name.size() != 0 && (name.size() < 4 || 16 < name.size()))
+    {
+        JLOG(j.trace())
+            << "sfHookName must be between 4 and 16 hex characters.";
+        return false;
+    }
+    if (!URIToken::validateUTF8(name))
+    {
+        JLOG(j.trace()) << "sfHookName must be a valid UTF-8 string.";
+        return false;
+    }
+    return true;
 }
 
 // Note that if fee calculation causes an overflow then INITIAL_XRP is returned
