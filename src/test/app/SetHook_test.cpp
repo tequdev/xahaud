@@ -1732,7 +1732,7 @@ public:
         // Install named hook
         auto jvh = hso(accept_wasm);
         jvh[jss::HookName] = "41424344";
-        env(ripple::test::jtx::hook(alice, {{jvh}}, 0),
+        env(ripple::test::jtx::hook(alice, {{jvh, hso(accept2_wasm)}}, 0),
             M("Install named hook"),
             HSFEE);
         env.close();
@@ -1754,12 +1754,17 @@ public:
             auto jv = invoke::invoke(alice);
             auto expectedFee =
                 calculateBaseFee(*env.current(), *env.jt(jv).stx);
-            BEAST_EXPECT(expectedFee == drops(10));
+            BEAST_EXPECT(expectedFee == drops(19));
             env(jv,
                 M("Call named hook without specifying the hook name"),
                 HSFEE);
             env.close();
-            BEAST_EXPECT(!env.meta()->isFieldPresent(sfHookExecutions));
+            // execute only non-named hook
+            auto const hookExecutions =
+                env.meta()->getFieldArray(sfHookExecutions);
+            BEAST_EXPECT(hookExecutions.size() == 1);
+            BEAST_EXPECT(
+                hookExecutions[0].getFieldH256(sfHookHash) == accept2_hash);
         }
 
         // Call named hook with the wrong hook name
@@ -1768,10 +1773,15 @@ public:
             jv[jss::HookName] = "41424345";
             auto expectedFee =
                 calculateBaseFee(*env.current(), *env.jt(jv).stx);
-            BEAST_EXPECT(expectedFee == drops(10));
+            BEAST_EXPECT(expectedFee == drops(19));
             env(jv, M("Call named hook with the wrong hook name"), HSFEE);
             env.close();
-            BEAST_EXPECT(!env.meta()->isFieldPresent(sfHookExecutions));
+            // execute only non-named hook
+            auto const hookExecutions =
+                env.meta()->getFieldArray(sfHookExecutions);
+            BEAST_EXPECT(hookExecutions.size() == 1);
+            BEAST_EXPECT(
+                hookExecutions[0].getFieldH256(sfHookHash) == accept2_hash);
         }
 
         // Call named hook with the correct hook name
@@ -1780,10 +1790,17 @@ public:
             jv[jss::HookName] = "41424344";
             auto expectedFee =
                 calculateBaseFee(*env.current(), *env.jt(jv).stx);
-            BEAST_EXPECT(expectedFee == drops(19));
+            BEAST_EXPECT(expectedFee == drops(28));
             env(jv, M("Call named hook with the correct hook name"), HSFEE);
             env.close();
-            BEAST_EXPECT(env.meta()->isFieldPresent(sfHookExecutions));
+            // execute both named and non-named hooks
+            auto const hookExecutions =
+                env.meta()->getFieldArray(sfHookExecutions);
+            BEAST_EXPECT(hookExecutions.size() == 2);
+            BEAST_EXPECT(
+                hookExecutions[0].getFieldH256(sfHookHash) == accept_hash);
+            BEAST_EXPECT(
+                hookExecutions[1].getFieldH256(sfHookHash) == accept2_hash);
         }
 
         // TODO: Weak, Callback Execution
