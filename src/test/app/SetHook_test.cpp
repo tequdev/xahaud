@@ -1696,6 +1696,7 @@ public:
 
         auto const alice = Account{"alice"};
         auto const bob = Account{"bob"};
+        auto const USD = alice["USD"];
 
         Env env{*this, features};
 
@@ -1716,7 +1717,8 @@ public:
                 M("Hook name must be between 4 and 16 characters and be a "
                   "valid UTF-8 string"),
                 HSFEE,
-                ter(temMALFORMED));
+                features[featureNamedHooks] ? ter(temMALFORMED)
+                                            : ter(temDISABLED));
 
             auto jvi = invoke::invoke(alice);
             jvi[jss::HookName] = name;
@@ -1732,7 +1734,10 @@ public:
         // Install named hook
         auto jvh = hso(accept_wasm);
         jvh[jss::HookName] = "41424344";
-        env(ripple::test::jtx::hook(alice, {{jvh, hso(accept2_wasm)}}, 0),
+        jvh[jss::Flags] = hsfCOLLECT;
+        auto jvh2 = hso(accept2_wasm);
+        jvh2[jss::Flags] = hsfCOLLECT;
+        env(ripple::test::jtx::hook(alice, {{jvh, jvh2}}, 0),
             M("Install named hook"),
             HSFEE);
         env.close();
@@ -1749,6 +1754,9 @@ public:
                 name[3] == 'D');
         }
 
+        //
+        // Test Strong
+        //
         // Call named hook without specifying the hook name
         {
             auto jv = invoke::invoke(alice);
@@ -1803,7 +1811,107 @@ public:
                 hookExecutions[1].getFieldH256(sfHookHash) == accept2_hash);
         }
 
-        // TODO: Weak, Callback Execution
+        //
+        // Test Weak
+        //
+        env(fset(alice, asfTshCollect), fee(XRP(1)));
+        env.close();
+        // Call named hook without specifying the hook name
+        {
+            auto jv = trust(bob, USD(1000));
+            env(jv,
+                M("Call named hook without specifying the hook name"),
+                HSFEE);
+            env.close();
+            // execute only non-named hook
+            auto const hookExecutions =
+                env.meta()->getFieldArray(sfHookExecutions);
+            BEAST_EXPECT(hookExecutions.size() == 1);
+            BEAST_EXPECT(
+                hookExecutions[0].getFieldH256(sfHookHash) == accept2_hash);
+        }
+
+        // Call named hook with the wrong hook name
+        {
+            auto jv = trust(bob, USD(1000));
+            jv[jss::HookName] = "41424345";
+            env(jv, M("Call named hook with the wrong hook name"), HSFEE);
+            env.close();
+            // execute only non-named hook
+            auto const hookExecutions =
+                env.meta()->getFieldArray(sfHookExecutions);
+            BEAST_EXPECT(hookExecutions.size() == 1);
+            BEAST_EXPECT(
+                hookExecutions[0].getFieldH256(sfHookHash) == accept2_hash);
+        }
+
+        // Call named hook with the correct hook name
+        {
+            auto jv = invoke::invoke(alice);
+            jv[jss::HookName] = "41424344";
+            env(jv, M("Call named hook with the correct hook name"), HSFEE);
+            env.close();
+            // execute both named and non-named hooks
+            auto const hookExecutions =
+                env.meta()->getFieldArray(sfHookExecutions);
+            BEAST_EXPECT(hookExecutions.size() == 2);
+            BEAST_EXPECT(
+                hookExecutions[0].getFieldH256(sfHookHash) == accept_hash);
+            BEAST_EXPECT(
+                hookExecutions[1].getFieldH256(sfHookHash) == accept2_hash);
+        }
+        env(fclear(alice, asfTshCollect), fee(XRP(1)));
+        env.close();
+
+        //
+        // Callback Execution
+        //
+        jvh = hso(emit_invoke_wasm);
+        jvh[jss::HookName] = "41424344";
+        jvh[jss::Flags] = hsfOVERRIDE;
+        env(ripple::test::jtx::hook(alice, {{jvh}}, 0),
+            M("Install named callback hook"),
+            HSFEE);
+        env.close();
+        // Call named hook without specifying the hook name
+        {
+            auto jv = invoke::invoke(alice);
+            env(jv,
+                M("Call named hook without specifying the hook name"),
+                HSFEE);
+            env.close();
+            // execute only non-named hook
+            BEAST_EXPECT(!env.meta()->isFieldPresent(sfHookEmissions));
+        }
+
+        // Call named hook with the wrong hook name
+        {
+            auto jv = invoke::invoke(alice);
+            jv[jss::HookName] = "41424345";
+            env(jv, M("Call named hook with the wrong hook name"), HSFEE);
+            env.close();
+            // execute only non-named hook
+            BEAST_EXPECT(!env.meta()->isFieldPresent(sfHookEmissions));
+        }
+
+        // Call named hook with the correct hook name
+        {
+            auto jv = invoke::invoke(alice);
+            jv[jss::HookName] = "41424344";
+            env(jv, M("Call named hook with the correct hook name"), HSFEE);
+            env.close();
+            // execute both named and non-named hooks
+            BEAST_EXPECT(env.meta()->isFieldPresent(sfHookEmissions));
+            auto const hookEmissions =
+                env.meta()->getFieldArray(sfHookEmissions)[0];
+            auto const etxn = hookEmissions.getFieldH256(sfEmittedTxnID);
+            env.close();
+            auto const tx = env.closed()->txRead(etxn);
+            BEAST_EXPECT(tx.first && tx.second);
+            BEAST_EXPECT(!tx.first->isFieldPresent(sfHookName));
+            // Callback transaction doesn't need to have hook name
+            BEAST_EXPECT(tx.second->isFieldPresent(sfHookExecutions));
+        }
     }
 
     void
@@ -14927,6 +15035,98 @@ private:
         )[test.hook]"];
 
     HASH_WASM(accept2);
+
+    // This hook is used to test Callback
+    TestHook emit_invoke_wasm =  // WASM: 7
+        wasm[
+            R"[test.hook](
+                #include <stdint.h>
+                extern int64_t accept   (uint32_t read_ptr, uint32_t read_len, int64_t error_code);
+                extern int64_t rollback (uint32_t read_ptr, uint32_t read_len, int64_t error_code);
+                extern int64_t emit     (uint32_t write_ptr, uint32_t write_len, uint32_t read_ptr, uint32_t read_len);
+                extern int64_t hook_account(uint32_t write_ptr, uint32_t write_len);
+                extern int64_t etxn_reserve(uint32_t);
+                extern int64_t etxn_fee_base (uint32_t read_ptr, uint32_t read_len);
+                extern int64_t etxn_details (uint32_t write_ptr, uint32_t write_len);
+                extern int64_t ledger_seq (void);
+
+                #define SBUF(x) (uint32_t)x,sizeof(x)
+                // clang-format off
+                    uint8_t txn[229] =
+                    {
+                        /* size, upto, field name               */
+                        /*    3,    0, tt = Invoke              */   0x12U, 0x00U, 0x63U,
+                        /*    5,    3, flags                    */   0x22U, 0x00U, 0x00U, 0x00U, 0x00U,
+                        /*    5,    8, sequence                 */   0x24U, 0x00U, 0x00U, 0x00U, 0x00U,
+                        /*    6,   13, firstledgersequence      */   0x20U, 0x1AU, 0x00U, 0x00U, 0x00U, 0x00U,
+                        /*    6,   19, lastledgersequence       */   0x20U, 0x1BU, 0x00U, 0x00U, 0x00U, 0x00U,
+                        /*    9,   25, fee                      */   0x68U, 0x40U, 0x00U, 0x00U, 0x00U, 0x00U, 0x00U, 0x00U, 0x00U,
+                        /*   35,   34, signingpubkey            */   0x73U, 0x21U, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                        /*   22,   69, account                  */   0x81U, 0x14U, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                        /*  116,   91, emit details             */ 
+                        /*    0,  229,                          */ 
+                    };
+                    // clang-format on
+
+                    // TX BUILDER
+                    #define FLAGS_OUT (txn + 4U)
+                    #define FLS_OUT (txn + 15U)
+                    #define LLS_OUT (txn + 21U)
+                    #define FEE_OUT (txn + 26U)
+                    #define ACCOUNT_OUT (txn + 71U)
+                    #define EMIT_OUT (txn + 91U)
+
+                    #define FLIP_ENDIAN_32(value)                                                  \
+                      (uint32_t)(((value & 0xFFU) << 24) | ((value & 0xFF00U) << 8) |              \
+                                  ((value & 0xFF0000U) >> 8) | ((value & 0xFF000000U) >> 24))
+
+                    #define SET_UINT32(ptr, value) *((uint32_t *)(ptr)) = FLIP_ENDIAN_32(value);
+
+                    #define SET_NATIVE_AMOUNT(ptr, amount)                                         \
+                      do {                                                                         \
+                        uint8_t *b = (ptr);                                                        \
+                        *b++ = 0b01000000 + ((amount >> 56) & 0b00111111);                         \
+                        *b++ = (amount >> 48) & 0xFFU;                                             \
+                        *b++ = (amount >> 40) & 0xFFU;                                             \
+                        *b++ = (amount >> 32) & 0xFFU;                                             \
+                        *b++ = (amount >> 24) & 0xFFU;                                             \
+                        *b++ = (amount >> 16) & 0xFFU;                                             \
+                        *b++ = (amount >> 8) & 0xFFU;                                              \
+                        *b++ = (amount >> 0) & 0xFFU;                                              \
+                      } while (0)
+
+                    #define PREPARE_TXN()                                                          \
+                      do {                                                                         \
+                        etxn_reserve(1);                                                           \
+                        uint32_t fls = (uint32_t)ledger_seq() + 1;                                 \
+                        SET_UINT32(FLS_OUT, fls);                                                  \
+                        SET_UINT32(LLS_OUT, fls + 4);                                              \
+                        hook_account(ACCOUNT_OUT, 20);                                             \
+                        etxn_details(EMIT_OUT, 138U);                                              \
+                        int64_t fee = etxn_fee_base(SBUF(txn));                                    \
+                        SET_NATIVE_AMOUNT(FEE_OUT, fee);                                           \
+                      } while (0)
+
+
+                    int64_t cbak(uint32_t r)
+                    {
+                        _g(1,1);
+                        return accept(0,0,0);
+                    }
+
+                    int64_t hook(uint32_t reserved)
+                    {
+                        _g(1,1);
+                        PREPARE_TXN(); 
+                        uint8_t emithash[32]; 
+                        int64_t emit_result = emit(SBUF(emithash), SBUF(txn)); 
+                        if (emit_result < 0)
+                            return rollback(SBUF("Emit failed."), __LINE__);
+                        return accept(SBUF("Emit succeeded."), __LINE__);
+                    }
+        )[test.hook]"];
+
+    HASH_WASM(emit_invoke);
 };
 
 #define SETHOOK_TEST(i, last)                      \
