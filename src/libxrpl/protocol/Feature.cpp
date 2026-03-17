@@ -445,6 +445,8 @@ featureToName(uint256 const& f)
 // ledger must be registered either here or above with the "active" amendments
 [[deprecated("The referenced amendment has been retired"), maybe_unused]]
 uint256 const
+    returedFixXahauV1        = retireFeature("fixXahauV1"),
+    returedFixXahauV2        = retireFeature("fixXahauV2"),
     retiredMultiSign         = retireFeature("MultiSign"),
     retiredTrustSetAuth      = retireFeature("TrustSetAuth"),
     retiredFeeEscalation     = retireFeature("FeeEscalation"),
