@@ -116,6 +116,41 @@ URIToken::preflight(PreflightContext const& ctx)
         case ttURITOKEN_MINT: {
             if (flags & tfURITokenMintMask)
                 return temINVALID_FLAG;
+
+            // Validate TransferFee if the amendment is enabled
+            if (ctx.rules.enabled(featureURITokenTransferFee))
+            {
+                if (ctx.tx.isFieldPresent(sfTransferFee))
+                {
+                    auto const transferFee = ctx.tx.getFieldU16(sfTransferFee);
+                    if (transferFee == 0 || transferFee > 50000)
+                    {
+                        JLOG(ctx.j.warn())
+                            << "Malformed transaction: TransferFee "
+                               "must be between 1 and 50000.";
+                        return temBAD_TRANSFER_FEE;
+                    }
+                }
+
+                if (ctx.tx.isFieldPresent(sfTransferFeeRecipient))
+                {
+                    if (!ctx.tx.isFieldPresent(sfTransferFee) ||
+                        ctx.tx.getFieldU16(sfTransferFee) == 0)
+                    {
+                        JLOG(ctx.j.warn()) << "Malformed transaction: "
+                                              "TransferFeeRecipient without "
+                                              "TransferFee.";
+                        return temMALFORMED;
+                    }
+                }
+            }
+            else
+            {
+                // Amendment not enabled: reject if new fields present
+                if (ctx.tx.isFieldPresent(sfTransferFee) ||
+                    ctx.tx.isFieldPresent(sfTransferFeeRecipient))
+                    return temDISABLED;
+            }
             break;
         }
 
@@ -194,6 +229,14 @@ URIToken::preclaim(PreclaimContext const& ctx)
             if (ctx.view.exists(
                     keylet::uritoken(acc, ctx.tx.getFieldVL(sfURI))))
                 return tecDUPLICATE;
+
+            // check that TransferFeeRecipient account exists
+            if (ctx.tx.isFieldPresent(sfTransferFeeRecipient))
+            {
+                if (!ctx.view.exists(keylet::account(
+                        ctx.tx.getAccountID(sfTransferFeeRecipient))))
+                    return tecNO_TARGET;
+            }
 
             return tesSUCCESS;
         }
@@ -431,6 +474,24 @@ URIToken::doApply()
             if (ctx_.tx.isFieldPresent(sfDigest))
                 sleU->setFieldH256(sfDigest, ctx_.tx.getFieldH256(sfDigest));
 
+            // Copy TransferFee and TransferFeeRecipient to the ledger object
+            if (sb.rules().enabled(featureURITokenTransferFee))
+            {
+                if (ctx_.tx.isFieldPresent(sfTransferFee))
+                {
+                    auto const transferFee = ctx_.tx.getFieldU16(sfTransferFee);
+                    if (transferFee > 0)
+                    {
+                        sleU->setFieldU16(sfTransferFee, transferFee);
+
+                        if (ctx_.tx.isFieldPresent(sfTransferFeeRecipient))
+                            sleU->setAccountID(
+                                sfTransferFeeRecipient,
+                                ctx_.tx.getAccountID(sfTransferFeeRecipient));
+                    }
+                }
+            }
+
             if (flags & tfBurnable)
                 sleU->setFlag(tfBurnable);
 
@@ -542,6 +603,125 @@ URIToken::doApply()
                         false);
                     !isTesSuccess(result))
                     return result;
+
+                // Apply URIToken transfer fee on qualifying secondary sales
+                if (sb.rules().enabled(featureURITokenTransferFee) &&
+                    sleU->isFieldPresent(sfTransferFee) &&
+                    account_ != *issuer && *owner != *issuer)
+                {
+                    auto const feeBips = sleU->getFieldU16(sfTransferFee);
+                    if (feeBips > 0)
+                    {
+                        // Determine fee recipient
+                        AccountID const feeRecipient =
+                            sleU->isFieldPresent(sfTransferFeeRecipient)
+                            ? sleU->getAccountID(sfTransferFeeRecipient)
+                            : *issuer;
+
+                        // feeBips / 100000 as Rate (QUALITY_ONE = 1e9)
+                        Rate const feeRate{
+                            static_cast<std::uint32_t>(feeBips) * 10000u};
+
+                        STAmount feeAmt;
+                        if (purchaseAmount.native())
+                        {
+                            // XRP: use integer arithmetic for precision
+                            XRPAmount const purchaseDrops =
+                                purchaseAmount.xrp();
+                            XRPAmount const feeDrops{static_cast<std::int64_t>(
+                                (static_cast<__int128>(purchaseDrops.drops()) *
+                                 feeBips) /
+                                100000)};
+                            feeAmt = STAmount{feeDrops};
+                        }
+                        else
+                        {
+                            // IOU: the seller receives
+                            // purchaseAmount / iouTransferRate after the
+                            // IOU issuer's transfer fee. Calculate the
+                            // URIToken fee on that net received amount.
+                            auto const iouIssuer = purchaseAmount.getIssuer();
+                            auto const xferRate = transferRate(sb, iouIssuer);
+                            static Rate const parityRate(QUALITY_ONE);
+                            STAmount const netReceived =
+                                (xferRate == parityRate)
+                                ? purchaseAmount
+                                : divide(purchaseAmount, xferRate);
+                            feeAmt = multiplyRound(netReceived, feeRate, true);
+                        }
+
+                        if (feeAmt > beast::zero)
+                        {
+                            // Verify the fee recipient account exists
+                            // and (for IOU) has a valid trust line.
+                            // If any check fails, skip the fee — the
+                            // sale still succeeds.
+                            bool sendFee = true;
+
+                            // Check recipient account exists
+                            if (!sb.exists(keylet::account(feeRecipient)))
+                            {
+                                JLOG(j.trace())
+                                    << "URIToken: skipping transfer fee — "
+                                       "recipient account does not exist";
+                                sendFee = false;
+                            }
+
+                            // For IOU: check trust line and flags
+                            // (skip if recipient is the IOU issuer,
+                            // as issuers don't need trust lines for
+                            // their own IOUs)
+                            if (sendFee && !purchaseAmount.native() &&
+                                feeRecipient != purchaseAmount.getIssuer())
+                            {
+                                auto const& issue = purchaseAmount.issue();
+
+                                // Check trust line exists
+                                if (!sb.exists(keylet::line(
+                                        feeRecipient,
+                                        issue.account,
+                                        issue.currency)))
+                                {
+                                    JLOG(j.trace())
+                                        << "URIToken: skipping transfer fee — "
+                                           "recipient has no trust line";
+                                    sendFee = false;
+                                }
+
+                                // Check freeze/auth/ripple flags
+                                if (sendFee)
+                                {
+                                    TER const tlResult = trustTransferAllowed(
+                                        sb, {*owner, feeRecipient}, issue, j);
+                                    if (!isTesSuccess(tlResult))
+                                    {
+                                        JLOG(j.trace())
+                                            << "URIToken: skipping "
+                                               "transfer fee — "
+                                               "recipient trust line "
+                                               "check failed: "
+                                            << tlResult;
+                                        sendFee = false;
+                                    }
+                                }
+                            }
+
+                            if (sendFee)
+                            {
+                                if (TER result = accountSend(
+                                        sb,
+                                        *owner,
+                                        feeRecipient,
+                                        feeAmt,
+                                        j,
+                                        WaiveTransferFee::Yes,
+                                        true);
+                                    !isTesSuccess(result))
+                                    return result;
+                            }
+                        }
+                    }
+                }
 
                 // add token to new owner dir
                 auto const newPage = sb.dirInsert(
