@@ -905,10 +905,8 @@ SetHook::destroyNamespace(
 
     bool const fixEnabled = ctx.rules.enabled(fixNSDelete);
     bool partialDelete = false;
-    uint32_t oldStateCount = sleAccount->getFieldU32(sfHookStateCount);
-    uint16_t scale = sleAccount->isFieldPresent(sfHookStateScale)
-        ? sleAccount->getFieldU16(sfHookStateScale)
-        : 1;
+    uint32_t const oldStateCount = (*sleAccount)[sfHookStateCount];
+    uint16_t const scale = (*sleAccount)[~sfHookStateScale].value_or(1);
 
     std::vector<uint256> toDelete;
     toDelete.reserve(sleDir->getFieldV256(sfIndexes).size());
@@ -936,7 +934,7 @@ SetHook::destroyNamespace(
             return tefBAD_LEDGER;
         }
 
-        auto nodeType = sleItem->getFieldU16(sfLedgerEntryType);
+        auto const& nodeType = (*sleItem)[sfLedgerEntryType];
 
         if (nodeType != ltHOOK_STATE)
         {
@@ -1000,13 +998,13 @@ SetHook::destroyNamespace(
     }
 
     if (stateCount == 0)
-        sleAccount->makeFieldAbsent(sfHookStateCount);
+        (*sleAccount).makeFieldAbsent(sfHookStateCount);
     else
-        sleAccount->setFieldU32(sfHookStateCount, stateCount);
+        (*sleAccount)[sfHookStateCount] = stateCount;
 
     if (ctx.rules.enabled(fixNSDelete))
     {
-        auto const ownerCount = sleAccount->getFieldU32(sfOwnerCount);
+        auto const ownerCount = (*sleAccount)[sfOwnerCount];
         if (view.rules().enabled(featureExtendedHookState) &&
             ownerCount < toDelete.size() * scale)
         {
@@ -1034,11 +1032,11 @@ reduceReferenceCount(std::shared_ptr<STLedgerEntry>& sle)
     if (sle && sle->isFieldPresent(sfReferenceCount))
     {
         // reduce reference count on reference counted object
-        uint64_t refCount = sle->getFieldU64(sfReferenceCount);
+        uint64_t refCount = (*sle)[sfReferenceCount];
         if (refCount > 0)
         {
             refCount--;
-            sle->setFieldU64(sfReferenceCount, refCount);
+            (*sle)[sfReferenceCount] = refCount;
         }
 
         return refCount <= 0;
@@ -1052,9 +1050,7 @@ incrementReferenceCount(std::shared_ptr<STLedgerEntry>& sle)
     if (!sle)
         return;
 
-    uint64_t rc = sle->isFieldPresent(sfReferenceCount)
-        ? sle->getFieldU64(sfReferenceCount) + 1
-        : 1;
+    uint64_t rc = (*sle)[~sfReferenceCount].value_or(0) + 1;
 
     if (rc == 0)
     {
@@ -1065,7 +1061,7 @@ incrementReferenceCount(std::shared_ptr<STLedgerEntry>& sle)
         return;
     }
 
-    sle->setFieldU64(sfReferenceCount, rc);
+    (*sle)[sfReferenceCount] = rc;
 }
 
 TER
@@ -1388,37 +1384,42 @@ SetHook::setHook()
         // the relevant fields
         if (oldHook && oldHook->get().isFieldPresent(sfHookHash))
         {
-            oldDefKeylet =
-                keylet::hookDefinition(oldHook->get().getFieldH256(sfHookHash));
+            auto const oldHookObj = oldHook->get();
+            oldDefKeylet = keylet::hookDefinition(oldHookObj[sfHookHash]);
             oldDefSLE = view().peek(*oldDefKeylet);
             if (oldDefSLE)
-                defNamespace = oldDefSLE->getFieldH256(sfHookNamespace);
+                defNamespace = (*oldDefSLE)[sfHookNamespace];
 
-            if (oldHook->get().isFieldPresent(sfHookNamespace))
-                oldNamespace = oldHook->get().getFieldH256(sfHookNamespace);
+            if (oldHookObj.isFieldPresent(sfHookNamespace))
+                oldNamespace = oldHookObj[sfHookNamespace];
             else if (defNamespace)
                 oldNamespace = *defNamespace;
 
             oldDirKeylet = keylet::hookStateDir(account_, *oldNamespace);
             oldDirSLE = view().peek(*oldDirKeylet);
-            if (oldDefSLE && oldDefSLE->isFieldPresent(sfHookOn))
-                defHookOn = oldDefSLE->getFieldH256(sfHookOn);
 
             if (oldDefSLE)
             {
+                if (oldDefSLE->isFieldPresent(sfHookOn))
+                    defHookOn = (*oldDefSLE)[sfHookOn];
+
                 if (oldDefSLE->isFieldPresent(sfHookOnOutgoing))
-                    defHookOnOutgoing =
-                        oldDefSLE->getFieldH256(sfHookOnOutgoing);
+                    defHookOnOutgoing = (*oldDefSLE)[sfHookOnOutgoing];
+
                 if (oldDefSLE->isFieldPresent(sfHookOnIncoming))
-                    defHookOnIncoming =
-                        oldDefSLE->getFieldH256(sfHookOnIncoming);
+                    defHookOnIncoming = (*oldDefSLE)[sfHookOnIncoming];
+
+                if (oldDefSLE->isFieldPresent(sfHookCanEmit))
+                    defHookCanEmit = (*oldDefSLE)[sfHookCanEmit];
             }
 
-            if (oldDefSLE && oldDefSLE->isFieldPresent(sfHookCanEmit))
-                defHookCanEmit = oldDefSLE->getFieldH256(sfHookCanEmit);
+            if (oldHookObj.isFieldPresent(sfHookNamespace))
+                oldNamespace = oldHookObj[sfHookNamespace];
+            else if (defNamespace)
+                oldNamespace = *defNamespace;
 
-            if (oldHook && oldHook->get().isFieldPresent(sfHookCanEmit))
-                oldHookCanEmit = oldHook->get().getFieldH256(sfHookCanEmit);
+            if (oldHookObj.isFieldPresent(sfHookCanEmit))
+                oldHookCanEmit = oldHookObj[sfHookCanEmit];
             else if (defHookCanEmit)
                 oldHookCanEmit = *defHookCanEmit;
         }
@@ -1427,32 +1428,30 @@ SetHook::setHook()
         // present on the HookSetObj
         if (hookSetObj)
         {
-            if (hookSetObj->get().isFieldPresent(sfHookHash))
+            auto const& hsObj = hookSetObj->get();
+            if (hsObj.isFieldPresent(sfHookHash))
             {
-                newDefKeylet = keylet::hookDefinition(
-                    hookSetObj->get().getFieldH256(sfHookHash));
+                newDefKeylet = keylet::hookDefinition(hsObj[sfHookHash]);
                 newDefSLE = view().peek(*newDefKeylet);
             }
 
-            if (hookSetObj->get().isFieldPresent(sfHookOn))
-                newHookOn = hookSetObj->get().getFieldH256(sfHookOn);
-
-            if (hookSetObj->get().isFieldPresent(sfHookOnOutgoing))
-                newHookOnOutgoing =
-                    hookSetObj->get().getFieldH256(sfHookOnOutgoing);
-
-            if (hookSetObj->get().isFieldPresent(sfHookOnIncoming))
-                newHookOnIncoming =
-                    hookSetObj->get().getFieldH256(sfHookOnIncoming);
-
-            if (hookSetObj->get().isFieldPresent(sfHookCanEmit))
-                newHookCanEmit = hookSetObj->get().getFieldH256(sfHookCanEmit);
-
-            if (hookSetObj->get().isFieldPresent(sfHookNamespace))
+            if (hsObj.isFieldPresent(sfHookNamespace))
             {
-                newNamespace = hookSetObj->get().getFieldH256(sfHookNamespace);
+                newNamespace = hsObj[sfHookNamespace];
                 newDirKeylet = keylet::hookStateDir(account_, *newNamespace);
             }
+
+            if (hsObj.isFieldPresent(sfHookOn))
+                newHookOn = hsObj[sfHookOn];
+
+            if (hsObj.isFieldPresent(sfHookOnOutgoing))
+                newHookOnOutgoing = hsObj[sfHookOnOutgoing];
+
+            if (hsObj.isFieldPresent(sfHookOnIncoming))
+                newHookOnIncoming = hsObj[sfHookOnIncoming];
+
+            if (hsObj.isFieldPresent(sfHookCanEmit))
+                newHookCanEmit = hsObj[sfHookCanEmit];
         }
 
         // users may destroy a namespace in any operation except NOOP and
@@ -1553,116 +1552,71 @@ SetHook::setHook()
 
                 // initially carry over the prior non-array values, whatever
                 // those were
-                newHook.setFieldH256(
-                    sfHookHash, oldHook->get().getFieldH256(sfHookHash));
-                if (oldHook->get().isFieldPresent(sfHookOn))
-                    newHook.setFieldH256(
-                        sfHookOn, oldHook->get().getFieldH256(sfHookOn));
-                if (oldHook->get().isFieldPresent(sfHookOnOutgoing))
-                    newHook.setFieldH256(
-                        sfHookOnOutgoing,
-                        oldHook->get().getFieldH256(sfHookOnOutgoing));
-                if (oldHook->get().isFieldPresent(sfHookOnIncoming))
-                    newHook.setFieldH256(
-                        sfHookOnIncoming,
-                        oldHook->get().getFieldH256(sfHookOnIncoming));
-                if (oldHook->get().isFieldPresent(sfHookCanEmit))
-                    newHook.setFieldH256(
-                        sfHookCanEmit,
-                        oldHook->get().getFieldH256(sfHookCanEmit));
-                if (oldHook->get().isFieldPresent(sfHookNamespace))
-                    newHook.setFieldH256(
-                        sfHookNamespace,
-                        oldHook->get().getFieldH256(sfHookNamespace));
+                auto const& oldHookObj = oldHook->get();
+                auto set = [&](auto const& sField) {
+                    if (auto const field = oldHookObj[~sField]; field)
+                        newHook[sField] = *field;
+                };
+                set(sfHookHash);
+                set(sfHookOn);
+                set(sfHookOnOutgoing);
+                set(sfHookOnIncoming);
+                set(sfHookCanEmit);
+                set(sfHookNamespace);
 
-                // set the namespace if it differs from the definition namespace
-                if (newNamespace)
-                {
-                    if (*defNamespace == *newNamespace)
+                auto updateField = [&](auto const& sField,
+                                       auto const& defValue,
+                                       auto const& newValue) {
+                    if (!newValue)
+                        return;
+
+                    if (defValue.has_value() && *defValue == *newValue)
                     {
-                        if (newHook.isFieldPresent(sfHookNamespace))
-                            newHook.makeFieldAbsent(sfHookNamespace);
+                        if (newHook.isFieldPresent(sField))
+                            newHook.makeFieldAbsent(sField);
                     }
                     else
-                        newHook.setFieldH256(sfHookNamespace, *newNamespace);
-                }
+                        newHook[sField] = *newValue;
+                };
+                // set the namespace if it differs from the definition namespace
+                updateField(sfHookNamespace, defNamespace, newNamespace);
 
                 // set the hookon field if it differs from definition
-                if (newHookOn)
-                {
-                    if (*defHookOn == *newHookOn)
-                    {
-                        if (newHook.isFieldPresent(sfHookOn))
-                            newHook.makeFieldAbsent(sfHookOn);
-                    }
-                    else
-                        newHook.setFieldH256(sfHookOn, *newHookOn);
-                }
-
-                if (newHookOnOutgoing)
-                {
-                    if (defHookOnOutgoing.has_value() &&
-                        *defHookOnOutgoing == *newHookOnOutgoing)
-                    {
-                        if (newHook.isFieldPresent(sfHookOnOutgoing))
-                            newHook.makeFieldAbsent(sfHookOnOutgoing);
-                    }
-                    else
-                        newHook.setFieldH256(
-                            sfHookOnOutgoing, *newHookOnOutgoing);
-                }
-
-                if (newHookOnIncoming)
-                {
-                    if (defHookOnIncoming.has_value() &&
-                        *defHookOnIncoming == *newHookOnIncoming)
-                    {
-                        if (newHook.isFieldPresent(sfHookOnIncoming))
-                            newHook.makeFieldAbsent(sfHookOnIncoming);
-                    }
-                    else
-                        newHook.setFieldH256(
-                            sfHookOnIncoming, *newHookOnIncoming);
-                }
+                updateField(sfHookOn, defHookOn, newHookOn);
+                updateField(
+                    sfHookOnOutgoing, defHookOnOutgoing, newHookOnOutgoing);
+                updateField(
+                    sfHookOnIncoming, defHookOnIncoming, newHookOnIncoming);
 
                 // set the hookcanemit field if it differs from definition
-                if (newHookCanEmit)
-                {
-                    if (defHookCanEmit.has_value() &&
-                        *defHookCanEmit == *newHookCanEmit)
-                    {
-                        if (newHook.isFieldPresent(sfHookCanEmit))
-                            newHook.makeFieldAbsent(sfHookCanEmit);
-                    }
-                    else
-                        newHook.setFieldH256(sfHookCanEmit, *newHookCanEmit);
-                }
+                updateField(sfHookCanEmit, defHookCanEmit, newHookCanEmit);
+
+                auto const& hsObj = hookSetObj->get();
 
                 // parameters
-                if (hookSetObj->get().isFieldPresent(sfHookParameters) &&
-                    hookSetObj->get().getFieldArray(sfHookParameters).empty())
+                if (hsObj.isFieldPresent(sfHookParameters) &&
+                    hsObj.getFieldArray(sfHookParameters).empty())
                 {
                     // delete parameters operation
                 }
                 else
                 {
                     STArray const oldParams =
-                        oldHook->get().isFieldPresent(sfHookParameters)
-                        ? oldHook->get().getFieldArray(sfHookParameters)
+                        oldHookObj.isFieldPresent(sfHookParameters)
+                        ? oldHookObj.getFieldArray(sfHookParameters)
                         : STArray{sfHookParameters};
 
                     TER result = updateHookParameters(
-                        ctx, hookSetObj->get(), oldDefSLE, oldParams, newHook);
+                        ctx, hsObj, oldDefSLE, oldParams, newHook);
 
                     if (!isTesSuccess(result))
                         return result;
                 }
 
                 // grants
-                if (hookSetObj->get().isFieldPresent(sfHookGrants))
+                if (hsObj.isFieldPresent(sfHookGrants))
                 {
-                    auto const& grants =
-                        hookSetObj->get().getFieldArray(sfHookGrants);
+                    auto const& grants = hsObj.getFieldArray(sfHookGrants);
                     if (grants.empty())
                     {
                         // delete operation
@@ -1673,14 +1627,14 @@ SetHook::setHook()
                 else
                 {
                     // if they're not then retain them as they were
-                    if (oldHook->get().isFieldPresent(sfHookGrants))
+                    if (oldHookObj.isFieldPresent(sfHookGrants))
                         newHook.setFieldArray(
                             sfHookGrants,
-                            oldHook->get().getFieldArray(sfHookGrants));
+                            oldHookObj.getFieldArray(sfHookGrants));
                 }
 
                 if (flags)
-                    newHook.setFieldU32(sfFlags, *flags);
+                    newHook[sfFlags] = *flags;
 
                 newHooks.push_back(std::move(newHook));
                 continue;
@@ -1698,8 +1652,8 @@ SetHook::setHook()
                     return tecREQUIRES_FLAG;
                 }
 
-                ripple::Blob wasmBytes =
-                    hookSetObj->get().getFieldVL(sfCreateCode);
+                auto const& hsObj = hookSetObj->get();
+                ripple::Blob const& wasmBytes = hsObj.getFieldVL(sfCreateCode);
 
                 if (wasmBytes.size() > blobMax)
                 {
@@ -1740,8 +1694,7 @@ SetHook::setHook()
                     // create hook definition SLE
                     try
                     {
-                        auto valid =
-                            validateHookSetEntry(ctx, hookSetObj->get());
+                        auto valid = validateHookSetEntry(ctx, hsObj);
 
                         // if invalid return an error
                         if (std::holds_alternative<bool>(valid))
@@ -1786,61 +1739,46 @@ SetHook::setHook()
                     }
 
                     auto newHookDef = std::make_shared<SLE>(keylet);
-                    newHookDef->setFieldH256(sfHookHash, *createHookHash);
+                    (*newHookDef)[sfHookHash] = *createHookHash;
 
                     // only HookOn or (HookOnOutgoing and HookOnIncoming)
                     if (!view().rules().enabled(featureHookOnV2) ||
                         (!newHookOnOutgoing && !newHookOnIncoming))
-                        newHookDef->setFieldH256(sfHookOn, *newHookOn);
+                        (*newHookDef)[sfHookOn] = *newHookOn;
                     else
                     {
-                        newHookDef->setFieldH256(
-                            sfHookOnOutgoing, *newHookOnOutgoing);
-                        newHookDef->setFieldH256(
-                            sfHookOnIncoming, *newHookOnIncoming);
+                        (*newHookDef)[sfHookOnOutgoing] = *newHookOnOutgoing;
+                        (*newHookDef)[sfHookOnIncoming] = *newHookOnIncoming;
                     }
 
                     if (newHookCanEmit)
-                        newHookDef->setFieldH256(
-                            sfHookCanEmit, *newHookCanEmit);
-                    newHookDef->setFieldH256(sfHookNamespace, *newNamespace);
-                    newHookDef->setFieldArray(
-                        sfHookParameters,
-                        hookSetObj->get().isFieldPresent(sfHookParameters)
-                            ? hookSetObj->get().getFieldArray(sfHookParameters)
-                            : STArray{});
-                    newHookDef->setFieldU16(
-                        sfHookApiVersion,
-                        hookSetObj->get().getFieldU16(sfHookApiVersion));
-                    newHookDef->setFieldVL(sfCreateCode, wasmBytes);
-                    newHookDef->setFieldH256(
-                        sfHookSetTxnID, ctx.tx.getTransactionID());
-                    newHookDef->setFieldU64(sfReferenceCount, 1);
-                    newHookDef->setFieldAmount(
-                        sfFee,
-                        XRPAmount{
-                            hook::computeExecutionFee(maxInstrCountHook)});
+                        (*newHookDef)[sfHookCanEmit] = *newHookCanEmit;
+                    (*newHookDef)[sfHookNamespace] = *newNamespace;
+                    auto const& params = hsObj.isFieldPresent(sfHookParameters)
+                        ? hsObj.getFieldArray(sfHookParameters)
+                        : STArray{};
+                    (*newHookDef).setFieldArray(sfHookParameters, params);
+                    (*newHookDef)[sfHookApiVersion] = hsObj[sfHookApiVersion];
+                    (*newHookDef).setFieldVL(sfCreateCode, wasmBytes);
+                    (*newHookDef)[sfHookSetTxnID] = ctx.tx.getTransactionID();
+                    (*newHookDef)[sfReferenceCount] = 1;
+                    (*newHookDef)[sfFee] =
+                        XRPAmount{hook::computeExecutionFee(maxInstrCountHook)};
                     if (maxInstrCountCbak > 0)
-                        newHookDef->setFieldAmount(
-                            sfHookCallbackFee,
-                            XRPAmount{
-                                hook::computeExecutionFee(maxInstrCountCbak)});
+                        (*newHookDef)[sfHookCallbackFee] = XRPAmount{
+                            hook::computeExecutionFee(maxInstrCountCbak)};
 
-                    if (flags)
-                        newHookDef->setFieldU32(sfFlags, newFlags);
-                    else
-                        newHookDef->setFieldU32(sfFlags, 0);
+                    (*newHookDef)[sfFlags] = flags.value_or(0);
 
-                    if (hookSetObj->get().isFieldPresent(sfHookGrants))
+                    if (hsObj.isFieldPresent(sfHookGrants))
                     {
-                        auto const& grants =
-                            hookSetObj->get().getFieldArray(sfHookGrants);
+                        auto const& grants = hsObj.getFieldArray(sfHookGrants);
                         if (!grants.empty())
                             newHook.setFieldArray(sfHookGrants, grants);
                     }
 
                     slesToInsert.emplace(keylet, newHookDef);
-                    newHook.setFieldH256(sfHookHash, *createHookHash);
+                    newHook[sfHookHash] = *createHookHash;
                     newHooks.push_back(std::move(newHook));
                     continue;
                 }
@@ -1883,34 +1821,34 @@ SetHook::setHook()
                         slesToUpdate.emplace(*oldDefKeylet, oldDefSLE);
                 }
 
+                auto const& hsObj = hookSetObj->get();
+
                 // set the hookhash on the new hook, and allow for a fall
                 // through event from hsoCREATE
                 if (!createHookHash)
-                    createHookHash = hookSetObj->get().getFieldH256(sfHookHash);
+                    createHookHash = hsObj[sfHookHash];
 
-                newHook.setFieldH256(sfHookHash, *createHookHash);
+                newHook[sfHookHash] = *createHookHash;
 
                 // increment reference count of target HookDefintion
                 incrementReferenceCount(newDefSLE);
 
                 // change which definition we're using to the new target
-                defNamespace = newDefSLE->getFieldH256(sfHookNamespace);
+                defNamespace = (*newDefSLE)[sfHookNamespace];
 
                 if (newDefSLE->isFieldPresent(sfHookCanEmit))
-                    defHookCanEmit = newDefSLE->getFieldH256(sfHookCanEmit);
+                    defHookCanEmit = (*newDefSLE)[sfHookCanEmit];
 
                 // set the namespace if it differs from the definition namespace
                 if (newNamespace && *defNamespace != *newNamespace)
-                    newHook.setFieldH256(sfHookNamespace, *newNamespace);
+                    newHook[sfHookNamespace] = *newNamespace;
 
                 if (newDefSLE->isFieldPresent(sfHookOn))
-                    defHookOn = newDefSLE->getFieldH256(sfHookOn);
+                    defHookOn = (*newDefSLE)[sfHookOn];
                 if (newDefSLE->isFieldPresent(sfHookOnIncoming))
-                    defHookOnIncoming =
-                        newDefSLE->getFieldH256(sfHookOnIncoming);
+                    defHookOnIncoming = (*newDefSLE)[sfHookOnIncoming];
                 if (newDefSLE->isFieldPresent(sfHookOnOutgoing))
-                    defHookOnOutgoing =
-                        newDefSLE->getFieldH256(sfHookOnOutgoing);
+                    defHookOnOutgoing = (*newDefSLE)[sfHookOnOutgoing];
 
                 // set the hookon field if it differs from definition
                 if (newHookOn)
@@ -1922,7 +1860,7 @@ SetHook::setHook()
                          *newHookOn != *defHookOnIncoming);
                     if (diffFromDef || hasIncOutgDef)
                     {
-                        newHook.setFieldH256(sfHookOn, *newHookOn);
+                        newHook[sfHookOn] = *newHookOn;
                     }
                 }
 
@@ -1937,10 +1875,8 @@ SetHook::setHook()
                         defHookOn != newHookOnOutgoing;
                     if (diffFromDef || hasHookOnDef)
                     {
-                        newHook.setFieldH256(
-                            sfHookOnIncoming, *newHookOnIncoming);
-                        newHook.setFieldH256(
-                            sfHookOnOutgoing, *newHookOnOutgoing);
+                        newHook[sfHookOnIncoming] = *newHookOnIncoming;
+                        newHook[sfHookOnOutgoing] = *newHookOnOutgoing;
                     }
                 }
 
@@ -1948,30 +1884,25 @@ SetHook::setHook()
                 if (newHookCanEmit &&
                     !(defHookCanEmit.has_value() &&
                       *defHookCanEmit == *newHookCanEmit))
-                    newHook.setFieldH256(sfHookCanEmit, *newHookCanEmit);
+                    newHook[sfHookCanEmit] = *newHookCanEmit;
 
                 // parameters
                 TER result = updateHookParameters(
-                    ctx,
-                    hookSetObj->get(),
-                    newDefSLE,
-                    STArray{sfHookParameters},
-                    newHook);
+                    ctx, hsObj, newDefSLE, STArray{sfHookParameters}, newHook);
 
                 if (!isTesSuccess(result))
                     return result;
 
                 // if grants are provided set them
-                if (hookSetObj->get().isFieldPresent(sfHookGrants))
+                if (hsObj.isFieldPresent(sfHookGrants))
                 {
-                    auto const& grants =
-                        hookSetObj->get().getFieldArray(sfHookGrants);
+                    auto const& grants = hsObj.getFieldArray(sfHookGrants);
                     if (!grants.empty())
                         newHook.setFieldArray(sfHookGrants, grants);
                 }
 
                 if (flags)
-                    newHook.setFieldU32(sfFlags, newFlags);
+                    newHook[sfFlags] = newFlags;
 
                 newHooks.push_back(std::move(newHook));
 
@@ -2028,7 +1959,7 @@ SetHook::setHook()
                          << "reserveDelta: " << reserveDelta;
 
         int64_t newOwnerCount =
-            (int64_t)(accountSLE->getFieldU32(sfOwnerCount)) + reserveDelta;
+            (int64_t)(*accountSLE)[sfOwnerCount] + reserveDelta;
 
         if (newOwnerCount < 0 || newOwnerCount > 0xFFFFFFFFUL)
             return tefINTERNAL;
@@ -2065,7 +1996,7 @@ SetHook::setHook()
                 continue;
             if (sle->isFieldPresent(sfReferenceCount))
             {
-                uint64_t refCount = sle->getFieldU64(sfReferenceCount);
+                uint64_t refCount = (*sle)[sfReferenceCount];
                 if (refCount <= 0)
                     view().erase(sle);
             }
@@ -2084,8 +2015,8 @@ SetHook::setHook()
             }
         }
 
-        newHookSLE->setFieldArray(sfHooks, newHooks);
-        newHookSLE->setAccountID(sfAccount, account_);
+        (*newHookSLE).setFieldArray(sfHooks, newHooks);
+        (*newHookSLE)[sfAccount] = account_;
 
         // There are three possible final outcomes
         // Either the account's ltHOOK is deleted, updated or created.
@@ -2131,7 +2062,7 @@ SetHook::setHook()
             if (!page)
                 return tecDIR_FULL;
 
-            newHookSLE->setFieldU64(sfOwnerNode, *page);
+            (*newHookSLE)[sfOwnerNode] = *page;
             view().insert(newHookSLE);
         }
         else
