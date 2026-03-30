@@ -721,8 +721,62 @@ struct ClaimReward_test : public beast::unit_test::suite
                     currentTime) == true);
         }
 
+        // STAmount overflow in reward accumulation should not cause
+        // transaction failure (tefEXCEPTION). The overflow should be
+        // gracefully skipped via try-catch.
+        for (bool const fromHighAccount : {true, false})
         {
-            // overflow, underflow
+            Env env{*this, features};
+            auto const alice = Account("alice");
+            auto const bob = Account("bob");
+            auto const issuer = Account("issuer");
+
+            auto const user = fromHighAccount ? alice : bob;
+            auto const gw = fromHighAccount ? bob : alice;
+
+            env.fund(XRP(10000), user, gw, issuer);
+            env(fset(gw, asfDefaultRipple));
+            env.close();
+
+            // Use a near-max IOU balance at exponent 80. When
+            // multiply(balance, STAmount(lgrElapsed), issue) is called
+            // with lgrElapsed >= 2, the result exponent exceeds
+            // cMaxOffset(80), causing IOUAmount::normalize to throw
+            // std::overflow_error("value overflow").
+            auto const bigUSD = STAmount{
+                gw["USD"].issue(),
+                std::uint64_t(5000000000000000ull),
+                80};
+            // Payment amount must be large enough to register a
+            // balance change given STAmount's 16-digit precision.
+            auto const payBackUSD = STAmount{
+                gw["USD"].issue(),
+                std::uint64_t(1000000000000000ull),
+                80};
+
+            env(trust(user, bigUSD));
+            env.close();
+            env(pay(gw, user, bigUSD));
+            env.close();
+
+            // Claim IOU reward to initialize reward tracking
+            env(reward::claim(user),
+                reward::issuer(gw),
+                reward::claimCurrency(gw["USD"]));
+            env.close();
+
+            // Advance ledger so lgrElapsed >= 2. With lgrElapsed=1
+            // the multiply result is exactly at cMaxOffset boundary
+            // (no overflow). With lgrElapsed >= 2, the result exponent
+            // exceeds cMaxOffset and triggers the overflow.
+            env.close();
+
+            // This payment modifies the trustline balance, triggering
+            // reward accumulation in Transactor. Without the try-catch
+            // fix, multiply() throws std::overflow_error("value overflow")
+            // and the transaction fails with tefEXCEPTION.
+            env(pay(user, gw, payBackUSD), ter(tesSUCCESS));
+            env.close();
         }
     }
 

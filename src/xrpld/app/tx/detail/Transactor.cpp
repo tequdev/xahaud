@@ -2220,10 +2220,20 @@ Transactor::operator()()
 
                     auto accum =
                         reward.getFieldAmount(sfTrustLineRewardAccumulator);
-                    auto accumNew = accum +
-                        multiply(balance_,
-                                 STAmount(((uint64_t)lgrElapsed)),
-                                 balance_.issue());
+
+                    STAmount accumNew;
+                    try
+                    {
+                        accumNew = accum +
+                            multiply(balance_,
+                                     STAmount(((uint64_t)lgrElapsed)),
+                                     balance_.issue());
+                    }
+                    catch (std::exception const&)
+                    {
+                        // Overflow detected, skip this reward calculation
+                        continue;
+                    }
 
                     // check for overflow
                     if (accumNew < accum)
