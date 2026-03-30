@@ -174,12 +174,11 @@ ClaimReward::doApply()
 
         auto lineSle = view().peek(
             keylet::line(account_, claimIssue.account, claimIssue.currency));
-        bool const isHigh = account_ > claimIssue.account;
-        auto const& rewardField = isHigh ? sfHighReward : sfLowReward;
-        auto const& rewardAccumulatorField =
-            lineSle->getFieldAmount(isHigh ? sfHighLimit : sfLowLimit).zeroed();
         if (!lineSle)
             return tefINTERNAL;
+
+        bool const isHigh = account_ > claimIssue.account;
+        auto const& rewardField = isHigh ? sfHighReward : sfLowReward;
 
         if (isOptOut)
         {
@@ -188,10 +187,12 @@ ClaimReward::doApply()
         }
         else
         {
+            auto const& rewardAccumulatorField =
+                lineSle->getFieldAmount(isHigh ? sfHighLimit : sfLowLimit)
+                    .zeroed();
+
             // all actual rewards are handled by the hook on the sfIssuer
             // the tt just resets the counters
-            if (lineSle->isFieldPresent(rewardField))
-                lineSle->makeFieldAbsent(rewardField);
             auto& reward = lineSle->peekFieldObject(rewardField);
             reward.setFieldU32(sfRewardLgrFirst, lgrFirst);
             reward.setFieldU32(sfRewardLgrLast, lgrLast);

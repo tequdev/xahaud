@@ -2232,9 +2232,10 @@ Transactor::operator()()
                     reward.setFieldAmount(
                         sfTrustLineRewardAccumulator, accumNew);
                     reward.setFieldU32(sfRewardLgrLast, lgrCur);
+
+                    view().update(sle);
                 }
 
-                view().update(sle);
                 continue;
             }
 
