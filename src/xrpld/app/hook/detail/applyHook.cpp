@@ -1720,7 +1720,8 @@ hook::finalizeHookResult(
     // add a metadata entry for this hook execution result
     {
         STObject meta{sfHookExecution};
-        meta.setFieldU8(sfHookResult, hookResult.exitType);
+        meta.setFieldU8(
+            sfHookResult, static_cast<uint8_t>(hookResult.exitType));
         meta.setAccountID(sfHookAccount, hookResult.account);
 
         // RH NOTE: this is probably not necessary, a direct cast should always

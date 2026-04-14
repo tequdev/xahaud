@@ -386,7 +386,7 @@ enum class hook_return_code : int64_t {
     TOO_MANY_NAMESPACES = -45
 };
 
-enum ExitType : uint8_t {
+enum class ExitType : uint8_t {
     UNSET = 0,
     WASM_ERROR = 1,
     ROLLBACK = 2,
