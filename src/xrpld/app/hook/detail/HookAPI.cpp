@@ -3149,15 +3149,16 @@ HookAPI::get_stobject_length(
     int recursion_depth)  // used internally
     const
 {
+    using enum HookAPI::STOParseErrorCode;
     if (recursion_depth > 10)
-        return Unexpected(STOParseErrorCode::pe_excessive_nesting);
+        return Unexpected(pe_excessive_nesting);
 
     uint16_t max_sti_type = rules.enabled(featureHookAPISerializedType240)
         ? STI_CURRENCY
         : STI_VECTOR256;
 
     if (type > max_sti_type)
-        return Unexpected(STOParseErrorCode::pe_unknown_type_early);
+        return Unexpected(pe_unknown_type_early);
 
     unsigned char* end = maxptr;
     unsigned char* upto = start;
@@ -3166,7 +3167,7 @@ HookAPI::get_stobject_length(
 
     upto++;
     if (upto >= end)
-        return Unexpected(STOParseErrorCode::pe_unexpected_end);
+        return Unexpected(pe_unexpected_end);
     if (high > 0 && low > 0)
     {
         // common type common field
@@ -3190,7 +3191,7 @@ HookAPI::get_stobject_length(
         // uncommon type and field
         type = *upto++;
         if (upto >= end)
-            return Unexpected(STOParseErrorCode::pe_unexpected_end);
+            return Unexpected(pe_unexpected_end);
         field = *upto++;
     }
 
@@ -3201,7 +3202,7 @@ HookAPI::get_stobject_length(
         type);
 
     if (upto >= end)
-        return Unexpected(STOParseErrorCode::pe_unexpected_end);
+        return Unexpected(pe_unexpected_end);
 
     // RH TODO: link this to rippled's internal STObject constants
     // E.g.:
@@ -3212,12 +3213,12 @@ HookAPI::get_stobject_length(
 
     // type 10~13 are reserved
     if (type < 1 || max_sti_type < type || (10 <= type && type <= 13))
-        return Unexpected(STOParseErrorCode::pe_unknown_type_early);
+        return Unexpected(pe_unknown_type_early);
 
     // not supported types
     if (type == STI_NUMBER || type == STI_UINT96 || type == STI_UINT192 ||
         type == STI_UINT384 || type == STI_UINT512)
-        return Unexpected(STOParseErrorCode::pe_unknown_type_early);
+        return Unexpected(pe_unknown_type_early);
 
     bool is_vl =
         (type == STI_ACCOUNT || type == STI_VL ||
@@ -3230,7 +3231,7 @@ HookAPI::get_stobject_length(
     {
         length = *upto++;
         if (upto >= end)
-            return Unexpected(STOParseErrorCode::pe_unexpected_end);
+            return Unexpected(pe_unexpected_end);
 
         if (length < 193)
         {
@@ -3242,18 +3243,18 @@ HookAPI::get_stobject_length(
             length *= 256;
             length += *upto++ + 193;
             if (upto > end)
-                return Unexpected(STOParseErrorCode::pe_unexpected_end);
+                return Unexpected(pe_unexpected_end);
         }
         else
         {
             int b2 = *upto++;
             if (upto >= end)
-                return Unexpected(STOParseErrorCode::pe_unexpected_end);
+                return Unexpected(pe_unexpected_end);
             length -= 241;
             length *= 65536;
             length += 12481 + (b2 * 256) + *upto++;
             if (upto >= end)
-                return Unexpected(STOParseErrorCode::pe_unexpected_end);
+                return Unexpected(pe_unexpected_end);
         }
     }
     else if (
@@ -3287,14 +3288,14 @@ HookAPI::get_stobject_length(
                 length = 20;
                 break;
             default:
-                return Unexpected(STOParseErrorCode::pe_unknown_type_late);
+                return Unexpected(pe_unknown_type_late);
         }
     }
     else if (type == STI_AMOUNT) /* AMOUNT */
     {
         length = (*upto >> 6 == 1) ? 8 : 48;
         if (upto >= end)
-            return Unexpected(STOParseErrorCode::pe_unexpected_end);
+            return Unexpected(pe_unexpected_end);
     }
     else if (
         type == STI_PATHSET && rules.enabled(featureHookAPISerializedType240))
@@ -3309,7 +3310,7 @@ HookAPI::get_stobject_length(
                 int flag = *(upto + length++);
                 // flag shoud be 0x01 or 0x10 or 0x20 or those union
                 if (flag == 0 || flag & ~(0x01 | 0x10 | 0x20))
-                    return Unexpected(STOParseErrorCode::pe_unexpected_end);
+                    return Unexpected(pe_unexpected_end);
                 if (flag & 0x01)  // account
                     length += 20;
                 if (flag & 0x10)  // currency
@@ -3330,10 +3331,10 @@ HookAPI::get_stobject_length(
             else if (lastflag == 0x00)
                 break;  // end byte
             else
-                return Unexpected(STOParseErrorCode::pe_unexpected_end);
+                return Unexpected(pe_unexpected_end);
         }
         if (upto >= end)
-            return Unexpected(STOParseErrorCode::pe_unexpected_end);
+            return Unexpected(pe_unexpected_end);
     }
     else if (type == STI_ISSUE)
     {
@@ -3410,10 +3411,10 @@ HookAPI::get_stobject_length(
                 upto - start,
                 sublength);
             if (!sublength)
-                return Unexpected(STOParseErrorCode::pe_unexpected_end);
+                return Unexpected(pe_unexpected_end);
             upto += sublength.value();
             if (upto >= end)
-                return Unexpected(STOParseErrorCode::pe_unexpected_end);
+                return Unexpected(pe_unexpected_end);
 
             if ((*upto == 0xE1U && type == 0xEU) ||  // STI_OBJECT Maker
                 (*upto == 0xF1U && type == 0xFU))    // STI_ARRAY Maker
@@ -3423,10 +3424,10 @@ HookAPI::get_stobject_length(
                 return (upto - start);
             }
         }
-        return Unexpected(STOParseErrorCode::pe_excessive_size);
+        return Unexpected(pe_excessive_size);
     }
 
-    return Unexpected(STOParseErrorCode::pe_unknown_type_late);
+    return Unexpected(pe_unknown_type_late);
 };
 
 }  // namespace hook
