@@ -320,7 +320,7 @@ private:
         bool modified) const;
 
     // these are only used by get_stobject_length below
-    enum parse_error {
+    enum class STOParseErrorCode {
         pe_unexpected_end = -1,
         pe_unknown_type_early = -2,  // detected early
         pe_unknown_type_late = -3,   // end of function
@@ -329,8 +329,8 @@ private:
     };
 
     inline Expected<
-        int32_t,
-        parse_error>
+        uint32_t,
+        STOParseErrorCode>
     get_stobject_length(
         unsigned char* start,   // in - begin iterator
         unsigned char* maxptr,  // in - end iterator
