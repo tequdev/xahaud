@@ -44,23 +44,25 @@ static int32_t const maxExponent = 80;
 inline Expected<int32_t, HookReturnCode>
 get_exponent(int64_t float1)
 {
+    using enum HookReturnCode;
     if (float1 < 0)
         return Unexpected(INVALID_FLOAT);
     if (float1 == 0)
-        return 0;
+        return 0u;
     uint64_t float_in = (uint64_t)float1;
     float_in >>= 54U;
     float_in &= 0xFFU;
-    return ((int32_t)float_in) - 97;
+    return static_cast<int32_t>(float_in) - 97;
 }
 
 inline Expected<uint64_t, HookReturnCode>
 get_mantissa(int64_t float1)
 {
+    using enum HookReturnCode;
     if (float1 < 0)
         return Unexpected(INVALID_FLOAT);
     if (float1 == 0)
-        return 0;
+        return 0ULL;
     float1 -= ((((uint64_t)float1) >> 54U) << 54U);
     return float1;
 }
@@ -91,6 +93,7 @@ set_sign(int64_t float1, bool set_negative)
 inline Expected<uint64_t, HookReturnCode>
 set_mantissa(int64_t float1, uint64_t mantissa)
 {
+    using enum HookReturnCode;
     if (mantissa > maxMantissa)
         return Unexpected(MANTISSA_OVERSIZED);
     if (mantissa < minMantissa)
@@ -101,6 +104,7 @@ set_mantissa(int64_t float1, uint64_t mantissa)
 inline Expected<uint64_t, HookReturnCode>
 set_exponent(int64_t float1, int32_t exponent)
 {
+    using enum HookReturnCode;
     if (exponent > maxExponent)
         return Unexpected(EXPONENT_OVERSIZED);
     if (exponent < minExponent)
@@ -116,6 +120,7 @@ set_exponent(int64_t float1, int32_t exponent)
 inline Expected<uint64_t, HookReturnCode>
 make_float(ripple::IOUAmount& amt)
 {
+    using enum HookReturnCode;
     int64_t man_out = amt.mantissa();
     int64_t float_out = 0;
     bool neg = man_out < 0;
@@ -140,8 +145,9 @@ make_float(ripple::IOUAmount& amt)
 inline Expected<uint64_t, HookReturnCode>
 make_float(uint64_t mantissa, int32_t exponent, bool neg)
 {
+    using enum HookReturnCode;
     if (mantissa == 0)
-        return 0;
+        return 0ULL;
     if (mantissa > maxMantissa)
         return Unexpected(MANTISSA_OVERSIZED);
     if (mantissa < minMantissa)
@@ -178,7 +184,7 @@ inline Expected<uint64_t, HookReturnCode>
 normalize_xfl(T& man, int32_t& exp, bool neg = false)
 {
     if (man == 0)
-        return 0;
+        return 0ULL;
 
     if (man == std::numeric_limits<int64_t>::min())
         man++;
@@ -209,7 +215,7 @@ normalize_xfl(T& man, int32_t& exp, bool neg = false)
     {
         // defensive check
         if (adjust > 18)
-            return 0;
+            return 0ULL;
         man *= power_of_ten[adjust];
         exp -= adjust;
     }
@@ -225,7 +231,7 @@ normalize_xfl(T& man, int32_t& exp, bool neg = false)
     if (man == 0)
     {
         exp = 0;
-        return 0;
+        return 0ULL;
     }
 
     // even after adjustment the mantissa can be outside the range by one place
@@ -257,13 +263,13 @@ normalize_xfl(T& man, int32_t& exp, bool neg = false)
     {
         man = 0;
         exp = 0;
-        return 0;
+        return 0ULL;
     }
 
     if (man == 0)
     {
         exp = 0;
-        return 0;
+        return 0ULL;
     }
 
     if (exp > maxExponent)
