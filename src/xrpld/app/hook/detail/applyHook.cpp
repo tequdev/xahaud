@@ -601,161 +601,46 @@ getTransactionalStakeHolders(STTx const& tx, ReadView const& rv)
 
 }  // namespace hook
 
-namespace hook_float {
-
-using namespace hook_api;
-using enum hook_return_code;
-static int64_t const minMantissa = 1000000000000000ull;
-static int64_t const maxMantissa = 9999999999999999ull;
-static int32_t const minExponent = -96;
-static int32_t const maxExponent = 80;
-
-inline int32_t
-get_exponent(int64_t float1)
-{
-    if (float1 < 0)
-        return static_cast<int32_t>(INVALID_FLOAT);
-    if (float1 == 0)
-        return 0;
-    uint64_t float_in = (uint64_t)float1;
-    float_in >>= 54U;
-    float_in &= 0xFFU;
-    return ((int32_t)float_in) - 97;
-}
-
-inline int64_t
-get_mantissa(int64_t float1)
-{
-    if (float1 < 0)
-        return static_cast<int64_t>(INVALID_FLOAT);
-    if (float1 == 0)
-        return 0;
-    float1 -= ((((uint64_t)float1) >> 54U) << 54U);
-    return float1;
-}
-
-inline bool
-is_negative(int64_t float1)
-{
-    return ((float1 >> 62U) & 1ULL) == 0;
-}
-
-inline int64_t
-invert_sign(int64_t float1)
-{
-    int64_t r = (int64_t)(((uint64_t)float1) ^ (1ULL << 62U));
-    return r;
-}
-
-inline int64_t
-set_sign(int64_t float1, bool set_negative)
-{
-    bool neg = is_negative(float1);
-    if ((neg && set_negative) || (!neg && !set_negative))
-        return float1;
-
-    return invert_sign(float1);
-}
-
-inline int64_t
-set_mantissa(int64_t float1, uint64_t mantissa)
-{
-    if (mantissa > maxMantissa)
-        return static_cast<int64_t>(MANTISSA_OVERSIZED);
-    if (mantissa < minMantissa)
-        return static_cast<int64_t>(MANTISSA_UNDERSIZED);
-    return float1 - get_mantissa(float1) + mantissa;
-}
-
-inline int64_t
-set_exponent(int64_t float1, int32_t exponent)
-{
-    if (exponent > maxExponent)
-        return static_cast<int64_t>(EXPONENT_OVERSIZED);
-    if (exponent < minExponent)
-        return static_cast<int64_t>(EXPONENT_UNDERSIZED);
-
-    uint64_t exp = (exponent + 97);
-    exp <<= 54U;
-    float1 &= ~(0xFFLL << 54);
-    float1 += (int64_t)exp;
-    return float1;
-}
-
-inline int64_t
-make_float(ripple::IOUAmount& amt)
-{
-    int64_t man_out = amt.mantissa();
-    int64_t float_out = 0;
-    bool neg = man_out < 0;
-    if (neg)
-        man_out *= -1;
-
-    float_out = set_sign(float_out, neg);
-    float_out = set_mantissa(float_out, (uint64_t)man_out);
-    float_out = set_exponent(float_out, amt.exponent());
-    return float_out;
-}
-
-inline int64_t
-make_float(uint64_t mantissa, int32_t exponent, bool neg)
-{
-    if (mantissa == 0)
-        return 0;
-    if (mantissa > maxMantissa)
-        return static_cast<int64_t>(MANTISSA_OVERSIZED);
-    if (mantissa < minMantissa)
-        return static_cast<int64_t>(MANTISSA_UNDERSIZED);
-    if (exponent > maxExponent)
-        return static_cast<int64_t>(EXPONENT_OVERSIZED);
-    if (exponent < minExponent)
-        return static_cast<int64_t>(EXPONENT_UNDERSIZED);
-    int64_t out = 0;
-    out = set_mantissa(out, mantissa);
-    out = set_exponent(out, exponent);
-    out = set_sign(out, neg);
-    return out;
-}
-
-}  // namespace hook_float
-using namespace hook_float;
+using namespace hook::hook_float;
 using hook::Bytes;
 
-inline int32_t
-no_free_slots(hook::HookContext& hookCtx)
-{
-    return hook_api::max_slots - hookCtx.slot.size() <= 0;
-}
+// inline int32_t
+// no_free_slots(hook::HookContext& hookCtx)
+// {
+//     return hook_api::max_slots - hookCtx.slot.size() <= 0;
+// }
 
-inline std::optional<int32_t>
-get_free_slot(hook::HookContext& hookCtx)
-{
-    // allocate a slot
-    int32_t slot_into = 0;
-    if (hookCtx.slot_free.size() > 0)
-    {
-        slot_into = hookCtx.slot_free.front();
-        hookCtx.slot_free.pop();
-        return slot_into;
-    }
+// inline std::optional<int32_t>
+// get_free_slot(hook::HookContext& hookCtx)
+// {
+//     // allocate a slot
+//     int32_t slot_into = 0;
+//     if (hookCtx.slot_free.size() > 0)
+//     {
+//         slot_into = hookCtx.slot_free.front();
+//         hookCtx.slot_free.pop();
+//         return slot_into;
+//     }
 
-    // no slots were available in the queue so increment slot counter until we
-    // find a free slot usually this will be the next available but the hook
-    // developer may have allocated any slot ahead of when the counter gets
-    // there
-    do
-    {
-        slot_into = ++hookCtx.slot_counter;
-    } while (hookCtx.slot.find(slot_into) != hookCtx.slot.end() &&
-             // this condition should always be met, if for some reason, somehow
-             // it is not then we will return the final slot every time.
-             hookCtx.slot_counter <= hook_api::max_slots);
+//     // no slots were available in the queue so increment slot counter until
+//     we
+//     // find a free slot usually this will be the next available but the hook
+//     // developer may have allocated any slot ahead of when the counter gets
+//     // there
+//     do
+//     {
+//         slot_into = ++hookCtx.slot_counter;
+//     } while (hookCtx.slot.find(slot_into) != hookCtx.slot.end() &&
+//              // this condition should always be met, if for some reason,
+//              somehow
+//              // it is not then we will return the final slot every time.
+//              hookCtx.slot_counter <= hook_api::max_slots);
 
-    if (hookCtx.slot_counter > hook_api::max_slots)
-        return {};
+//     if (hookCtx.slot_counter > hook_api::max_slots)
+//         return {};
 
-    return slot_into;
-}
+//     return slot_into;
+// }
 
 // cu_ptr is a pointer into memory, bounds check is assumed to have already
 // happened
@@ -3533,18 +3418,22 @@ DEFINE_HOOK_FUNCTION(int32_t, _g, uint32_t id, uint32_t maxitr)
     HOOK_TEARDOWN();
 }
 
-#define RETURN_IF_INVALID_FLOAT(float1)                             \
-    {                                                               \
-        if (float1 < 0)                                             \
-            return INVALID_FLOAT;                                   \
-        if (float1 != 0)                                            \
-        {                                                           \
-            uint64_t mantissa = get_mantissa(float1);               \
-            int32_t exponent = get_exponent(float1);                \
-            if (mantissa < minMantissa || mantissa > maxMantissa || \
-                exponent > maxExponent || exponent < minExponent)   \
-                return INVALID_FLOAT;                               \
-        }                                                           \
+#define RETURN_IF_INVALID_FLOAT(float1)                 \
+    {                                                   \
+        if (float1 < 0)                                 \
+            return INVALID_FLOAT;                       \
+        if (float1 != 0)                                \
+        {                                               \
+            auto const mantissa = get_mantissa(float1); \
+            auto const exponent = get_exponent(float1); \
+            if (!mantissa || !exponent)                 \
+                return INVALID_FLOAT;                   \
+            if (mantissa.value() < minMantissa ||       \
+                mantissa.value() > maxMantissa ||       \
+                exponent.value() > maxExponent ||       \
+                exponent.value() < minExponent)         \
+                return INVALID_FLOAT;                   \
+        }                                               \
     }
 
 DEFINE_HOOK_FUNCTION(
@@ -3582,11 +3471,15 @@ DEFINE_HOOK_FUNCTION(
         return 0ULL;
     }
 
-    uint64_t man = get_mantissa(float1);
-    int32_t exp = get_exponent(float1);
+    auto const man = get_mantissa(float1);
+    if (!man)
+        return 0ULL;
+    auto const exp = get_exponent(float1);
+    if (!exp)
+        return 0ULL;
     bool neg = is_negative(float1);
-    if (man < minMantissa || man > maxMantissa || exp < minExponent ||
-        exp > maxExponent)
+    if (man.value() < minMantissa || man.value() > maxMantissa ||
+        exp.value() < minExponent || exp.value() > maxExponent)
     {
         j.trace() << "HookTrace[" << HC_ACC() << "]:"
                   << (read_len == 0
@@ -3601,7 +3494,8 @@ DEFINE_HOOK_FUNCTION(
               << (read_len == 0 ? ""
                                 : std::string_view(
                                       (const char*)memory + read_ptr, read_len))
-              << ": Float " << (neg ? "-" : "") << man << "*10^(" << exp << ")";
+              << ": Float " << (neg ? "-" : "") << man.value() << "*10^("
+              << exp.value() << ")";
     return 0ULL;
 
     HOOK_TEARDOWN();
