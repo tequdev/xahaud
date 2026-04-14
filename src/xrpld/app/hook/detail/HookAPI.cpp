@@ -9,6 +9,7 @@
 
 namespace hook {
 namespace hook_float {
+using enum HookReturnCode;
 
 // power of 10 LUT for fast integer math
 static int64_t power_of_ten[19] = {
@@ -125,7 +126,7 @@ make_float(ripple::IOUAmount& amt)
     if (!mantissa)
         // TODO: This change requires the amendment.
         // return Unexpected(mantissa.error());
-        float_out = mantissa.error();
+        float_out = (int64_t)mantissa.error();
     else
         float_out = mantissa.value();
     auto const exponent = set_exponent(float_out, amt.exponent());
@@ -152,12 +153,12 @@ make_float(uint64_t mantissa, int32_t exponent, bool neg)
 
     auto const m = set_mantissa(out, mantissa);
     if (!m)
-        return m.error();
+        return Unexpected(m.error());
     out = m.value();
 
     auto const e = set_exponent(out, exponent);
     if (!e)
-        return e.error();
+        return Unexpected(e.error());
     out = e.value();
 
     out = set_sign(out, neg);
@@ -275,7 +276,7 @@ normalize_xfl(T& man, int32_t& exp, bool neg = false)
     }
 
     if (!ret)
-        return ret.error();
+        return Unexpected(ret.error());
 
     return ret;
 }
@@ -1178,7 +1179,7 @@ HookAPI::etxn_details(uint8_t* out_ptr) const
 
     auto hash = etxn_nonce();
     if (!hash.has_value())
-        return INTERNAL_ERROR;
+        return Unexpected(INTERNAL_ERROR);
 
     memcpy(out, hash->data(), 32);
 
@@ -1273,7 +1274,7 @@ HookAPI::float_set(int32_t exponent, int64_t mantissa) const
     {
         if (normalized.error() == XFL_OVERFLOW)
             return Unexpected(INVALID_FLOAT);
-        return normalized.error();
+        return Unexpected(normalized.error());
     }
     if (normalized.value() == 0)
         return Unexpected(INVALID_FLOAT);
@@ -1321,7 +1322,7 @@ HookAPI::float_mulratio(
 
     auto const result = make_float((uint64_t)man1, exp1, is_negative(float1));
     if (!result)
-        return result.error();
+        return Unexpected(result.error());
     return result;
 }
 
@@ -2607,7 +2608,7 @@ HookAPI::slot_float(uint32_t slot_no) const
             normalized = ret.value();
         }
 
-        if (normalized == EXPONENT_UNDERSIZED)
+        if (normalized == (int64_t)EXPONENT_UNDERSIZED)
             /* exponent undersized (underflow) */
             return 0;  // return 0 in this case
         return normalized;

@@ -319,7 +319,7 @@ namespace compare_mode {
 enum compare_mode : uint32_t { EQUAL = 1, LESS = 2, GREATER = 4 };
 }
 
-enum hook_return_code : int64_t {
+enum class hook_return_code : int64_t {
     SUCCESS =
         0,  // return codes > 0 are reserved for hook apis to return "success"
     OUT_OF_BOUNDS =

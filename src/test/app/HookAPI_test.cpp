@@ -50,6 +50,7 @@ private:
     }
 
 public:
+    using enum hook_api::hook_return_code;
     void
     test_accept(FeatureBitset features)
     {
