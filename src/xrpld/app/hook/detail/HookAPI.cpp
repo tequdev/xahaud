@@ -1933,7 +1933,7 @@ HookAPI::hook_hash(int32_t hook_no) const
     return hook.getFieldH256(sfHookHash);
 }
 
-Expected<int64_t, HookReturnCode>
+Expected<uint64_t, HookReturnCode>
 HookAPI::hook_again() const
 {
     if (hookCtx.result.executeAgainAsWeak)
@@ -1942,7 +1942,7 @@ HookAPI::hook_again() const
     if (hookCtx.result.isStrong)
     {
         hookCtx.result.executeAgainAsWeak = true;
-        return 1;
+        return 1ULL;
     }
 
     return Unexpected(PREREQUISITE_NOT_MET);

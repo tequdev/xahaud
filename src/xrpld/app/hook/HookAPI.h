@@ -170,7 +170,7 @@ public:
     Expected<ripple::uint256, HookReturnCode>
     hook_hash(int32_t hook_no) const;
 
-    Expected<int64_t, HookReturnCode>
+    Expected<uint64_t, HookReturnCode>
     hook_again() const;
 
     Expected<Blob, HookReturnCode>

@@ -812,7 +812,7 @@ parseCurrency(uint8_t* cu_ptr, uint32_t cu_len)
         return {};
 }
 
-inline int64_t
+inline std::variant<uint64_t, hook_api::hook_return_code>
 serialize_keylet(
     ripple::Keylet& kl,
     uint8_t* memory,
@@ -820,7 +820,7 @@ serialize_keylet(
     uint32_t write_len)
 {
     if (write_len < 34)
-        return static_cast<int64_t>(TOO_SMALL);
+        return TOO_SMALL;
 
     memory[write_ptr + 0] = (kl.type >> 8) & 0xFFU;
     memory[write_ptr + 1] = (kl.type >> 0) & 0xFFU;
@@ -828,7 +828,7 @@ serialize_keylet(
     for (int i = 0; i < 32; ++i)
         memory[write_ptr + 2 + i] = kl.key.data()[i];
 
-    return 34;
+    return 34ULL;
 }
 
 std::optional<ripple::Keylet>
@@ -871,19 +871,19 @@ hook::computeCreationFee(uint64_t byteCount)
 }
 
 // many datatypes can be encoded into an int64_t
-inline int64_t
+inline std::variant<uint64_t, hook_api::hook_return_code>
 data_as_int64(void const* ptr_raw, uint32_t len)
 {
     if (len > 8)
-        return static_cast<int64_t>(TOO_BIG);
+        return TOO_BIG;
 
     uint8_t const* ptr = reinterpret_cast<uint8_t const*>(ptr_raw);
     uint64_t output = 0;
     for (int i = 0, j = (len - 1) * 8; i < len; ++i, j -= 8)
         output += (((uint64_t)ptr[i]) << j);
     if ((1ULL << 63U) & output)
-        return static_cast<int64_t>(TOO_BIG);
-    return static_cast<int64_t>(output);
+        return TOO_BIG;
+    return output;
 }
 
 /* returns true iff every even char is ascii and every odd char is 00
@@ -1270,7 +1270,7 @@ DEFINE_HOOK_FUNCTION(
         return OUT_OF_BOUNDS;
 
     if (!j.trace())
-        return 0;
+        return 0ULL;
 
     if (read_len > 128)
         read_len = 128;
@@ -1288,12 +1288,12 @@ DEFINE_HOOK_FUNCTION(
                              (const char*)memory + read_ptr, read_len)
                       << ": " << number;
 
-            return 0;
+            return 0ULL;
         }
     }
 
     j.trace() << "HookTrace[" << HC_ACC() << "]: " << number;
-    return 0;
+    return 0ULL;
     HOOK_TEARDOWN();
 }
 
@@ -1313,7 +1313,7 @@ DEFINE_HOOK_FUNCTION(
         return OUT_OF_BOUNDS;
 
     if (!j.trace())
-        return 0;
+        return 0ULL;
 
     if (mread_len > 128)
         mread_len = 128;
@@ -1376,7 +1376,7 @@ DEFINE_HOOK_FUNCTION(
                   << std::string_view((const char*)output_storage, out_len);
     }
 
-    return 0;
+    return 0ULL;
     HOOK_TEARDOWN();
 }
 
@@ -1481,7 +1481,8 @@ DEFINE_HOOK_FUNCTION(
 
     auto const sleAccount = view.peek(hookCtx.result.accountKeylet);
     if (!sleAccount && view.rules().enabled(featureExtendedHookState))
-        return tefINTERNAL;
+        // should return hook_api::hook_return_code
+        return static_cast<hook_api::hook_return_code>(tefINTERNAL);
 
     uint16_t const hookStateScale = sleAccount->isFieldPresent(sfHookStateScale)
         ? sleAccount->getFieldU16(sfHookStateScale)
@@ -1505,7 +1506,8 @@ DEFINE_HOOK_FUNCTION(
     {
         auto const sleAccount = view.peek(hookCtx.result.accountKeylet);
         if (!sleAccount)
-            return tefINTERNAL;
+            // should return hook_api::hook_return_code
+            return static_cast<hook_api::hook_return_code>(tefINTERNAL);
     }
 
     if (!key)
@@ -1516,7 +1518,7 @@ DEFINE_HOOK_FUNCTION(
     auto const result = api.state_foreign_set(*key, ns, acc, data);
     if (!result)
         return result.error();
-    return static_cast<int64_t>(result.value());
+    return result.value();
 
     HOOK_TEARDOWN();
 }
@@ -1973,7 +1975,7 @@ DEFINE_HOOK_FUNCTION(int64_t, otxn_slot, uint32_t slot_into)
 DEFINE_HOOK_FUNCTION(int64_t, otxn_burden)
 {
     HOOK_SETUP();
-    return static_cast<int64_t>(api.otxn_burden());
+    return api.otxn_burden();
     HOOK_TEARDOWN();
 }
 
@@ -2029,7 +2031,7 @@ DEFINE_HOOK_FUNCTION(int64_t, ledger_last_time)
 {
     HOOK_SETUP();
 
-    return static_cast<int64_t>(api.ledger_last_time());
+    return api.ledger_last_time();
 
     HOOK_TEARDOWN();
 }
@@ -2125,7 +2127,7 @@ DEFINE_HOOK_FUNCTION(int64_t, slot_clear, uint32_t slot_no)
     if (!result)
         return result.error();
 
-    return static_cast<int64_t>(result.value());
+    return result.value();
 
     HOOK_TEARDOWN();
 }
@@ -2139,7 +2141,7 @@ DEFINE_HOOK_FUNCTION(int64_t, slot_count, uint32_t slot_no)
     if (!result)
         return result.error();
 
-    return static_cast<int64_t>(result.value());
+    return result.value();
 
     HOOK_TEARDOWN();
 }
@@ -2176,7 +2178,7 @@ DEFINE_HOOK_FUNCTION(int64_t, slot_size, uint32_t slot_no)
     if (!result)
         return result.error();
 
-    return static_cast<int64_t>(result.value());
+    return result.value();
 
     HOOK_TEARDOWN();
 }
@@ -2231,7 +2233,7 @@ DEFINE_HOOK_FUNCTION(int64_t, slot_type, uint32_t slot_no, uint32_t flags)
     if (flags == 0)
     {
         auto const base = std::get<0>(*result);
-        return base.getFName().fieldCode;
+        return static_cast<uint64_t>(base.getFName().fieldCode);
     }
     else
     {
@@ -2251,7 +2253,7 @@ DEFINE_HOOK_FUNCTION(int64_t, slot_float, uint32_t slot_no)
     if (!result)
         return result.error();
 
-    return static_cast<int64_t>(result.value());
+    return result.value();
 
     HOOK_TEARDOWN();
 }
@@ -2846,7 +2848,7 @@ DEFINE_HOOK_FUNCTION(
         return OUT_OF_BOUNDS;
 
     auto const write_txid =
-        [&]() -> std::variant<int64_t, hook_api::hook_return_code> {
+        [&]() -> std::variant<uint64_t, hook_api::hook_return_code> {
         WRITE_WASM_MEMORY_AND_RETURN(
             write_ptr,
             txID.size(),
@@ -2860,7 +2862,7 @@ DEFINE_HOOK_FUNCTION(
     if (std::holds_alternative<hook_api::hook_return_code>(result))
         return std::get<hook_api::hook_return_code>(result);
 
-    auto const value = std::get<int64_t>(result);
+    auto const value = std::get<uint64_t>(result);
     if (value == 32)
         hookCtx.result.emittedTxn.push(tpTrans);
 
@@ -3031,7 +3033,7 @@ DEFINE_HOOK_FUNCTION(int64_t, etxn_reserve, uint32_t count)
     auto const result = api.etxn_reserve(count);
     if (!result)
         return result.error();
-    return static_cast<int64_t>(result.value());
+    return result.value();
 
     HOOK_TEARDOWN();
 }
@@ -3043,7 +3045,7 @@ DEFINE_HOOK_FUNCTION(int64_t, etxn_burden)
     auto const burden = api.etxn_burden();
     if (!burden)
         return burden.error();
-    return static_cast<int64_t>(burden.value());
+    return burden.value();
     HOOK_TEARDOWN();
 }
 
@@ -3096,8 +3098,7 @@ DEFINE_HOOK_FUNCTION(
     if (!result)
         return result.error();
     auto const& pair = result.value();
-    return static_cast<int64_t>(
-        (uint64_t(pair.first) << 32U) + (uint32_t)pair.second);
+    return (uint64_t(pair.first) << 32U) + (uint32_t)pair.second;
 
     HOOK_TEARDOWN();
 }
@@ -3121,8 +3122,7 @@ DEFINE_HOOK_FUNCTION(
     if (!result)
         return result.error();
     auto const& pair = result.value();
-    return static_cast<int64_t>(
-        (uint64_t(pair.first) << 32U) + (uint32_t)pair.second);
+    return (uint64_t(pair.first) << 32U) + (uint32_t)pair.second;
 
     HOOK_TEARDOWN();
 }
@@ -3366,9 +3366,9 @@ DEFINE_HOOK_FUNCTION(
         0,
         field_id);
 
-    if (std::holds_alternative<int64_t>(ret))
+    if (std::holds_alternative<uint64_t>(ret))
     {
-        auto const value = std::get<int64_t>(ret);
+        auto const value = std::get<uint64_t>(ret);
         if (value > 0 && value == read_len)
             return DOESNT_EXIST;
     }
@@ -3394,7 +3394,7 @@ DEFINE_HOOK_FUNCTION(
     auto const result = api.sto_validate(data);
     if (!result)
         return result.error();
-    return result.value() ? 1 : 0;
+    return result.value() ? 1ULL : 0ULL;
 
     HOOK_TEARDOWN();
 }
@@ -3430,7 +3430,7 @@ DEFINE_HOOK_FUNCTION(
     auto const result = api.util_verify(data, sig, key);
     if (!result)
         return result.error();
-    return result.value() ? 1 : 0;
+    return result.value() ? 1ULL : 0ULL;
 
     HOOK_TEARDOWN();
 }
@@ -3441,7 +3441,7 @@ DEFINE_HOOK_FUNCTION(int64_t, fee_base)
     HOOK_SETUP();  // populates memory_ctx, memory, memory_length, applyCtx,
                    // hookCtx on current stack
 
-    return static_cast<int64_t>(api.fee_base());
+    return api.fee_base();
 
     HOOK_TEARDOWN();
 }
@@ -3462,7 +3462,7 @@ DEFINE_HOOK_FUNCTION(
     auto const fee_base = api.etxn_fee_base(tx);
     if (!fee_base)
         return fee_base.error();
-    return static_cast<int64_t>(fee_base.value());
+    return fee_base.value();
     HOOK_TEARDOWN();
 }
 
@@ -3489,7 +3489,7 @@ DEFINE_HOOK_FUNCTION(
     auto const result = api.etxn_details(memory + write_ptr);
     if (!result)
         return result.error();
-    return static_cast<int64_t>(result.value());
+    return result.value();
 
     HOOK_TEARDOWN();
 }
@@ -3528,7 +3528,7 @@ DEFINE_HOOK_FUNCTION(int32_t, _g, uint32_t id, uint32_t maxitr)
         hookCtx.result.exitCode = (int64_t)GUARD_VIOLATION;
         return RC_ROLLBACK;
     }
-    return 1;
+    return 1U;
 
     HOOK_TEARDOWN();
 }
@@ -3561,7 +3561,7 @@ DEFINE_HOOK_FUNCTION(
         return OUT_OF_BOUNDS;
 
     if (!j.trace())
-        return 0;
+        return 0ULL;
 
     if (read_len > 128)
         read_len = 128;
@@ -3579,7 +3579,7 @@ DEFINE_HOOK_FUNCTION(
                           : std::string_view(
                                 (const char*)memory + read_ptr, read_len))
                   << ": Float 0*10^(0) <ZERO>";
-        return 0;
+        return 0ULL;
     }
 
     uint64_t man = get_mantissa(float1);
@@ -3594,7 +3594,7 @@ DEFINE_HOOK_FUNCTION(
                           : std::string_view(
                                 (const char*)memory + read_ptr, read_len))
                   << ": Float <INVALID>";
-        return 0;
+        return 0ULL;
     }
 
     j.trace() << "HookTrace[" << HC_ACC() << "]:"
@@ -3602,7 +3602,7 @@ DEFINE_HOOK_FUNCTION(
                                 : std::string_view(
                                       (const char*)memory + read_ptr, read_len))
               << ": Float " << (neg ? "-" : "") << man << "*10^(" << exp << ")";
-    return 0;
+    return 0ULL;
 
     HOOK_TEARDOWN();
 }
@@ -3615,7 +3615,7 @@ DEFINE_HOOK_FUNCTION(int64_t, float_set, int32_t exp, int64_t mantissa)
     auto const result = api.float_set(exp, mantissa);
     if (!result)
         return result.error();
-    return static_cast<int64_t>(result.value());
+    return result.value();
 
     HOOK_TEARDOWN();
 }
@@ -3635,7 +3635,7 @@ DEFINE_HOOK_FUNCTION(
     auto const result = api.float_int(float1, decimal_places, absolute);
     if (!result)
         return result.error();
-    return static_cast<int64_t>(result.value());
+    return result.value();
 
     HOOK_TEARDOWN();
 }
@@ -3651,7 +3651,7 @@ DEFINE_HOOK_FUNCTION(int64_t, float_multiply, int64_t float1, int64_t float2)
     auto const result = api.float_multiply(float1, float2);
     if (!result)
         return result.error();
-    return static_cast<int64_t>(result.value());
+    return result.value();
 
     HOOK_TEARDOWN();
 }
@@ -3673,7 +3673,7 @@ DEFINE_HOOK_FUNCTION(
         api.float_mulratio(float1, round_up, numerator, denominator);
     if (!result)
         return result.error();
-    return static_cast<int64_t>(result.value());
+    return result.value();
 
     HOOK_TEARDOWN();
 }
@@ -3685,7 +3685,7 @@ DEFINE_HOOK_FUNCTION(int64_t, float_negate, int64_t float1)
 
     RETURN_IF_INVALID_FLOAT(float1);
 
-    return static_cast<int64_t>(api.float_negate(float1));
+    return api.float_negate(float1);
 
     HOOK_TEARDOWN();
 }
@@ -3706,7 +3706,7 @@ DEFINE_HOOK_FUNCTION(
     auto const result = api.float_compare(float1, float2, mode);
     if (!result)
         return result.error();
-    return static_cast<int64_t>(result.value());
+    return result.value();
 
     HOOK_TEARDOWN();
 }
@@ -3722,7 +3722,7 @@ DEFINE_HOOK_FUNCTION(int64_t, float_sum, int64_t float1, int64_t float2)
     auto const result = api.float_sum(float1, float2);
     if (!result)
         return result.error();
-    return static_cast<int64_t>(result.value());
+    return result.value();
 
     HOOK_TEARDOWN();
 }
@@ -3822,7 +3822,7 @@ DEFINE_HOOK_FUNCTION(
     auto const result = api.float_sto_set(data);
     if (!result)
         return result.error();
-    return static_cast<int64_t>(result.value());
+    return result.value();
 
     HOOK_TEARDOWN();
 }
@@ -3838,14 +3838,14 @@ DEFINE_HOOK_FUNCTION(int64_t, float_divide, int64_t float1, int64_t float2)
     auto const result = api.float_divide(float1, float2);
     if (!result)
         return result.error();
-    return static_cast<int64_t>(result.value());
+    return result.value();
 
     HOOK_TEARDOWN();
 }
 
 DEFINE_HOOK_FUNCTION(int64_t, float_one)
 {
-    return static_cast<int64_t>(hookCtx.api().float_one());
+    return hookCtx.api().float_one();
 }
 
 DEFINE_HOOK_FUNCTION(int64_t, float_invert, int64_t float1)
@@ -3858,7 +3858,7 @@ DEFINE_HOOK_FUNCTION(int64_t, float_invert, int64_t float1)
     auto const result = api.float_invert(float1);
     if (!result)
         return result.error();
-    return static_cast<int64_t>(result.value());
+    return result.value();
 
     HOOK_TEARDOWN();
 }
@@ -3873,7 +3873,7 @@ DEFINE_HOOK_FUNCTION(int64_t, float_mantissa, int64_t float1)
     auto const result = api.float_mantissa(float1);
     if (!result)
         return result.error();
-    return static_cast<int64_t>(result.value());
+    return result.value();
 
     HOOK_TEARDOWN();
 }
@@ -3885,7 +3885,7 @@ DEFINE_HOOK_FUNCTION(int64_t, float_sign, int64_t float1)
 
     RETURN_IF_INVALID_FLOAT(float1);
 
-    return static_cast<int64_t>(api.float_sign(float1));
+    return api.float_sign(float1);
 
     HOOK_TEARDOWN();
 }
@@ -3900,7 +3900,7 @@ DEFINE_HOOK_FUNCTION(int64_t, float_log, int64_t float1)
     auto const result = api.float_log(float1);
     if (!result)
         return result.error();
-    return static_cast<int64_t>(result.value());
+    return result.value();
 
     HOOK_TEARDOWN();
 }
@@ -3915,7 +3915,7 @@ DEFINE_HOOK_FUNCTION(int64_t, float_root, int64_t float1, uint32_t n)
     auto const result = api.float_root(float1, n);
     if (!result)
         return result.error();
-    return static_cast<int64_t>(result.value());
+    return result.value();
 
     HOOK_TEARDOWN();
 }
@@ -4026,7 +4026,7 @@ DEFINE_HOOK_FUNCTION(
     auto const result = api.hook_param_set(hash, paramName, paramValue);
     if (!result)
         return result.error();
-    return static_cast<int64_t>(result.value());
+    return result.value();
 
     HOOK_TEARDOWN();
 }
@@ -4052,7 +4052,7 @@ DEFINE_HOOK_FUNCTION(
     auto const result = api.hook_skip(hash, flags);
     if (!result)
         return result.error();
-    return static_cast<int64_t>(result.value());
+    return result.value();
 
     HOOK_TEARDOWN();
 }

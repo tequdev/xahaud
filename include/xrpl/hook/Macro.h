@@ -89,19 +89,21 @@
 
 #define WASM_VAL_TYPE(T, b) CAT2(TYP_, T)
 
-#define DECLARE_HOOK_FUNCTION(R, F, ...)                         \
-    std::variant<R, hook_api::hook_return_code> F(               \
-        hook::HookContext& hookCtx,                              \
-        WasmEdge_CallingFrameContext const& frameCtx __VA_OPT__( \
-            COMMA __VA_ARGS__));                                 \
-    extern WasmEdge_Result WasmFunction##F(                      \
-        void* data_ptr,                                          \
-        const WasmEdge_CallingFrameContext* frameCtx,            \
-        const WasmEdge_Value* in,                                \
-        WasmEdge_Value* out);                                    \
-    extern WasmEdge_ValType WasmFunctionParams##F[];             \
-    extern WasmEdge_ValType WasmFunctionResult##F[];             \
-    extern WasmEdge_FunctionTypeContext* WasmFunctionType##F;    \
+#define UNSIGNED_TYPE(T) std::make_unsigned_t<T>
+
+#define DECLARE_HOOK_FUNCTION(R, F, ...)                          \
+    std::variant<UNSIGNED_TYPE(R), hook_api::hook_return_code> F( \
+        hook::HookContext& hookCtx,                               \
+        WasmEdge_CallingFrameContext const& frameCtx __VA_OPT__(  \
+            COMMA __VA_ARGS__));                                  \
+    extern WasmEdge_Result WasmFunction##F(                       \
+        void* data_ptr,                                           \
+        const WasmEdge_CallingFrameContext* frameCtx,             \
+        const WasmEdge_Value* in,                                 \
+        WasmEdge_Value* out);                                     \
+    extern WasmEdge_ValType WasmFunctionParams##F[];              \
+    extern WasmEdge_ValType WasmFunctionResult##F[];              \
+    extern WasmEdge_FunctionTypeContext* WasmFunctionType##F;     \
     extern WasmEdge_String WasmFunctionName##F;
 
 #define DEFINE_HOOK_FUNCTION(R, F, ...)                                        \
@@ -126,8 +128,8 @@
             return WasmEdge_Result_Terminate;                                  \
         out[0] = RET_ASSIGN(                                                   \
             R,                                                                 \
-            std::holds_alternative<R>(return_code)                             \
-                ? std::get<R>(return_code)                                     \
+            std::holds_alternative<UNSIGNED_TYPE(R)>(return_code)              \
+                ? std::get<UNSIGNED_TYPE(R)>(return_code)                      \
                 : R(std::get<hook_api::hook_return_code>(return_code)));       \
         return WasmEdge_Result_Success;                                        \
     };                                                                         \
@@ -143,7 +145,7 @@
             1);                                                                \
     WasmEdge_String hook_api::WasmFunctionName##F =                            \
         WasmEdge_StringCreateByCString(#F);                                    \
-    std::variant<R, hook_api::hook_return_code> hook_api::F(                   \
+    std::variant<UNSIGNED_TYPE(R), hook_api::hook_return_code> hook_api::F(    \
         hook::HookContext& hookCtx,                                            \
         WasmEdge_CallingFrameContext const& frameCtx __VA_OPT__(               \
             COMMA __VA_ARGS__))
@@ -212,7 +214,7 @@
     host_memory_ptr,                  \
     guest_memory_length)              \
     {                                 \
-        int64_t bytes_written = 0;    \
+        uint64_t bytes_written = 0;   \
         WRITE_WASM_MEMORY(            \
             bytes_written,            \
             guest_dst_ptr,            \
@@ -281,7 +283,7 @@
             data_ptr < (data_ptr_in))                                    \
             return INTERNAL_ERROR;                                       \
         if (data_len == 0)                                               \
-            return 0;                                                    \
+            return 0ULL;                                                 \
         if ((write_ptr_in) == 0)                                         \
             return data_as_int64(data_ptr, data_len);                    \
         if (data_len > (write_len_in))                                   \
