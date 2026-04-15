@@ -10,7 +10,7 @@ namespace hook {
 using HookReturnCode = hook_api::hook_return_code;
 
 namespace hook_float {
-using enum HookReturnCode;
+using enum hook_api::hook_return_code;
 
 // power of 10 LUT for fast integer math
 static int64_t power_of_ten[19] = {
@@ -44,7 +44,7 @@ static int32_t const maxExponent = 80;
 inline Expected<int32_t, HookReturnCode>
 get_exponent(int64_t float1)
 {
-    using enum HookReturnCode;
+    using enum hook_api::hook_return_code;
     if (float1 < 0)
         return Unexpected(INVALID_FLOAT);
     if (float1 == 0)
@@ -58,7 +58,7 @@ get_exponent(int64_t float1)
 inline Expected<uint64_t, HookReturnCode>
 get_mantissa(int64_t float1)
 {
-    using enum HookReturnCode;
+    using enum hook_api::hook_return_code;
     if (float1 < 0)
         return Unexpected(INVALID_FLOAT);
     if (float1 == 0)
@@ -93,7 +93,7 @@ set_sign(int64_t float1, bool set_negative)
 inline Expected<uint64_t, HookReturnCode>
 set_mantissa(int64_t float1, uint64_t mantissa)
 {
-    using enum HookReturnCode;
+    using enum hook_api::hook_return_code;
     if (mantissa > maxMantissa)
         return Unexpected(MANTISSA_OVERSIZED);
     if (mantissa < minMantissa)
@@ -104,7 +104,7 @@ set_mantissa(int64_t float1, uint64_t mantissa)
 inline Expected<uint64_t, HookReturnCode>
 set_exponent(int64_t float1, int32_t exponent)
 {
-    using enum HookReturnCode;
+    using enum hook_api::hook_return_code;
     if (exponent > maxExponent)
         return Unexpected(EXPONENT_OVERSIZED);
     if (exponent < minExponent)
@@ -120,7 +120,7 @@ set_exponent(int64_t float1, int32_t exponent)
 inline Expected<uint64_t, HookReturnCode>
 make_float(ripple::IOUAmount& amt)
 {
-    using enum HookReturnCode;
+    using enum hook_api::hook_return_code;
     int64_t man_out = amt.mantissa();
     int64_t float_out = 0;
     bool neg = man_out < 0;
@@ -145,7 +145,7 @@ make_float(ripple::IOUAmount& amt)
 inline Expected<uint64_t, HookReturnCode>
 make_float(uint64_t mantissa, int32_t exponent, bool neg)
 {
-    using enum HookReturnCode;
+    using enum hook_api::hook_return_code;
     if (mantissa == 0)
         return 0ULL;
     if (mantissa > maxMantissa)
