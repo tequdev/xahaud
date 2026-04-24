@@ -6006,7 +6006,7 @@ private:
             // set tsh hook
             setTSHHook(env, account, testStrong);
 
-            // signers list set
+            // signer list set
             env(signers(account, 2, {{signer1, 1}, {signer2, 1}}),
                 fee(XRP(1)),
                 ter(tesSUCCESS));
@@ -6045,7 +6045,7 @@ private:
             // set tsh hook
             setTSHHook(env, signer2, testStrong);
 
-            // signers list set
+            // signer list set
             env(signers(account, 2, {{signer1, 1}, {signer2, 1}}),
                 fee(XRP(1)),
                 ter(tesSUCCESS));
