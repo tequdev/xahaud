@@ -16,6 +16,7 @@
 #define featureHooksUpdate1 "1"
 #define featureHooksUpdate2 "1"
 #define fix20250131 "1"
+#define featureHooksMemoryFillCopy "1"
 namespace hook_api {
 struct Rules
 {
