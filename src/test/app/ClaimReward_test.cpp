@@ -744,15 +744,11 @@ struct ClaimReward_test : public beast::unit_test::suite
             // cMaxOffset(80), causing IOUAmount::normalize to throw
             // std::overflow_error("value overflow").
             auto const bigUSD = STAmount{
-                gw["USD"].issue(),
-                std::uint64_t(5000000000000000ull),
-                80};
+                gw["USD"].issue(), std::uint64_t(5000000000000000ull), 80};
             // Payment amount must be large enough to register a
             // balance change given STAmount's 16-digit precision.
             auto const payBackUSD = STAmount{
-                gw["USD"].issue(),
-                std::uint64_t(1000000000000000ull),
-                80};
+                gw["USD"].issue(), std::uint64_t(1000000000000000ull), 80};
 
             env(trust(user, bigUSD));
             env.close();
