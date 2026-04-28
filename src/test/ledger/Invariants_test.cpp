@@ -137,8 +137,8 @@ class Invariants_test : public beast::unit_test::suite
                 {
                     // uncomment if you want to log the invariant failure
                     // message
-                    log << sink.messages().str() << std::endl;
-                    log << "   --> " << m << std::endl;
+                    // log << sink.messages().str() << std::endl;
+                    // log << "   --> " << m << std::endl;
                     fail();
                 }
             }
