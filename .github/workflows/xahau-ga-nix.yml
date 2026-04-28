@@ -230,6 +230,9 @@ jobs:
   build:
     needs: matrix-setup
     runs-on: ${{ fromJSON(matrix.runs_on) }}
+    permissions:
+      id-token: write
+      contents: read
     container:
       image: ubuntu:24.04
       volumes:
@@ -454,13 +457,13 @@ jobs:
         if: matrix.job_type == 'coverage'
         uses: wandalen/wretry.action/main@v3
         with:
-          action: codecov/codecov-action@v4.3.0
+          action: codecov/codecov-action@v5
           with: |
             files: coverage.xml
             fail_ci_if_error: true
             disable_search: true
             verbose: true
             plugin: noop
-            token: ${{ secrets.CODECOV_TOKEN }}
+            use_oidc: true
           attempt_limit: 5
           attempt_delay: 210000 # in milliseconds
