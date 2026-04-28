@@ -335,7 +335,7 @@ jobs:
           # Install gcovr for coverage jobs
           if [ "${{ matrix.job_type }}" = "coverage" ]; then
             pipx install "gcovr>=7,<9"
-            apt-get install -y lcov
+            apt-get install -y curl lcov
           fi
 
       - name: Check environment
