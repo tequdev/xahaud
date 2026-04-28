@@ -721,6 +721,77 @@ struct ClaimReward_test : public beast::unit_test::suite
                     currentTime) == true);
         }
 
+        // test with escrow (locked balance)
+        for (bool const fromHighAccount : {true, false})
+        {
+            for (bool const hasEscrow : {true, false})
+            {
+                Env env{*this, features};
+                auto const alice = Account("alice");
+                auto const bob = Account("bob");
+                auto const issuer = Account("issuer");
+
+                auto const user = fromHighAccount ? alice : bob;
+                auto const gw = fromHighAccount ? bob : alice;
+
+                if (fromHighAccount)
+                    BEAST_EXPECT(user.id() < gw.id());
+                else
+                    BEAST_EXPECT(user.id() > gw.id());
+
+                env.fund(XRP(10000), user, gw, issuer);
+                env(fset(gw, asfDefaultRipple));
+
+                env(trust(user, gw["USD"](1000000)), fee(XRP(1)));
+                env.close();
+                env(pay(gw, user, gw["USD"](10000)));
+                env.close();
+
+                if (hasEscrow)
+                {
+                    env(escrow(user, user, gw["USD"](2000)),
+                        finish_time(env.now() + 1s),
+                        fee(XRP(1)));
+                    env.close();
+                }
+
+                auto currentTime = getCurrentTime(env);
+                auto currentLedger = env.current()->seq();
+
+                env(reward::claim(user),
+                    reward::issuer(gw),
+                    reward::claimCurrency(gw["USD"]));
+                env.close();
+                env(pay(user, gw, gw["USD"](5000)));
+                env.close();
+
+                BEAST_EXPECT(
+                    expectRewardsIOU(
+                        env,
+                        user,
+                        gw["USD"],
+                        currentLedger,
+                        currentLedger + 1,
+                        user["USD"](10000),  // 10000 USD * time 1
+                        currentTime) == true);
+
+                env(pay(gw, user, gw["USD"](1)));
+                env.close();
+
+                // check Balance == 0
+                BEAST_EXPECT(
+                    expectRewardsIOU(
+                        env,
+                        user,
+                        gw["USD"],
+                        currentLedger,
+                        currentLedger + 2,
+                        user["USD"](
+                            15000),  // 10000 USD * time 1 + 5000 USD * time 1
+                        currentTime) == true);
+            }
+        }
+
         // STAmount overflow in reward accumulation should not cause
         // transaction failure (tefEXCEPTION). The overflow should be
         // gracefully skipped via try-catch.
