@@ -410,7 +410,8 @@ jobs:
           cache_version: ${{ env.CACHE_VERSION }}
           main_branch: ${{ env.MAIN_BRANCH_NAME }}
           stdlib: ${{ matrix.stdlib }}
-          cmake-args: '-Dcoverage=ON -Dcoverage_format=xml -DCODE_COVERAGE_VERBOSE=ON -DCMAKE_CXX_FLAGS="-O0" -DCMAKE_C_FLAGS="-O0"'
+          # Coverage builds are slower due to instrumentation; use fewer parallel jobs to avoid flakiness
+          cmake-args: '-Dcoverage=ON -Dcoverage_format=xml -Dcoverage_test_parallelism=$(($(nproc)/2)) -DCODE_COVERAGE_VERBOSE=ON -DCMAKE_CXX_FLAGS="-O0" -DCMAKE_C_FLAGS="-O0"'
           cmake-target: 'coverage'
           ccache_max_size: '100G'
 
