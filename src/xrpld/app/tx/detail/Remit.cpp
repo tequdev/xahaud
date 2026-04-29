@@ -288,7 +288,7 @@ Remit::doApply()
         (flags & lsfDisallowIncomingRemit))
         return tecNO_PERMISSION;
 
-    // AMMs can never receive an XRP payment.
+    // AMMs can never receive an XAH payment.
     // Must use AMMDeposit transaction instead.
     if (sleDstAcc && sleDstAcc->isFieldPresent(sfAMMID))
         return tecNO_PERMISSION;
