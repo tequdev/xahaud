@@ -301,18 +301,14 @@ getTransactionalStakeHolders(STTx const& tx, ReadView const& rv)
             bool issuerCanRollback = nft::getFlags(nid) & tfStrongTSH;
             ADD_TSH(issuer, issuerCanRollback);
 
-            if (bo)
+            for (auto const& offer : {bo, so})
             {
-                ADD_TSH(bo->getAccountID(sfOwner), tshSTRONG);
-                if (bo->isFieldPresent(sfDestination))
-                    ADD_TSH(bo->getAccountID(sfDestination), tshSTRONG);
-            }
-
-            if (so)
-            {
-                ADD_TSH(so->getAccountID(sfOwner), tshSTRONG);
-                if (so->isFieldPresent(sfDestination))
-                    ADD_TSH(so->getAccountID(sfDestination), tshSTRONG);
+                if (offer)
+                {
+                    ADD_TSH(offer->getAccountID(sfOwner), tshSTRONG);
+                    if (offer->isFieldPresent(sfDestination))
+                        ADD_TSH(offer->getAccountID(sfDestination), tshSTRONG);
+                }
             }
 
             break;
@@ -551,7 +547,8 @@ getTransactionalStakeHolders(STTx const& tx, ReadView const& rv)
             break;
         }
         case ttLEDGER_STATE_FIX: {
-            // TODO: Implement if needed
+            if (tx.isFieldPresent(sfOwner))
+                ADD_TSH(tx.getAccountID(sfOwner), tshWEAK);
             break;
         }
         case ttMPTOKEN_ISSUANCE_CREATE:
