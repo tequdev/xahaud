@@ -1651,6 +1651,10 @@ private:
             env.fund(XRP(1000), account);
             env.close();
 
+            env(hook(issuer, {{hso(jtx::genesis::AcceptHook)}}, 0),
+                fee(XRP(1)));
+            env.close();
+
             // set tsh collect
             if (!testStrong)
                 addWeakTSH(env, account);

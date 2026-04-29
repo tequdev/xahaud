@@ -17,6 +17,7 @@
 */
 //==============================================================================
 
+#include <xrpld/app/hook/applyHook.h>
 #include <xrpld/app/ledger/LedgerMaster.h>
 #include <xrpld/app/tx/detail/ClaimReward.h>
 #include <xrpld/core/Config.h>
@@ -141,6 +142,37 @@ ClaimReward::preclaim(PreclaimContext const& ctx)
 
         if (sleIssuer->isFieldPresent(sfAMMID))
             return tecNO_PERMISSION;
+
+        if (ctx.view.rules().enabled(featureIOURewardClaim))
+        {
+            auto const& sleHook = ctx.view.read(keylet::hook(*issuer));
+            if (!sleHook || !sleHook->isFieldPresent(sfHooks) ||
+                sleHook->getFieldArray(sfHooks).empty())
+                return tecNO_TARGET;
+
+            bool hasClaimRewardHook = false;
+            auto const& hooks = sleHook->getFieldArray(sfHooks);
+            for (auto const& hook : hooks)
+            {
+                if (!hook.isFieldPresent(sfHookHash))
+                    return tefINTERNAL;  // LCOV_EXCL_LINE
+                auto const& hash = hook.getFieldH256(sfHookHash);
+                auto const& sleDef =
+                    ctx.view.read(keylet::hookDefinition(hash));
+                if (!sleDef)
+                    return tefINTERNAL;  // LCOV_EXCL_LINE
+
+                auto const& hookOn =
+                    hook::getHookOn(hook, sleDef, sfHookOnIncoming);
+                if (hook::canHook(ttCLAIM_REWARD, hookOn))
+                {
+                    hasClaimRewardHook = true;
+                    break;
+                }
+            }
+            if (!hasClaimRewardHook)
+                return tecNO_TARGET;
+        }
     }
 
     if (ctx.tx.isFieldPresent(sfClaimCurrency))

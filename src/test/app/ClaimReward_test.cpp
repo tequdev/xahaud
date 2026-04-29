@@ -27,6 +27,14 @@ namespace ripple {
 namespace test {
 struct ClaimReward_test : public beast::unit_test::suite
 {
+private:
+    // helper
+    void static overrideFlag(Json::Value& jv)
+    {
+        jv[jss::Flags] = hsfOVERRIDE;
+    }
+
+public:
     bool
     expectRewards(
         jtx::Env const& env,
@@ -169,6 +177,10 @@ struct ClaimReward_test : public beast::unit_test::suite
             env.fund(XRP(1000), alice);
             env.close();
 
+            env(hook(issuer, {{hso(jtx::genesis::AcceptHook)}}, 0),
+                fee(XRP(1)));
+            env.close();
+
             auto const txResult =
                 withClaimReward ? ter(tesSUCCESS) : ter(temDISABLED);
 
@@ -183,7 +195,10 @@ struct ClaimReward_test : public beast::unit_test::suite
                     .count();
 
             // CLAIM
-            env(reward::claim(alice), reward::issuer(issuer), txResult);
+            env(reward::claim(alice),
+                reward::issuer(issuer),
+                fee(XRP(1)),
+                txResult);
             env.close();
 
             if (withClaimReward)
@@ -264,9 +279,14 @@ struct ClaimReward_test : public beast::unit_test::suite
                 env.fund(XRP(1000), alice);
                 env.close();
 
+                env(hook(issuer, {{hso(jtx::genesis::AcceptHook)}}, 0),
+                    fee(XRP(1)));
+                env.close();
+
                 auto tx = reward::claim(alice);
                 env(tx,
                     reward::issuer(issuer),
+                    fee(XRP(1)),
                     txflags(tfFullyCanonicalSig),
                     withFixFlags ? ter(tesSUCCESS) : ter(temINVALID_FLAG));
                 env.close();
@@ -360,21 +380,29 @@ struct ClaimReward_test : public beast::unit_test::suite
             auto const amend = withIOURewardClaim
                 ? features
                 : features - featureIOURewardClaim;
-            Env env{*this, amend};
 
             auto const alice = Account("alice");
             auto const badIssuer = Account("gw");
             auto const issuer = Account::master;
+            auto const USD = badIssuer["USD"];
+
+            Env env{*this, amend};
             env.fund(XRP(1000), alice, badIssuer);
             env.close();
 
-            auto const USD = badIssuer["USD"];
+            env(hook(issuer, {{hso(jtx::genesis::AcceptHook)}}, 0),
+                fee(XRP(1)));
+            env.close();
 
             env(reward::claim(alice),
                 reward::issuer(badIssuer),
+                fee(XRP(1)),
                 withIOURewardClaim ? ter(temBAD_ISSUER) : ter(tesSUCCESS));
 
-            env(reward::claim(alice), reward::issuer(issuer), ter(tesSUCCESS));
+            env(reward::claim(alice),
+                reward::issuer(issuer),
+                fee(XRP(1)),
+                ter(tesSUCCESS));
         }
     }
 
@@ -489,6 +517,135 @@ struct ClaimReward_test : public beast::unit_test::suite
             env.close();
         }
 
+        // tecNO_TARGET
+        // no claim reward hook
+        {
+            Env env{*this};
+
+            auto const alice = Account("alice");
+            auto const issuer = Account::master;
+
+            env.fund(XRP(1000), alice);
+            env.close();
+
+            // Doesn't have hook
+            {
+                env(reward::claim(alice),
+                    reward::issuer(issuer),
+                    ter(tecNO_TARGET));
+                env.close();
+            }
+            // Invalid HookOn
+            {
+                auto hookObj = hso(jtx::genesis::AcceptHook, overrideFlag);
+                hookObj[jss::HookOn] = to_string(UINT256_BIT[ttCLAIM_REWARD]);
+                env(hook(issuer, {{hookObj}}, 0), fee(XRP(1)));
+                env.close();
+
+                env(reward::claim(alice),
+                    reward::issuer(issuer),
+                    ter(tecNO_TARGET));
+                env.close();
+            }
+            // Invalid IncomingHookOn
+            {
+                auto hookObj = hso(jtx::genesis::AcceptHook, overrideFlag);
+                hookObj.removeMember(jss::HookOn);
+                hookObj[jss::HookOnIncoming] =
+                    to_string(UINT256_BIT[ttCLAIM_REWARD]);
+                hookObj[jss::HookOnOutgoing] = to_string(uint256{});
+                env(hook(issuer, {{hookObj}}, 0), fee(XRP(1)));
+                env.close();
+
+                env(reward::claim(alice),
+                    reward::issuer(issuer),
+                    ter(tecNO_TARGET));
+            }
+            // Vaild HookOn
+            {
+                auto hookObj = hso(jtx::genesis::AcceptHook, overrideFlag);
+                hookObj[jss::HookOn] = to_string(~UINT256_BIT[ttCLAIM_REWARD]);
+                env(hook(issuer, {{hookObj}}, 0), fee(XRP(1)));
+                env.close();
+
+                env(reward::claim(alice),
+                    reward::issuer(issuer),
+                    fee(XRP(1)),
+                    ter(tesSUCCESS));
+            }
+            // Vaild IncomingHookOn
+            {
+                auto hookObj = hso(jtx::genesis::AcceptHook, overrideFlag);
+                hookObj.removeMember(jss::HookOn);
+                hookObj[jss::HookOnIncoming] =
+                    to_string(~UINT256_BIT[ttCLAIM_REWARD]);
+                hookObj[jss::HookOnOutgoing] = to_string(uint256{});
+                env(hook(issuer, {{hookObj}}, 0), fee(XRP(1)));
+                env.close();
+
+                env(reward::claim(alice),
+                    reward::issuer(issuer),
+                    fee(XRP(1)),
+                    ter(tesSUCCESS));
+            }
+            // Invalid Hooks Array
+            {
+                auto hookObj = hso(jtx::genesis::AcceptHook, overrideFlag);
+                hookObj[jss::HookOn] = to_string(UINT256_BIT[ttCLAIM_REWARD]);
+                env(hook(
+                        issuer,
+                        {{
+                            hookObj,
+                            hookObj,
+                            hookObj,
+                            hookObj,
+                            hookObj,
+                            hookObj,
+                            hookObj,
+                            hookObj,
+                            hookObj,
+                            hookObj,
+                        }},
+                        0),
+                    fee(XRP(1)));
+                env.close();
+
+                env(reward::claim(alice),
+                    reward::issuer(issuer),
+                    fee(XRP(1)),
+                    ter(tecNO_TARGET));
+            }
+            // Vaild Hooks Array
+            {
+                auto hookObj = hso(jtx::genesis::AcceptHook, overrideFlag);
+                hookObj[jss::HookOn] = to_string(UINT256_BIT[ttCLAIM_REWARD]);
+                auto hookObj2 = hso(jtx::genesis::AcceptHook, overrideFlag);
+                hookObj2[jss::HookOn] = to_string(~UINT256_BIT[ttCLAIM_REWARD]);
+                env(hook(
+                        issuer,
+                        {{
+                            hookObj,
+                            hookObj,
+                            hookObj,
+                            hookObj,
+                            hookObj,
+                            hookObj,
+                            hookObj,
+                            hookObj,
+                            hookObj,
+                            hookObj2,
+                        }},
+                        0),
+                    fee(XRP(1)));
+                env.close();
+
+                env(reward::claim(alice),
+                    reward::issuer(issuer),
+                    fee(XRP(1)),
+                    ter(tesSUCCESS));
+            }
+        }
+
         // tecNO_LINE
         // trustline does not exist.
         {
@@ -500,11 +657,15 @@ struct ClaimReward_test : public beast::unit_test::suite
             env.fund(XRP(1000), alice, gw);
             env.close();
 
+            env(hook(gw, {{hso(jtx::genesis::AcceptHook)}}, 0), fee(XRP(1)));
+            env.close();
+
             jtx::IOU const USD = gw["USD"];
 
             env(reward::claim(alice),
                 reward::issuer(gw),
                 reward::claimCurrency(USD),
+                fee(XRP(1)),
                 ter(tecNO_LINE));
         }
     }
@@ -526,6 +687,12 @@ struct ClaimReward_test : public beast::unit_test::suite
         env.fund(XRP(1000), alice, bob, gw, issuer);
         env.close();
 
+        env(hook(issuer, {{hso(jtx::genesis::AcceptHook)}}, 0), fee(XRP(1)));
+        env.close();
+        env(hook(Account::master, {{hso(jtx::genesis::AcceptHook)}}, 0),
+            fee(XRP(1)));
+        env.close();
+
         // test claim rewards - no opt out
         auto const currentLedger = env.current()->seq();
         auto const currentTime =
@@ -538,7 +705,7 @@ struct ClaimReward_test : public beast::unit_test::suite
                 .count();
 
         auto tx = reward::claim(alice);
-        env(tx, reward::issuer(Account::master), ter(tesSUCCESS));
+        env(tx, reward::issuer(Account::master), fee(XRP(1)), ter(tesSUCCESS));
         env.close();
 
         BEAST_EXPECT(
@@ -573,6 +740,7 @@ struct ClaimReward_test : public beast::unit_test::suite
             env(tx,
                 reward::issuer(issuer),
                 reward::claimCurrency(gw["USD"]),
+                fee(XRP(1)),
                 ter(tesSUCCESS));
             env.close();
 
@@ -612,9 +780,13 @@ struct ClaimReward_test : public beast::unit_test::suite
         std::uint32_t const aliceSeq{env.seq(alice)};
         env.require(owners(alice, 10));
 
+        env(hook(issuer, {{hso(jtx::genesis::AcceptHook)}}, 0), fee(XRP(1)));
+        env.close();
+
         env(reward::claim(alice),
             reward::issuer(issuer),
             ticket::use(aliceTicketSeq++),
+            fee(XRP(1)),
             ter(tesSUCCESS));
 
         env.require(tickets(alice, env.seq(alice) - aliceTicketSeq));
@@ -647,6 +819,10 @@ struct ClaimReward_test : public beast::unit_test::suite
 
             auto const issuer = Account::master;
             env.fund(XRP(10001), alice, gw);
+            env.close();
+
+            env(hook(issuer, {{hso(jtx::genesis::AcceptHook)}}, 0),
+                fee(XRP(1)));
             env.close();
 
             auto const currentTime = getCurrentTime(env);
@@ -687,6 +863,11 @@ struct ClaimReward_test : public beast::unit_test::suite
             env.fund(XRP(10000), user, gw, issuer);
             env(fset(gw, asfDefaultRipple));
 
+            auto hookObj = hso(jtx::genesis::AcceptHook);
+            hookObj[jss::HookOn] = to_string(~UINT256_BIT[ttCLAIM_REWARD]);
+            env(hook(gw, {{hookObj}}, 0), fee(XRP(1)));
+            env.close();
+
             env(trust(user, gw["USD"](1000000)), fee(XRP(1)));
             env.close();
             env(pay(gw, user, gw["USD"](10000)));
@@ -697,7 +878,8 @@ struct ClaimReward_test : public beast::unit_test::suite
 
             env(reward::claim(user),
                 reward::issuer(gw),
-                reward::claimCurrency(gw["USD"]));
+                reward::claimCurrency(gw["USD"]),
+                fee(XRP(1)));
             env.close();
 
             env(pay(user, gw, gw["USD"](10000)));
@@ -748,6 +930,11 @@ struct ClaimReward_test : public beast::unit_test::suite
             env(fset(gw, asfDefaultRipple));
             env.close();
 
+            auto hookObj = hso(jtx::genesis::AcceptHook);
+            hookObj[jss::HookOn] = to_string(~UINT256_BIT[ttCLAIM_REWARD]);
+            env(hook(gw, {{hookObj}}, 0), fee(XRP(1)));
+            env.close();
+
             env(trust(user, gw["USD"](1000000)));
             env.close();
             env(trust(gw, user["USD"](1000000)));
@@ -759,7 +946,8 @@ struct ClaimReward_test : public beast::unit_test::suite
 
             env(reward::claim(user),
                 reward::issuer(gw),
-                reward::claimCurrency(gw["USD"]));
+                reward::claimCurrency(gw["USD"]),
+                fee(XRP(1)));
             env.close();
 
             env(pay(user, gw, gw["USD"](20000)));
@@ -800,6 +988,11 @@ struct ClaimReward_test : public beast::unit_test::suite
                 env.fund(XRP(10000), user, gw, issuer);
                 env(fset(gw, asfDefaultRipple));
 
+                auto hookObj = hso(jtx::genesis::AcceptHook);
+                hookObj[jss::HookOn] = to_string(~UINT256_BIT[ttCLAIM_REWARD]);
+                env(hook(gw, {{hookObj}}, 0), fee(XRP(1)));
+                env.close();
+
                 env(trust(user, gw["USD"](1000000)), fee(XRP(1)));
                 env.close();
                 env(pay(gw, user, gw["USD"](10000)));
@@ -818,7 +1011,8 @@ struct ClaimReward_test : public beast::unit_test::suite
 
                 env(reward::claim(user),
                     reward::issuer(gw),
-                    reward::claimCurrency(gw["USD"]));
+                    reward::claimCurrency(gw["USD"]),
+                    fee(XRP(1)));
                 env.close();
                 env(pay(user, gw, gw["USD"](5000)));
                 env.close();
@@ -867,6 +1061,11 @@ struct ClaimReward_test : public beast::unit_test::suite
             env(fset(gw, asfDefaultRipple));
             env.close();
 
+            auto hookObj = hso(jtx::genesis::AcceptHook);
+            hookObj[jss::HookOn] = to_string(~UINT256_BIT[ttCLAIM_REWARD]);
+            env(hook(gw, {{hookObj}}, 0), fee(XRP(1)));
+            env.close();
+
             // Use a near-max IOU balance at exponent 80. When
             // multiply(balance, STAmount(lgrElapsed), issue) is called
             // with lgrElapsed >= 2, the result exponent exceeds
@@ -887,7 +1086,8 @@ struct ClaimReward_test : public beast::unit_test::suite
             // Claim IOU reward to initialize reward tracking
             env(reward::claim(user),
                 reward::issuer(gw),
-                reward::claimCurrency(gw["USD"]));
+                reward::claimCurrency(gw["USD"]),
+                fee(XRP(1)));
             env.close();
 
             // Advance ledger so lgrElapsed >= 2. With lgrElapsed=1

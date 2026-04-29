@@ -211,15 +211,21 @@ private:
         env.fund(XRP(1000), alice);
         env.close();
 
+        env(hook(issuer, {{hso(jtx::genesis::AcceptHook)}}, 0), fee(XRP(1)));
+        env.close();
+
         // claim reward
-        env(reward::claim(alice), reward::issuer(issuer), ter(tesSUCCESS));
+        env(reward::claim(alice),
+            reward::issuer(issuer),
+            fee(XRP(1)),
+            ter(tesSUCCESS));
         env.close();
 
         // verify touch
         validateTouch(env, alice, {"ClaimReward", "tesSUCCESS"});
         auto const tt = env.current()->rules().enabled(featureTouch)
             ? "ClaimReward"
-            : "Payment";
+            : "SetHook";
         validateTouch(env, issuer, {tt, "tesSUCCESS"});
     }
 
