@@ -173,7 +173,7 @@ URIToken::preclaim(PreclaimContext const& ctx)
     }
 
     AccountID const acc = ctx.tx.getAccountID(sfAccount);
-    uint16_t tt = ctx.tx.getFieldU16(sfTransactionType);
+    TxType const& tt = ctx.tx.getTxnType();
 
     auto const sle =
         ctx.view.read(keylet::account(ctx.tx.getAccountID(sfAccount)));
@@ -308,7 +308,7 @@ URIToken::doApply()
     if (!sle)
         return tefINTERNAL;
 
-    uint16_t tt = ctx_.tx.getFieldU16(sfTransactionType);
+    TxType const& tt = ctx_.tx.getTxnType();
 
     if (tt == ttURITOKEN_MINT || tt == ttURITOKEN_BUY)
     {
