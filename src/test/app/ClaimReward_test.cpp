@@ -156,7 +156,7 @@ struct ClaimReward_test : public beast::unit_test::suite
 
         // setup env
         auto const alice = Account("alice");
-        auto const issuer = Account("issuer");
+        auto const issuer = Account::master;
 
         for (bool const withClaimReward : {false, true})
         {
@@ -166,7 +166,7 @@ struct ClaimReward_test : public beast::unit_test::suite
                 withClaimReward ? features : features - featureBalanceRewards;
             Env env{*this, amend};
 
-            env.fund(XRP(1000), alice, issuer);
+            env.fund(XRP(1000), alice);
             env.close();
 
             auto const txResult =
@@ -259,9 +259,9 @@ struct ClaimReward_test : public beast::unit_test::suite
                 Env env{*this, amend};
 
                 auto const alice = Account("alice");
-                auto const issuer = Account("issuer");
+                auto const issuer = Account::master;
 
-                env.fund(XRP(1000), alice, issuer);
+                env.fund(XRP(1000), alice);
                 env.close();
 
                 auto tx = reward::claim(alice);
@@ -345,12 +345,36 @@ struct ClaimReward_test : public beast::unit_test::suite
             env(reward::claim(alice),
                 reward::issuer(Account::master),
                 reward::claimCurrency(USD),
-                ter(temMALFORMED));
+                ter(temBAD_ISSUER));
         }
 
         // MPT
         {
             // tested in testMPTInvalidInTx() at MPToken_test.cpp
+        }
+
+        // XAH RewardClaim: Issuer must be the Genesis account if
+        // featureXahauGenesis and featureIOURewardClaim are enabled.
+        for (bool const withIOURewardClaim : {false, true})
+        {
+            auto const amend = withIOURewardClaim
+                ? features
+                : features - featureIOURewardClaim;
+            Env env{*this, amend};
+
+            auto const alice = Account("alice");
+            auto const badIssuer = Account("gw");
+            auto const issuer = Account::master;
+            env.fund(XRP(1000), alice, badIssuer);
+            env.close();
+
+            auto const USD = badIssuer["USD"];
+
+            env(reward::claim(alice),
+                reward::issuer(badIssuer),
+                withIOURewardClaim ? ter(temBAD_ISSUER) : ter(tesSUCCESS));
+
+            env(reward::claim(alice), reward::issuer(issuer), ter(tesSUCCESS));
         }
     }
 
@@ -375,6 +399,7 @@ struct ClaimReward_test : public beast::unit_test::suite
             auto const alice = Account("alice");
             auto const issuer = Account("issuer");
             env.memoize(alice);
+            auto USD = issuer["USD"];
 
             env.fund(XRP(1000), issuer);
             env.close();
@@ -382,7 +407,10 @@ struct ClaimReward_test : public beast::unit_test::suite
             auto tx = reward::claim(alice);
             tx[jss::Sequence] = 0;
             tx[jss::Fee] = 10;
-            env(tx, reward::issuer(issuer), ter(terNO_ACCOUNT));
+            env(tx,
+                reward::issuer(issuer),
+                reward::claimCurrency(USD),
+                ter(terNO_ACCOUNT));
             env.close();
         }
 
@@ -392,9 +420,9 @@ struct ClaimReward_test : public beast::unit_test::suite
             test::jtx::Env env{*this, network::makeNetworkConfig(21337)};
 
             auto const alice = Account("alice");
-            auto const issuer = Account("issuer");
+            auto const issuer = Account::master;
 
-            env.fund(XRP(1000), alice, issuer);
+            env.fund(XRP(1000), alice);
             env.close();
 
             env(reward::claim(alice),
@@ -425,11 +453,16 @@ struct ClaimReward_test : public beast::unit_test::suite
             auto const issuer = Account("issuer");
             env.memoize(issuer);
 
+            auto USD = issuer["USD"];
+
             env.fund(XRP(1000), alice);
             env.close();
 
             auto tx = reward::claim(alice);
-            env(tx, reward::issuer(issuer), ter(tecNO_ISSUER));
+            env(tx,
+                reward::issuer(issuer),
+                reward::claimCurrency(USD),
+                ter(tecNO_ISSUER));
             env.close();
         }
 
@@ -451,6 +484,7 @@ struct ClaimReward_test : public beast::unit_test::suite
 
             env(reward::claim(alice),
                 reward::issuer(amm.ammAccount()),
+                reward::claimCurrency(USD),
                 ter(tecNO_PERMISSION));
             env.close();
         }
@@ -504,7 +538,7 @@ struct ClaimReward_test : public beast::unit_test::suite
                 .count();
 
         auto tx = reward::claim(alice);
-        env(tx, reward::issuer(issuer), ter(tesSUCCESS));
+        env(tx, reward::issuer(Account::master), ter(tesSUCCESS));
         env.close();
 
         BEAST_EXPECT(
@@ -571,8 +605,8 @@ struct ClaimReward_test : public beast::unit_test::suite
         using namespace std::literals::chrono_literals;
         Env env{*this, features};
         auto const alice = Account("alice");
-        auto const issuer = Account("issuer");
-        env.fund(XRP(10000), alice, issuer);
+        auto const issuer = Account::master;
+        env.fund(XRP(10000), alice);
         std::uint32_t aliceTicketSeq{env.seq(alice) + 1};
         env(ticket::create(alice, 10));
         std::uint32_t const aliceSeq{env.seq(alice)};
@@ -611,14 +645,14 @@ struct ClaimReward_test : public beast::unit_test::suite
             auto const alice = Account("alice");
             auto const gw = Account("gw");
 
-            auto const issuer = Account("issuer");
-            env.fund(XRP(10001), alice, gw, issuer);
+            auto const issuer = Account::master;
+            env.fund(XRP(10001), alice, gw);
             env.close();
 
             auto const currentTime = getCurrentTime(env);
             auto const currentLedger = env.current()->seq();
 
-            env(reward::claim(alice), reward::issuer(gw), fee(XRP(1)));
+            env(reward::claim(alice), reward::issuer(issuer), fee(XRP(1)));
             env.close();
 
             env(fset(alice, 0));

@@ -207,8 +207,8 @@ private:
         test::jtx::Env env{*this, envconfig(), features};
 
         auto const alice = Account("alice");
-        auto const issuer = Account("issuer");
-        env.fund(XRP(1000), alice, issuer);
+        auto const issuer = Account::master;
+        env.fund(XRP(1000), alice);
         env.close();
 
         // claim reward
@@ -219,7 +219,7 @@ private:
         validateTouch(env, alice, {"ClaimReward", "tesSUCCESS"});
         auto const tt = env.current()->rules().enabled(featureTouch)
             ? "ClaimReward"
-            : "AccountSet";
+            : "Payment";
         validateTouch(env, issuer, {tt, "tesSUCCESS"});
     }
 

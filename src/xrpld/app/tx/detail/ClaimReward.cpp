@@ -62,6 +62,7 @@ ClaimReward::preflight(PreflightContext const& ctx)
 
     if (ctx.tx.isFieldPresent(sfClaimCurrency))
     {
+        // IOU RewardClaim
         if (!ctx.rules.enabled(featureIOURewardClaim))
             return temDISABLED;
 
@@ -80,21 +81,33 @@ ClaimReward::preflight(PreflightContext const& ctx)
 
         if (claimIssue.account == ctx.tx.getAccountID(sfAccount))
             return temMALFORMED;
+    }
 
-        if (ctx.tx.isFieldPresent(sfIssuer))
+    if (ctx.rules.enabled(featureXahauGenesis) &&
+        ctx.rules.enabled(featureIOURewardClaim) &&
+        ctx.tx.isFieldPresent(sfIssuer))
+    {
+        static auto const genesisAccountId = calcAccountID(
+            generateKeyPair(
+                KeyType::secp256k1, generateSeed("masterpassphrase"))
+                .first);
+        auto const issuer = ctx.tx.getAccountID(sfIssuer);
+        if (ctx.tx.isFieldPresent(sfClaimCurrency))
         {
-            static auto const genesisAccountId = calcAccountID(
-                generateKeyPair(
-                    KeyType::secp256k1, generateSeed("masterpassphrase"))
-                    .first);
-
-            if (ctx.rules.enabled(featureXahauGenesis) &&
-                ctx.tx.getAccountID(sfIssuer) == genesisAccountId)
+            if (issuer == genesisAccountId)
             {
-                JLOG(ctx.j.debug())
-                    << "ClaimReward: Issuer cannot be the Genesis account if "
-                       "featureXahauGenesis is enabled.";
-                return temMALFORMED;
+                JLOG(ctx.j.debug()) << "ClaimReward (IOU): Issuer cannot "
+                                       "be the Genesis account";
+                return temBAD_ISSUER;
+            }
+        }
+        else
+        {
+            if (issuer != genesisAccountId)
+            {
+                JLOG(ctx.j.debug()) << "ClaimReward (XAH): Issuer must be "
+                                       "the Genesis account";
+                return temBAD_ISSUER;
             }
         }
     }
