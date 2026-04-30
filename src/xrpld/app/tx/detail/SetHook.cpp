@@ -627,7 +627,7 @@ SetHook::validateHookName(Blob const& name, beast::Journal const& j)
     if (name.size() != 0 && (name.size() < 4 || 16 < name.size()))
     {
         JLOG(j.trace())
-            << "sfHookName must be between 4 and 16 hex characters.";
+            << "sfHookName must be between 8 and 32 hex characters.";
         return false;
     }
     if (!URIToken::validateUTF8(name))

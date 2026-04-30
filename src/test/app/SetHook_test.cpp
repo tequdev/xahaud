@@ -1724,7 +1724,7 @@ public:
             auto jvh = hso(accept_wasm);
             jvh[jss::HookName] = name;
             env(ripple::test::jtx::hook(alice, {{jvh}}, 0),
-                M("Hook name must be between 4 and 16 characters and be a "
+                M("Hook name must be between 8 and 32 hex characters and be a "
                   "valid UTF-8 string"),
                 HSFEE,
                 features[featureNamedHooks] ? ter(temMALFORMED)
