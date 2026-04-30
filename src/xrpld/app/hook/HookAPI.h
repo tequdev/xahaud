@@ -160,12 +160,12 @@ make_float(uint64_t mantissa, int32_t exponent, bool neg)
 
     auto const m = set_mantissa(out, mantissa);
     if (!m)
-        return Unexpected(m.error());
+        return Unexpected(m.error());  // LCOV_EXCL_LINE
     out = m.value();
 
     auto const e = set_exponent(out, exponent);
     if (!e)
-        return Unexpected(e.error());
+        return Unexpected(e.error());  // LCOV_EXCL_LINE
     out = e.value();
 
     out = set_sign(out, neg);
@@ -207,7 +207,7 @@ normalize_xfl(T& man, int32_t& exp, bool neg = false)
     // defensively ensure log10 produces a sane result; we'll borrow the
     // overflow error code if it didn't
     if (std::fetestexcept(FE_INVALID))
-        return Unexpected(XFL_OVERFLOW);
+        return Unexpected(XFL_OVERFLOW);  // LCOV_EXCL_LINE
 
     int32_t adjust = 15 - mo;
 
@@ -215,7 +215,7 @@ normalize_xfl(T& man, int32_t& exp, bool neg = false)
     {
         // defensive check
         if (adjust > 18)
-            return 0ULL;
+            return 0ULL;  // LCOV_EXCL_LINE
         man *= power_of_ten[adjust];
         exp -= adjust;
     }
@@ -223,7 +223,7 @@ normalize_xfl(T& man, int32_t& exp, bool neg = false)
     {
         // defensive check
         if (-adjust > 18)
-            return Unexpected(XFL_OVERFLOW);
+            return Unexpected(XFL_OVERFLOW);  // LCOV_EXCL_LINE
         man /= power_of_ten[-adjust];
         exp -= adjust;
     }
