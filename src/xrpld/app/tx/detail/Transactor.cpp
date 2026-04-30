@@ -2211,6 +2211,9 @@ Transactor::operator()()
                     uint32_t lgrLast = reward.getFieldU32(sfRewardLgrLast);
                     uint32_t lgrElapsed = lgrCur - lgrLast;
 
+                    // update even in cases such as overflow or underflow.
+                    reward.setFieldU32(sfRewardLgrLast, lgrCur);
+
                     // overflow safety
                     if (lgrElapsed > lgrCur || lgrElapsed == 0)
                         continue;
@@ -2232,17 +2235,15 @@ Transactor::operator()()
                         continue;
                     }
 
-                    // check for overflow
-                    if (accumNew < accum)
+                    // check for overflow(<) and underflow(=)
+                    if (accumNew <= accum)
                         continue;
 
                     reward.setFieldAmount(
                         sfTrustLineRewardAccumulator, accumNew);
-                    reward.setFieldU32(sfRewardLgrLast, lgrCur);
-
-                    view().update(sle);
                 }
 
+                view().update(sle);
                 continue;
             }
 
