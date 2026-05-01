@@ -124,41 +124,39 @@ preflight1(PreflightContext const& ctx)
     // if a hook emitted this transaction we bypass signature checks
     // there is a bar to circularing emitted transactions on the network
     // in their prevalidated form so this is safe
-    if (ctx.rules.enabled(featureHooks))
+    if (ctx.rules.enabled(featureHooks) && hook::isEmittedTxn(ctx.tx))
     {
-        if (hook::isEmittedTxn(ctx.tx))
+        if ((ctx.app.getHashRouter().getFlags(ctx.tx.getTransactionID()) &
+             SF_EMITTED) ||
+            (ctx.flags & tapPREFLIGHT_EMIT))
         {
-            if ((ctx.app.getHashRouter().getFlags(ctx.tx.getTransactionID()) &
-                 SF_EMITTED) ||
-                (ctx.flags & tapPREFLIGHT_EMIT))
-            {
-                if (ctx.tx.getSeqProxy().isTicket() &&
-                    ctx.tx.isFieldPresent(sfAccountTxnID))
-                    return temINVALID;
+            if (ctx.tx.getSeqProxy().isTicket() &&
+                ctx.tx.isFieldPresent(sfAccountTxnID))
+                return temINVALID;
 
-                return tesSUCCESS;
-            }
-            else
-            {
-                // If somehow we end up attempting to apply a transaction that
-                // wasn't placed via the emission directory then we will do a
-                // local failure. We don't want to broadcast this failure,
-                // rather we want to catch up to the network. We also don't want
-                // to fail this transaction because somehow it might end up
-                // being locally produced. It's assumed this can only happen due
-                // to some strange state in the local instance.
-                return telNON_LOCAL_EMITTED_TXN;
-            }
+            return tesSUCCESS;
         }
-        if (ctx.tx.isFieldPresent(sfHookName))
+        else
         {
-            if (!ctx.rules.enabled(featureNamedHooks))
-                return temMALFORMED;
-
-            if (!SetHook::validateHookName(
-                    ctx.tx.getFieldVL(sfHookName), ctx.j))
-                return temMALFORMED;
+            // If somehow we end up attempting to apply a transaction that
+            // wasn't placed via the emission directory then we will do a local
+            // failure. We don't want to broadcast this failure, rather we want
+            // to catch up to the network. We also don't want to fail this
+            // transaction because somehow it might end up being locally
+            // produced. It's assumed this can only happen due to some strange
+            // state in the local instance.
+            return telNON_LOCAL_EMITTED_TXN;
         }
+    }
+
+    if (ctx.tx.isFieldPresent(sfHookName))
+    {
+        if (!ctx.rules.enabled(featureHooks) ||
+            !ctx.rules.enabled(featureNamedHooks))
+            return temMALFORMED;
+
+        if (!SetHook::validateHookName(ctx.tx.getFieldVL(sfHookName), ctx.j))
+            return temMALFORMED;
     }
 
     auto const spk = ctx.tx.getSigningPubKey();
@@ -279,8 +277,10 @@ Transactor::calculateHookChainFee(
         // at the same ledger the fee calculation for it can no longer occur
         if (!hookDef)
         {
+            // LCOV_EXCL_START
             printf("calculateHookChainFee edge case\n");
             continue;
+            // LCOV_EXCL_STOP
         }
 
         std::optional<Blob> requiredHookName;
@@ -1340,16 +1340,20 @@ Transactor::executeHookChain(
 
         if (hookSkips.find(hookHash) != hookSkips.end())
         {
+            // LCOV_EXCL_START
             JLOG(j_.trace()) << "HookInfo: Skipping " << hookHash;
             continue;
+            // LCOV_EXCL_STOP
         }
 
         auto const& hookDef =
             ctx_.view().peek(keylet::hookDefinition(hookHash));
         if (!hookDef)
         {
+            // LCOV_EXCL_START
             JLOG(j_.warn()) << "HookError[]: Failure: hook def missing (send)";
             continue;
+            // LCOV_EXCL_STOP
         }
 
         std::optional<Blob> requiredHookName;
