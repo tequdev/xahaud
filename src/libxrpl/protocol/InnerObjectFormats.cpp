@@ -87,19 +87,6 @@ InnerObjectFormats::InnerObjectFormats()
          {sfEmittedTxnID, soeREQUIRED},
          {sfEmitNonce, soeOPTIONAL}});
 
-    add(sfHookDefinition.jsonName,
-        sfHookDefinition.getCode(),
-        {{sfCreateCode, soeREQUIRED},
-         {sfHookNamespace, soeREQUIRED},
-         {sfHookParameters, soeREQUIRED},
-         {sfHookOn, soeOPTIONAL},
-         {sfHookOnIncoming, soeOPTIONAL},
-         {sfHookOnOutgoing, soeOPTIONAL},
-         {sfHookCanEmit, soeOPTIONAL},
-         {sfHookApiVersion, soeREQUIRED},
-         {sfFlags, soeREQUIRED},
-         {sfFee, soeREQUIRED}});
-
     add(sfHook.jsonName,
         sfHook.getCode(),
         {{sfHookHash, soeOPTIONAL},
@@ -265,6 +252,24 @@ InnerObjectFormats::InnerObjectFormats()
         {
             {sfIssuer, soeREQUIRED},
             {sfCredentialType, soeREQUIRED},
+        });
+
+    add(sfHighReward.jsonName,
+        sfHighReward.getCode(),
+        {
+            {sfRewardLgrFirst, soeREQUIRED},
+            {sfRewardLgrLast, soeREQUIRED},
+            {sfRewardTime, soeREQUIRED},
+            {sfTrustLineRewardAccumulator, soeREQUIRED},
+        });
+
+    add(sfLowReward.jsonName,
+        sfLowReward.getCode(),
+        {
+            {sfRewardLgrFirst, soeREQUIRED},
+            {sfRewardLgrLast, soeREQUIRED},
+            {sfRewardTime, soeREQUIRED},
+            {sfTrustLineRewardAccumulator, soeREQUIRED},
         });
 }
 
