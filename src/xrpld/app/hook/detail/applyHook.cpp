@@ -14,8 +14,6 @@
 #include <xrpl/protocol/st.h>
 #include <xrpl/protocol/tokens.h>
 #include <boost/multiprecision/cpp_dec_float.hpp>
-#include <any>
-#include <cfenv>
 #include <memory>
 #include <optional>
 #include <string>
@@ -600,44 +598,6 @@ getTransactionalStakeHolders(STTx const& tx, ReadView const& rv)
 
 using namespace hook::hook_float;
 using hook::Bytes;
-
-// inline int32_t
-// no_free_slots(hook::HookContext& hookCtx)
-// {
-//     return hook_api::max_slots - hookCtx.slot.size() <= 0;
-// }
-
-// inline std::optional<int32_t>
-// get_free_slot(hook::HookContext& hookCtx)
-// {
-//     // allocate a slot
-//     int32_t slot_into = 0;
-//     if (hookCtx.slot_free.size() > 0)
-//     {
-//         slot_into = hookCtx.slot_free.front();
-//         hookCtx.slot_free.pop();
-//         return slot_into;
-//     }
-
-//     // no slots were available in the queue so increment slot counter until
-//     we
-//     // find a free slot usually this will be the next available but the hook
-//     // developer may have allocated any slot ahead of when the counter gets
-//     // there
-//     do
-//     {
-//         slot_into = ++hookCtx.slot_counter;
-//     } while (hookCtx.slot.find(slot_into) != hookCtx.slot.end() &&
-//              // this condition should always be met, if for some reason,
-//              somehow
-//              // it is not then we will return the final slot every time.
-//              hookCtx.slot_counter <= hook_api::max_slots);
-
-//     if (hookCtx.slot_counter > hook_api::max_slots)
-//         return {};
-
-//     return slot_into;
-// }
 
 // cu_ptr is a pointer into memory, bounds check is assumed to have already
 // happened
