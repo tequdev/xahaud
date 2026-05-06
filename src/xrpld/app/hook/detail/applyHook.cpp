@@ -3414,42 +3414,32 @@ DEFINE_HOOK_FUNCTION(
         *((const char*)memory + read_ptr + read_len - 1) == '\0')
         read_len--;
 
+    auto const messageKey = (read_len == 0)
+        ? ""
+        : std::string_view((const char*)memory + read_ptr, read_len);
+
     if (float1 == 0)
     {
-        j.trace() << "HookTrace[" << HC_ACC() << "]: "
-                  << (read_len == 0
-                          ? ""
-                          : std::string_view(
-                                (const char*)memory + read_ptr, read_len))
+        j.trace() << "HookTrace[" << HC_ACC() << "]: " << messageKey
                   << ": Float 0*10^(0) <ZERO>";
         return 0ULL;
     }
 
     auto const man = get_mantissa(float1);
-    if (!man)
-        return 0ULL;
     auto const exp = get_exponent(float1);
-    if (!exp)
-        return 0ULL;
     bool neg = is_negative(float1);
-    if (man.value() < minMantissa || man.value() > maxMantissa ||
-        exp.value() < minExponent || exp.value() > maxExponent)
+    if (!man || !exp || man.value() < minMantissa ||
+        man.value() > maxMantissa || exp.value() < minExponent ||
+        exp.value() > maxExponent)
     {
-        j.trace() << "HookTrace[" << HC_ACC() << "]:"
-                  << (read_len == 0
-                          ? ""
-                          : std::string_view(
-                                (const char*)memory + read_ptr, read_len))
+        j.trace() << "HookTrace[" << HC_ACC() << "]: " << messageKey
                   << ": Float <INVALID>";
         return 0ULL;
     }
 
-    j.trace() << "HookTrace[" << HC_ACC() << "]:"
-              << (read_len == 0 ? ""
-                                : std::string_view(
-                                      (const char*)memory + read_ptr, read_len))
-              << ": Float " << (neg ? "-" : "") << man.value() << "*10^("
-              << exp.value() << ")";
+    j.trace() << "HookTrace[" << HC_ACC() << "]:" << messageKey << ": Float "
+              << (neg ? "-" : "") << man.value() << "*10^(" << exp.value()
+              << ")";
     return 0ULL;
 
     HOOK_TEARDOWN();
