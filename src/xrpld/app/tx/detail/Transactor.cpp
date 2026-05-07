@@ -287,8 +287,6 @@ Transactor::calculateHookChainFee(
         if (hookObj.isFieldPresent(sfHookName) &&
             hookObj.getFieldVL(sfHookName).size() > 0)
             requiredHookName = hookObj.getFieldVL(sfHookName);
-        else if (hookDef->isFieldPresent(sfHookName))
-            requiredHookName = hookDef->getFieldVL(sfHookName);
 
         if (requiredHookName)
         {
@@ -1360,8 +1358,6 @@ Transactor::executeHookChain(
         if (hookObj.isFieldPresent(sfHookName) &&
             hookObj.getFieldVL(sfHookName).size() > 0)
             requiredHookName = hookObj.getFieldVL(sfHookName);
-        else if (hookDef->isFieldPresent(sfHookName))
-            requiredHookName = hookDef->getFieldVL(sfHookName);
 
         if (requiredHookName)
         {

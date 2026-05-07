@@ -1381,9 +1381,7 @@ SetHook::setHook()
         std::optional<uint256> newHookCanEmit;
         std::optional<uint256> defHookCanEmit;
 
-        std::optional<Blob> oldHookName;
         std::optional<Blob> newHookName;
-        std::optional<Blob> defHookName;
 
         // when hsoCREATE is invoked it populates this variable in case the hook
         // definition already exists and the operation falls through into a
@@ -1457,13 +1455,6 @@ SetHook::setHook()
                 oldHookCanEmit = oldHook->get().getFieldH256(sfHookCanEmit);
             else if (defHookCanEmit)
                 oldHookCanEmit = *defHookCanEmit;
-
-            if (oldDefSLE && oldDefSLE->isFieldPresent(sfHookName))
-                defHookName = oldDefSLE->getFieldVL(sfHookName);
-            if (oldHook && oldHook->get().isFieldPresent(sfHookName))
-                oldHookName = oldHook->get().getFieldVL(sfHookName);
-            else if (defHookName)
-                oldHookName = *defHookName;
         }
 
         // in preparation for three way merge populate fields if they are
@@ -1687,16 +1678,18 @@ SetHook::setHook()
                         newHook.setFieldH256(sfHookCanEmit, *newHookCanEmit);
                 }
 
-                // set the hookname field if it differs from definition
+                // set the hookname field on ltHook when it is explicitly
+                // provided
                 if (newHookName)
                 {
-                    if (defHookName.has_value() && *defHookName == *newHookName)
+                    if (newHookName->size() == 0)
                     {
-                        if (newHook.isFieldPresent(sfHookName))
-                            newHook.makeFieldAbsent(sfHookName);
+                        newHook.makeFieldAbsent(sfHookName);
                     }
                     else
+                    {
                         newHook.setFieldVL(sfHookName, *newHookName);
+                    }
                 }
 
                 // parameters
@@ -1864,8 +1857,6 @@ SetHook::setHook()
                     if (newHookCanEmit)
                         newHookDef->setFieldH256(
                             sfHookCanEmit, *newHookCanEmit);
-                    if (newHookName && newHookName->size() > 0)
-                        newHookDef->setFieldVL(sfHookName, *newHookName);
                     newHookDef->setFieldH256(sfHookNamespace, *newNamespace);
                     newHookDef->setFieldArray(
                         sfHookParameters,
@@ -1901,6 +1892,12 @@ SetHook::setHook()
                         if (!grants.empty())
                             newHook.setFieldArray(sfHookGrants, grants);
                     }
+
+                    if (hookSetObj->get().isFieldPresent(sfHookName) &&
+                        hookSetObj->get().getFieldVL(sfHookName).size() > 0)
+                        newHook.setFieldVL(
+                            sfHookName,
+                            hookSetObj->get().getFieldVL(sfHookName));
 
                     slesToInsert.emplace(keylet, newHookDef);
                     newHook.setFieldH256(sfHookHash, *createHookHash);
@@ -1966,9 +1963,6 @@ SetHook::setHook()
                 if (newNamespace && *defNamespace != *newNamespace)
                     newHook.setFieldH256(sfHookNamespace, *newNamespace);
 
-                if (newDefSLE->isFieldPresent(sfHookName))
-                    defHookName = newDefSLE->getFieldVL(sfHookName);
-
                 if (newDefSLE->isFieldPresent(sfHookOn))
                     defHookOn = newDefSLE->getFieldH256(sfHookOn);
                 if (newDefSLE->isFieldPresent(sfHookOnIncoming))
@@ -2016,15 +2010,10 @@ SetHook::setHook()
                       *defHookCanEmit == *newHookCanEmit))
                     newHook.setFieldH256(sfHookCanEmit, *newHookCanEmit);
 
-                // set the hookname field if it differs from definition
-                if (newHookName)
-                {
-                    if (defHookName.has_value() && *defHookName == *newHookName)
-                    {
-                        if (newHook.isFieldPresent(sfHookName))
-                            newHook.makeFieldAbsent(sfHookName);
-                    }
-                }
+                // set the hookname field on ltHook when it is explicitly
+                // provided
+                if (newHookName && newHookName->size() > 0)
+                    newHook.setFieldVL(sfHookName, *newHookName);
 
                 // parameters
                 TER result = updateHookParameters(

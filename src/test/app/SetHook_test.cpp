@@ -1706,6 +1706,7 @@ public:
 
         auto const alice = Account{"alice"};
         auto const bob = Account{"bob"};
+        auto const charlie = Account{"charlie"};
         auto const USD = alice["USD"];
 
         Env env{*this, features};
@@ -1741,6 +1742,125 @@ public:
         if (!features[featureNamedHooks])
             return;
 
+        {
+            /// Create, Install, Update named Hook
+            Env env{*this, features};
+
+            env.fund(XRP(10000), alice, bob, charlie);
+            env.close();
+
+            // Create with hook name
+            auto jvh = hso(accept_wasm);
+            jvh[jss::HookName] = "41424344";
+            env(ripple::test::jtx::hook(alice, {{jvh}}, 0),
+                M("Create named hook"),
+                HSFEE);
+            env.close();
+
+            // Check hook definition
+            {
+                auto const hookDef =
+                    env.le(keylet::hookDefinition(accept_hash));
+                BEAST_EXPECT(hookDef);
+                BEAST_EXPECT(!hookDef->isFieldPresent(sfHookName));
+            }
+            // Check Hook
+            {
+                auto const hooks = env.le(keylet::hook(alice));
+                BEAST_EXPECT(hooks && hooks->isFieldPresent(sfHooks));
+                auto const& hooksArray = hooks->getFieldArray(sfHooks);
+                BEAST_EXPECT(hooksArray.size() == 1);
+                BEAST_EXPECT(hooksArray[0].isFieldPresent(sfHookName));
+                BEAST_EXPECT(
+                    strHex(hooksArray[0].getFieldVL(sfHookName)) == "41424344");
+            }
+
+            // install with hook name
+            jvh[jss::HookName] = "41424344";
+            env(ripple::test::jtx::hook(bob, {{jvh}}, 0),
+                M("Install named hook"),
+                HSFEE);
+            env.close();
+            // Check Hook
+            {
+                auto const hooks = env.le(keylet::hook(bob));
+                BEAST_EXPECT(hooks && hooks->isFieldPresent(sfHooks));
+                auto const& hooksArray = hooks->getFieldArray(sfHooks);
+                BEAST_EXPECT(hooksArray.size() == 1);
+                BEAST_EXPECT(hooksArray[0].isFieldPresent(sfHookName));
+                BEAST_EXPECT(
+                    strHex(hooksArray[0].getFieldVL(sfHookName)) == "41424344");
+            }
+
+            // install without hook name
+            jvh.removeMember(jss::HookName);
+            env(ripple::test::jtx::hook(charlie, {{jvh}}, 0),
+                M("Install non-named hook"),
+                HSFEE);
+            env.close();
+            // Check Hook
+            {
+                auto const hooks = env.le(keylet::hook(charlie));
+                BEAST_EXPECT(hooks && hooks->isFieldPresent(sfHooks));
+                auto const& hooksArray = hooks->getFieldArray(sfHooks);
+                BEAST_EXPECT(hooksArray.size() == 1);
+                BEAST_EXPECT(!hooksArray[0].isFieldPresent(sfHookName));
+            }
+
+            // Update named hook to non-named hook
+            jvh[jss::HookName] = "";
+            jvh[jss::Flags] = hsfOVERRIDE;
+            env(ripple::test::jtx::hook(alice, {{jvh}}, 0),
+                M("Update named hook to non-named hook"),
+                HSFEE);
+            env.close();
+            // Check Hook
+            {
+                auto const hooks = env.le(keylet::hook(alice));
+                BEAST_EXPECT(hooks && hooks->isFieldPresent(sfHooks));
+                auto const& hooksArray = hooks->getFieldArray(sfHooks);
+                BEAST_EXPECT(hooksArray.size() == 1);
+                BEAST_EXPECT(!hooksArray[0].isFieldPresent(sfHookName));
+            }
+
+            // Update named hook to named hook
+            jvh[jss::HookName] = "4142434445";
+            jvh[jss::Flags] = hsfOVERRIDE;
+            env(ripple::test::jtx::hook(bob, {{jvh}}, 0),
+                M("Update non-named hook to named hook"),
+                HSFEE);
+            env.close();
+            // Check Hook
+            {
+                auto const hooks = env.le(keylet::hook(bob));
+                BEAST_EXPECT(hooks && hooks->isFieldPresent(sfHooks));
+                auto const& hooksArray = hooks->getFieldArray(sfHooks);
+                BEAST_EXPECT(hooksArray.size() == 1);
+                BEAST_EXPECT(hooksArray[0].isFieldPresent(sfHookName));
+                BEAST_EXPECT(
+                    strHex(hooksArray[0].getFieldVL(sfHookName)) ==
+                    "4142434445");
+            }
+
+            // Update non-named hook to named hook
+            jvh[jss::HookName] = "41424344";
+            jvh[jss::Flags] = hsfOVERRIDE;
+            env(ripple::test::jtx::hook(charlie, {{jvh}}, 0),
+                M("Update non-named hook to named hook"),
+                HSFEE);
+            env.close();
+            // Check Hook
+            {
+                auto const hooks = env.le(keylet::hook(charlie));
+                BEAST_EXPECT(hooks && hooks->isFieldPresent(sfHooks));
+                auto const& hooksArray = hooks->getFieldArray(sfHooks);
+                BEAST_EXPECT(hooksArray.size() == 1);
+                BEAST_EXPECT(hooksArray[0].isFieldPresent(sfHookName));
+                BEAST_EXPECT(
+                    strHex(hooksArray[0].getFieldVL(sfHookName)) == "41424344");
+            }
+        }
+
         // Install named hook
         auto jvh = hso(accept_wasm);
         jvh[jss::HookName] = "41424344";
@@ -1751,18 +1871,6 @@ public:
             M("Install named hook"),
             HSFEE);
         env.close();
-
-        // Check hook definition
-        {
-            auto const hookDef = env.le(keylet::hookDefinition(accept_hash));
-            BEAST_EXPECT(hookDef);
-            BEAST_EXPECT(hookDef->isFieldPresent(sfHookName));
-            auto const name = hookDef->getFieldVL(sfHookName);
-            BEAST_EXPECT(name.size() == 4);
-            BEAST_EXPECT(
-                name[0] == 'A' && name[1] == 'B' && name[2] == 'C' &&
-                name[3] == 'D');
-        }
 
         //
         // Test Strong
