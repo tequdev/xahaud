@@ -10,6 +10,10 @@
 
 namespace hook {
 
+/// Initial fuel budget per Hook execution (consensus-fixed; changing
+/// this value requires a separate Amendment).
+constexpr uint64_t kWasmtimeInitialFuel = 10'000'000'000ULL;
+
 struct HookContext;
 
 struct ExecutionResult

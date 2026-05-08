@@ -14824,8 +14824,9 @@ public:
         using namespace test::jtx;
         static FeatureBitset const all{supported_amendments()};
 
-        static std::array<FeatureBitset, 7> const feats{
+        static std::array<FeatureBitset, 8> const feats{
             all,
+            all - featureWasmtimeEngine,
             all - fixXahauV2,
             all - fixXahauV1 - fixXahauV2,
             all - fixXahauV1 - fixXahauV2 - fixNSDelete,
@@ -15002,7 +15003,8 @@ SETHOOK_TEST(2, false)
 SETHOOK_TEST(3, false)
 SETHOOK_TEST(4, false)
 SETHOOK_TEST(5, false)
-SETHOOK_TEST(6, true)
+SETHOOK_TEST(6, false)
+SETHOOK_TEST(7, true)
 
 BEAST_DEFINE_TESTSUITE_PRIO(SetHook0, app, ripple, 2);
 BEAST_DEFINE_TESTSUITE_PRIO(SetHook1, app, ripple, 2);
@@ -15011,6 +15013,7 @@ BEAST_DEFINE_TESTSUITE_PRIO(SetHook3, app, ripple, 2);
 BEAST_DEFINE_TESTSUITE_PRIO(SetHook4, app, ripple, 2);
 BEAST_DEFINE_TESTSUITE_PRIO(SetHook5, app, ripple, 2);
 BEAST_DEFINE_TESTSUITE_PRIO(SetHook6, app, ripple, 2);
+BEAST_DEFINE_TESTSUITE_PRIO(SetHook7, app, ripple, 2);
 }  // namespace test
 }  // namespace ripple
 #undef M

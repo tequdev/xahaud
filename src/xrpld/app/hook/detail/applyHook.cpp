@@ -23,6 +23,7 @@
 #include <vector>
 #include <xrpld/app/hook/detail/WasmEngine.h>
 #include <xrpld/app/hook/detail/WasmEdgeEngine.h>
+#include <xrpld/app/hook/detail/WasmtimeEngine.h>
 
 using namespace ripple;
 
@@ -1236,7 +1237,9 @@ hook::apply(
 
     auto const& j = applyCtx.app.journal("View");
 
-    auto engine = makeWasmEdgeEngine();
+    auto engine = applyCtx.view().rules().enabled(featureWasmtimeEngine)
+        ? makeWasmtimeEngine()
+        : makeWasmEdgeEngine();
     auto const engineResult = engine->execute(
         wasm.data(),
         (size_t)wasm.size(),

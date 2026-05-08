@@ -49,6 +49,7 @@
 #include <vector>
 #include <xrpld/app/hook/detail/WasmEngine.h>
 #include <xrpld/app/hook/detail/WasmEdgeEngine.h>
+#include <xrpld/app/hook/detail/WasmtimeEngine.h>
 
 #define DEBUG_GUARD_CHECK 1
 #define HS_ACC() \
@@ -581,8 +582,11 @@ SetHook::validateHookSetEntry(SetHookCtx& ctx, STObject const& hookSetObj)
                     << "]: Trying to wasm instantiate proposed hook "
                     << "size = " << hook.size();
 
+                auto wasmValidator = ctx.rules.enabled(featureWasmtimeEngine)
+                    ? hook::makeWasmtimeEngine()
+                    : hook::makeWasmEdgeEngine();
                 std::optional<std::string> result2 =
-                    hook::makeWasmEdgeEngine()->validate(
+                    wasmValidator->validate(
                         hook.data(), (size_t)hook.size());
 
                 if (result2)
