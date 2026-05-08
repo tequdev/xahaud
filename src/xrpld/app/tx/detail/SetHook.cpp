@@ -47,7 +47,8 @@
 #include <utility>
 #include <variant>
 #include <vector>
-#include <wasmedge/wasmedge.h>
+#include <xrpld/app/hook/detail/WasmEngine.h>
+#include <xrpld/app/hook/detail/WasmEdgeEngine.h>
 
 #define DEBUG_GUARD_CHECK 1
 #define HS_ACC() \
@@ -581,7 +582,7 @@ SetHook::validateHookSetEntry(SetHookCtx& ctx, STObject const& hookSetObj)
                     << "size = " << hook.size();
 
                 std::optional<std::string> result2 =
-                    hook::HookExecutor::validateWasm(
+                    hook::makeWasmEdgeEngine()->validate(
                         hook.data(), (size_t)hook.size());
 
                 if (result2)

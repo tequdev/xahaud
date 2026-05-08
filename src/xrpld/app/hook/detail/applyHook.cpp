@@ -21,7 +21,8 @@
 #include <string>
 #include <utility>
 #include <vector>
-#include <wasmedge/wasmedge.h>
+#include <xrpld/app/hook/detail/WasmEngine.h>
+#include <xrpld/app/hook/detail/WasmEdgeEngine.h>
 
 using namespace ripple;
 
@@ -1235,10 +1236,23 @@ hook::apply(
 
     auto const& j = applyCtx.app.journal("View");
 
-    HookExecutor executor{hookCtx};
-
-    executor.executeWasm(
-        wasm.data(), (size_t)wasm.size(), isCallback, wasmParam, j);
+    auto engine = makeWasmEdgeEngine();
+    auto const engineResult = engine->execute(
+        wasm.data(),
+        (size_t)wasm.size(),
+        isCallback,
+        wasmParam,
+        hookCtx,
+        hookHostFunctionDecls(),
+        applyCtx.view().rules(),
+        j);
+    hookCtx.result.instructionCount = engineResult.instructionCount;
+    if (!engineResult.ok)
+    {
+        hookCtx.result.exitType = hook_api::ExitType::WASM_ERROR;
+        JLOG(j.warn()) << "HookError[" << HC_ACC() << "]: "
+                       << engineResult.error.value_or("unknown");
+    }
 
     JLOG(j.trace()) << "HookInfo[" << HC_ACC() << "]: "
                     << (hookCtx.result.exitType == hook_api::ExitType::ROLLBACK
@@ -1409,7 +1423,7 @@ DEFINE_HOOK_FUNCTION(
 {
     return state_foreign_set(
         hookCtx,
-        frameCtx,
+        mem,
         read_ptr,
         read_len,
         kread_ptr,
@@ -1784,7 +1798,7 @@ DEFINE_HOOK_FUNCTION(
 {
     return state_foreign(
         hookCtx,
-        frameCtx,
+        mem,
         write_ptr,
         write_len,
         kread_ptr,
@@ -3342,7 +3356,7 @@ DEFINE_HOOK_FUNCTION(
     // proxy only no setup or teardown
     int64_t ret = sto_emplace(
         hookCtx,
-        frameCtx,
+        mem,
         write_ptr,
         write_len,
         read_ptr,
