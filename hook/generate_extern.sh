@@ -41,7 +41,7 @@ APPLY_HOOK="$SCRIPT_DIR/../include/xrpl/hook/hook_api.macro"
                 
                 # printf("\n");
                 
-                printf("extern %s\n\n", line);
+                printf("extern \"C\" %s\n\n", line);
             }
         }
     ' "$APPLY_HOOK"
