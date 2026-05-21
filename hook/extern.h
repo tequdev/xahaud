@@ -2,31 +2,34 @@
 // Generated using generate_extern.sh
 #include <stdint.h>
 #ifndef HOOK_EXTERN
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-extern "C" int32_t __attribute__((noduplicate))
+extern int32_t __attribute__((noduplicate))
 _g(uint32_t guard_id, uint32_t maxiter);
 
-extern "C" int64_t
+extern int64_t
 accept(uint32_t read_ptr, uint32_t read_len, int64_t error_code);
 
-extern "C" int64_t
+extern int64_t
 rollback(uint32_t read_ptr, uint32_t read_len, int64_t error_code);
 
-extern "C" int64_t
+extern int64_t
 util_raddr(
     uint32_t write_ptr,
     uint32_t write_len,
     uint32_t read_ptr,
     uint32_t read_len);
 
-extern "C" int64_t
+extern int64_t
 util_accid(
     uint32_t write_ptr,
     uint32_t write_len,
     uint32_t read_ptr,
     uint32_t read_len);
 
-extern "C" int64_t
+extern int64_t
 util_verify(
     uint32_t dread_ptr,
     uint32_t dread_len,
@@ -35,14 +38,14 @@ util_verify(
     uint32_t kread_ptr,
     uint32_t kread_len);
 
-extern "C" int64_t
+extern int64_t
 util_sha512h(
     uint32_t write_ptr,
     uint32_t write_len,
     uint32_t read_ptr,
     uint32_t read_len);
 
-extern "C" int64_t
+extern int64_t
 util_keylet(
     uint32_t write_ptr,
     uint32_t write_len,
@@ -54,16 +57,16 @@ util_keylet(
     uint32_t e,
     uint32_t f);
 
-extern "C" int64_t
+extern int64_t
 sto_validate(uint32_t tread_ptr, uint32_t tread_len);
 
-extern "C" int64_t
+extern int64_t
 sto_subfield(uint32_t read_ptr, uint32_t read_len, uint32_t field_id);
 
-extern "C" int64_t
+extern int64_t
 sto_subarray(uint32_t read_ptr, uint32_t read_len, uint32_t array_id);
 
-extern "C" int64_t
+extern int64_t
 sto_emplace(
     uint32_t write_ptr,
     uint32_t write_len,
@@ -73,7 +76,7 @@ sto_emplace(
     uint32_t fread_len,
     uint32_t field_id);
 
-extern "C" int64_t
+extern int64_t
 sto_erase(
     uint32_t write_ptr,
     uint32_t write_len,
@@ -81,54 +84,54 @@ sto_erase(
     uint32_t read_len,
     uint32_t field_id);
 
-extern "C" int64_t
+extern int64_t
 etxn_burden();
 
-extern "C" int64_t
+extern int64_t
 etxn_details(uint32_t write_ptr, uint32_t write_len);
 
-extern "C" int64_t
+extern int64_t
 etxn_fee_base(uint32_t read_ptr, uint32_t read_len);
 
-extern "C" int64_t
+extern int64_t
 etxn_reserve(uint32_t count);
 
-extern "C" int64_t
+extern int64_t
 etxn_generation();
 
-extern "C" int64_t
+extern int64_t
 etxn_nonce(uint32_t write_ptr, uint32_t write_len);
 
-extern "C" int64_t
+extern int64_t
 emit(
     uint32_t write_ptr,
     uint32_t write_len,
     uint32_t read_ptr,
     uint32_t read_len);
 
-extern "C" int64_t
+extern int64_t
 float_set(int32_t exponent, int64_t mantissa);
 
-extern "C" int64_t
+extern int64_t
 float_multiply(int64_t float1, int64_t float2);
 
-extern "C" int64_t
+extern int64_t
 float_mulratio(
     int64_t float1,
     uint32_t round_up,
     uint32_t numerator,
     uint32_t denominator);
 
-extern "C" int64_t
+extern int64_t
 float_negate(int64_t float1);
 
-extern "C" int64_t
+extern int64_t
 float_compare(int64_t float1, int64_t float2, uint32_t mode);
 
-extern "C" int64_t
+extern int64_t
 float_sum(int64_t float1, int64_t float2);
 
-extern "C" int64_t
+extern int64_t
 float_sto(
     uint32_t write_ptr,
     uint32_t write_len,
@@ -139,49 +142,49 @@ float_sto(
     int64_t float1,
     uint32_t field_code);
 
-extern "C" int64_t
+extern int64_t
 float_sto_set(uint32_t read_ptr, uint32_t read_len);
 
-extern "C" int64_t
+extern int64_t
 float_invert(int64_t float1);
 
-extern "C" int64_t
+extern int64_t
 float_divide(int64_t float1, int64_t float2);
 
-extern "C" int64_t
+extern int64_t
 float_one();
 
-extern "C" int64_t
+extern int64_t
 float_mantissa(int64_t float1);
 
-extern "C" int64_t
+extern int64_t
 float_sign(int64_t float1);
 
-extern "C" int64_t
+extern int64_t
 float_int(int64_t float1, uint32_t decimal_places, uint32_t abs);
 
-extern "C" int64_t
+extern int64_t
 float_log(int64_t float1);
 
-extern "C" int64_t
+extern int64_t
 float_root(int64_t float1, uint32_t n);
 
-extern "C" int64_t
+extern int64_t
 fee_base();
 
-extern "C" int64_t
+extern int64_t
 ledger_seq();
 
-extern "C" int64_t
+extern int64_t
 ledger_last_time();
 
-extern "C" int64_t
+extern int64_t
 ledger_last_hash(uint32_t write_ptr, uint32_t write_len);
 
-extern "C" int64_t
+extern int64_t
 ledger_nonce(uint32_t write_ptr, uint32_t write_len);
 
-extern "C" int64_t
+extern int64_t
 ledger_keylet(
     uint32_t write_ptr,
     uint32_t write_len,
@@ -190,13 +193,13 @@ ledger_keylet(
     uint32_t hread_ptr,
     uint32_t hread_len);
 
-extern "C" int64_t
+extern int64_t
 hook_account(uint32_t write_ptr, uint32_t write_len);
 
-extern "C" int64_t
+extern int64_t
 hook_hash(uint32_t write_ptr, uint32_t write_len, int32_t hook_no);
 
-extern "C" int64_t
+extern int64_t
 hook_param_set(
     uint32_t read_ptr,
     uint32_t read_len,
@@ -205,57 +208,57 @@ hook_param_set(
     uint32_t hread_ptr,
     uint32_t hread_len);
 
-extern "C" int64_t
+extern int64_t
 hook_param(
     uint32_t write_ptr,
     uint32_t write_len,
     uint32_t read_ptr,
     uint32_t read_len);
 
-extern "C" int64_t
+extern int64_t
 hook_again();
 
-extern "C" int64_t
+extern int64_t
 hook_skip(uint32_t read_ptr, uint32_t read_len, uint32_t flags);
 
-extern "C" int64_t
+extern int64_t
 hook_pos();
 
-extern "C" int64_t
+extern int64_t
 slot(uint32_t write_ptr, uint32_t write_len, uint32_t slot);
 
-extern "C" int64_t
+extern int64_t
 slot_clear(uint32_t slot);
 
-extern "C" int64_t
+extern int64_t
 slot_count(uint32_t slot);
 
-extern "C" int64_t
+extern int64_t
 slot_set(uint32_t read_ptr, uint32_t read_len, uint32_t slot);
 
-extern "C" int64_t
+extern int64_t
 slot_size(uint32_t slot);
 
-extern "C" int64_t
+extern int64_t
 slot_subarray(uint32_t parent_slot, uint32_t array_id, uint32_t new_slot);
 
-extern "C" int64_t
+extern int64_t
 slot_subfield(uint32_t parent_slot, uint32_t field_id, uint32_t new_slot);
 
-extern "C" int64_t
+extern int64_t
 slot_type(uint32_t slot_no, uint32_t flags);
 
-extern "C" int64_t
+extern int64_t
 slot_float(uint32_t slot_no);
 
-extern "C" int64_t
+extern int64_t
 state_set(
     uint32_t read_ptr,
     uint32_t read_len,
     uint32_t kread_ptr,
     uint32_t kread_len);
 
-extern "C" int64_t
+extern int64_t
 state_foreign_set(
     uint32_t read_ptr,
     uint32_t read_len,
@@ -266,14 +269,14 @@ state_foreign_set(
     uint32_t aread_ptr,
     uint32_t aread_len);
 
-extern "C" int64_t
+extern int64_t
 state(
     uint32_t write_ptr,
     uint32_t write_len,
     uint32_t kread_ptr,
     uint32_t kread_len);
 
-extern "C" int64_t
+extern int64_t
 state_foreign(
     uint32_t write_ptr,
     uint32_t write_len,
@@ -284,7 +287,7 @@ state_foreign(
     uint32_t aread_ptr,
     uint32_t aread_len);
 
-extern "C" int64_t
+extern int64_t
 trace(
     uint32_t mread_ptr,
     uint32_t mread_len,
@@ -292,49 +295,52 @@ trace(
     uint32_t dread_len,
     uint32_t as_hex);
 
-extern "C" int64_t
+extern int64_t
 trace_num(uint32_t read_ptr, uint32_t read_len, int64_t number);
 
-extern "C" int64_t
+extern int64_t
 trace_float(uint32_t read_ptr, uint32_t read_len, int64_t float1);
 
-extern "C" int64_t
+extern int64_t
 otxn_burden();
 
-extern "C" int64_t
+extern int64_t
 otxn_field(uint32_t write_ptr, uint32_t write_len, uint32_t field_id);
 
-extern "C" int64_t
+extern int64_t
 otxn_generation();
 
-extern "C" int64_t
+extern int64_t
 otxn_id(uint32_t write_ptr, uint32_t write_len, uint32_t flags);
 
-extern "C" int64_t
+extern int64_t
 otxn_type();
 
-extern "C" int64_t
+extern int64_t
 otxn_slot(uint32_t slot_no);
 
-extern "C" int64_t
+extern int64_t
 otxn_param(
     uint32_t write_ptr,
     uint32_t write_len,
     uint32_t read_ptr,
     uint32_t read_len);
 
-extern "C" int64_t
+extern int64_t
 meta_slot(uint32_t slot_no);
 
-extern "C" int64_t
+extern int64_t
 xpop_slot(uint32_t slot_no_tx, uint32_t slot_no_meta);
 
-extern "C" int64_t
+extern int64_t
 prepare(
     uint32_t write_ptr,
     uint32_t write_len,
     uint32_t read_ptr,
     uint32_t read_len);
 
+#ifdef __cplusplus
+}
+#endif
 #define HOOK_EXTERN
 #endif  // HOOK_EXTERN
