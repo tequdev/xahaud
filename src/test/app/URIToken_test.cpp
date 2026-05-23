@@ -2706,6 +2706,20 @@ struct URIToken_test : public beast::unit_test::suite
             }
         }
 
+        // Mint with TransferFeeRecipient same as account fails
+        {
+            Env env{*this, features};
+            auto const alice = Account("alice");
+            auto const bob = Account("bob");
+            env.fund(XRP(10000), alice, bob);
+            env.close();
+
+            std::string const uri(2, '?');
+            env(uritoken::mint(alice, uri),
+                uritoken::xfee_recipient(alice),
+                ter(temMALFORMED));
+        }
+
         // Mint with TransferFeeRecipient but no TransferFee fails
         {
             Env env{*this, features};

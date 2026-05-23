@@ -134,12 +134,27 @@ URIToken::preflight(PreflightContext const& ctx)
 
                 if (ctx.tx.isFieldPresent(sfTransferFeeRecipient))
                 {
+                    if (!ctx.tx.isFieldPresent(sfAccount))
+                        return tefINTERNAL;
+
+                    auto const account = ctx.tx.getAccountID(sfAccount);
+                    auto const recipient =
+                        ctx.tx.getAccountID(sfTransferFeeRecipient);
+
+                    if (account == recipient)
+                    {
+                        JLOG(ctx.j.warn())
+                            << "Malformed transaction: TransferFeeRecipient is "
+                               "the same as the account.";
+                        return temMALFORMED;
+                    }
+
                     if (!ctx.tx.isFieldPresent(sfTransferFee) ||
                         ctx.tx.getFieldU16(sfTransferFee) == 0)
                     {
-                        JLOG(ctx.j.warn()) << "Malformed transaction: "
-                                              "TransferFeeRecipient without "
-                                              "TransferFee.";
+                        JLOG(ctx.j.warn())
+                            << "Malformed transaction: TransferFeeRecipient "
+                               "without TransferFee.";
                         return temMALFORMED;
                     }
                 }
@@ -604,6 +619,12 @@ URIToken::doApply()
                     !isTesSuccess(result))
                     return result;
 
+                // Determine fee recipient
+                AccountID const feeRecipient =
+                    sleU->isFieldPresent(sfTransferFeeRecipient)
+                    ? sleU->getAccountID(sfTransferFeeRecipient)
+                    : *issuer;
+
                 // Apply URIToken transfer fee on qualifying secondary sales
                 if (sb.rules().enabled(featureURITokenTransferFee) &&
                     sleU->isFieldPresent(sfTransferFee) &&
@@ -612,12 +633,6 @@ URIToken::doApply()
                     auto const feeBips = sleU->getFieldU16(sfTransferFee);
                     if (feeBips > 0)
                     {
-                        // Determine fee recipient
-                        AccountID const feeRecipient =
-                            sleU->isFieldPresent(sfTransferFeeRecipient)
-                            ? sleU->getAccountID(sfTransferFeeRecipient)
-                            : *issuer;
-
                         // feeBips / 100000 as Rate (QUALITY_ONE = 1e9)
                         Rate const feeRate{
                             static_cast<std::uint32_t>(feeBips) * 10000u};
@@ -696,9 +711,8 @@ URIToken::doApply()
                                     if (!isTesSuccess(tlResult))
                                     {
                                         JLOG(j.trace())
-                                            << "URIToken: skipping "
-                                               "transfer fee — "
-                                               "recipient trust line "
+                                            << "URIToken: skipping transfer "
+                                               "fee — recipient trust line "
                                                "check failed: "
                                             << tlResult;
                                         sendFee = false;
