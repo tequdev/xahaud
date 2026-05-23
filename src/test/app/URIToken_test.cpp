@@ -18,6 +18,7 @@
 //==============================================================================
 
 #include <test/jtx.h>
+#include <test/jtx/AMM.h>
 #include <xrpld/core/ConfigSections.h>
 #include <xrpld/ledger/Dir.h>
 #include <xrpl/basics/chrono.h>
@@ -25,8 +26,6 @@
 #include <xrpl/protocol/Indexes.h>
 #include <xrpl/protocol/TxFlags.h>
 #include <xrpl/protocol/jss.h>
-
-#include <chrono>
 
 namespace ripple {
 namespace test {
@@ -2687,6 +2686,24 @@ struct URIToken_test : public beast::unit_test::suite
                 uritoken::xfee(2500),
                 uritoken::xfee_recipient(phantom),
                 ter(tecNO_TARGET));
+        }
+
+        // TransferFeeRecipient must not be an AMM Account
+        {
+            Env env{*this, features};
+            auto const alice = Account("alice");
+            auto const USD = alice["USD"];
+            env.fund(XRP(10000), alice);
+            env.close();
+
+            AMM ammAlice(env, alice, XRP(1000), USD(1000));
+            BEAST_EXPECT(ammAlice.ammExists());
+
+            std::string const uri(12, '?');
+            env(uritoken::mint(alice, uri),
+                uritoken::xfee(2500),
+                uritoken::xfee_recipient(ammAlice.ammAccount()),
+                ter(tecNO_PERMISSION));
         }
 
         // Mint with TransferFee = 0 or > 50000 fails

@@ -97,11 +97,10 @@ public:
 class xfee_recipient
 {
 private:
-    jtx::Account recipient_;
+    AccountID recipient_;
 
 public:
-    explicit xfee_recipient(jtx::Account const& recipient)
-        : recipient_(recipient)
+    explicit xfee_recipient(AccountID const& recipient) : recipient_(recipient)
     {
     }
 

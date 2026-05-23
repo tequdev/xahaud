@@ -248,9 +248,16 @@ URIToken::preclaim(PreclaimContext const& ctx)
             // check that TransferFeeRecipient account exists
             if (ctx.tx.isFieldPresent(sfTransferFeeRecipient))
             {
-                if (!ctx.view.exists(keylet::account(
-                        ctx.tx.getAccountID(sfTransferFeeRecipient))))
+                auto const recipient =
+                    ctx.tx.getAccountID(sfTransferFeeRecipient);
+                auto const sleRecipient =
+                    ctx.view.read(keylet::account(recipient));
+                if (!sleRecipient)
                     return tecNO_TARGET;
+
+                // AMMs can never receive an URIToken Fee.
+                if (sleRecipient->isFieldPresent(sfAMMID))
+                    return tecNO_PERMISSION;
             }
 
             return tesSUCCESS;

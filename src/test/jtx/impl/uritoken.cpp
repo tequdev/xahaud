@@ -108,7 +108,7 @@ xfee::operator()(Env& env, JTx& jt) const
 void
 xfee_recipient::operator()(Env& env, JTx& jt) const
 {
-    jt.jv[sfTransferFeeRecipient.jsonName] = recipient_.human();
+    jt.jv[sfTransferFeeRecipient.jsonName] = to_string(recipient_);
 }
 
 }  // namespace uritoken
