@@ -286,10 +286,17 @@ Remit::doApply()
     if (ctx_.tx.isFieldPresent(sfInform))
     {
         auto const informAcc = ctx_.tx.getAccountID(sfInform);
-        if (!sb.exists(keylet::account(informAcc)))
+        auto const sleInformAcc = sb.read(keylet::account(informAcc));
+        if (!sleInformAcc)
         {
             JLOG(j.warn()) << "Remit: sfInform account does not exist.";
             return tecNO_TARGET;
+        }
+
+        if (sleInformAcc->isFieldPresent(sfAMMID))
+        {
+            JLOG(j.warn()) << "Remit: sfInform account is an AMM.";
+            return tecNO_PERMISSION;
         }
     }
 
@@ -316,6 +323,11 @@ Remit::doApply()
     // Check if the destination has disallowed incoming
     if (sb.rules().enabled(featureDisallowIncoming) &&
         (flags & lsfDisallowIncomingRemit))
+        return tecNO_PERMISSION;
+
+    // AMMs can never receive an XAH payment.
+    // Must use AMMDeposit transaction instead.
+    if (sleDstAcc && sleDstAcc->isFieldPresent(sfAMMID))
         return tecNO_PERMISSION;
 
     // Check if the destination account requires deposit authorization.
