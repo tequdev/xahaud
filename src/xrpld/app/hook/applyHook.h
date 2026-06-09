@@ -12,6 +12,12 @@
 #include <xrpl/protocol/TER.h>
 #include <xrpl/protocol/digest.h>
 #include <any>
+#ifdef HOOK_API_BENCHMARK
+#include <chrono>
+#include <cstdio>
+#include <string>
+#include <string_view>
+#endif
 #include <memory>
 #include <optional>
 #include <queue>
@@ -207,6 +213,71 @@ struct HookContext
         0;  // used for caching, only generated when txn_generation is called
     uint64_t burden =
         0;  // used for caching, only generated when txn_burden is called
+#ifdef HOOK_API_BENCHMARK
+    struct HookApiBenchmarkEntry
+    {
+        uint64_t calls = 0;
+        uint64_t nanos = 0;
+        uint64_t successCalls = 0;
+        uint64_t successNanos = 0;
+        uint64_t errorCalls = 0;
+        uint64_t errorNanos = 0;
+        uint64_t terminalCalls = 0;
+        uint64_t terminalNanos = 0;
+    };
+
+    std::map<std::string, HookApiBenchmarkEntry> hookApiBenchmark{};
+    uint64_t hookApiBenchmarkTotalNanos = 0;
+    uint64_t hookApiBenchmarkExecutionNanos = 0;
+
+    enum class HookApiBenchmarkStatus {
+        success,
+        error,
+    };
+
+    template <class ReturnCode>
+    void
+    recordHookApiBenchmark(
+        std::string_view name,
+        uint64_t nanos,
+        ReturnCode const& returnCode)
+    {
+        auto& entry = hookApiBenchmark[std::string{name}];
+        ++entry.calls;
+        entry.nanos += nanos;
+        hookApiBenchmarkTotalNanos += nanos;
+
+        HookApiBenchmarkStatus status = HookApiBenchmarkStatus::success;
+        bool terminal = false;
+        if (std::holds_alternative<hook_api::hook_return_code>(returnCode))
+        {
+            auto const code = std::get<hook_api::hook_return_code>(returnCode);
+            terminal = code == hook_api::hook_return_code::RC_ACCEPT ||
+                code == hook_api::hook_return_code::RC_ROLLBACK;
+            status = terminal || static_cast<int64_t>(code) >= 0
+                ? HookApiBenchmarkStatus::success
+                : HookApiBenchmarkStatus::error;
+        }
+
+        switch (status)
+        {
+            case HookApiBenchmarkStatus::success:
+                ++entry.successCalls;
+                entry.successNanos += nanos;
+                break;
+            case HookApiBenchmarkStatus::error:
+                ++entry.errorCalls;
+                entry.errorNanos += nanos;
+                break;
+        }
+
+        if (terminal)
+        {
+            ++entry.terminalCalls;
+            entry.terminalNanos += nanos;
+        }
+    }
+#endif
     std::map<uint32_t, uint32_t>
         guard_map{};  // iteration guard map <id -> upto_iteration>
     HookResult result;
@@ -436,6 +507,10 @@ public:
         WasmEdge_Value params[1] = {WasmEdge_ValueGenI32((int64_t)wasmParam)};
         WasmEdge_Value returns[1];
 
+#ifdef HOOK_API_BENCHMARK
+        auto const hookApiBenchmarkExecutionStart =
+            std::chrono::steady_clock::now();
+#endif
         res = WasmEdge_VMRunWasmFromBuffer(
             vm.ctx,
             reinterpret_cast<const uint8_t*>(wasm),
@@ -445,6 +520,13 @@ public:
             1,
             returns,
             1);
+#ifdef HOOK_API_BENCHMARK
+        hookCtx.hookApiBenchmarkExecutionNanos = static_cast<uint64_t>(
+            std::chrono::duration_cast<std::chrono::nanoseconds>(
+                std::chrono::steady_clock::now() -
+                hookApiBenchmarkExecutionStart)
+                .count());
+#endif
 
         if (auto err = getWasmError("WASM VM error", res); err)
         {
@@ -456,6 +538,98 @@ public:
         auto* statsCtx = WasmEdge_VMGetStatisticsContext(vm.ctx);
         hookCtx.result.instructionCount =
             WasmEdge_StatisticsGetInstrCount(statsCtx);
+
+#ifdef HOOK_API_BENCHMARK
+        auto const instructionCount = hookCtx.result.instructionCount;
+        double const instrPerSecond =
+            WasmEdge_StatisticsGetInstrPerSecond(statsCtx);
+        auto const executionNanos = hookCtx.hookApiBenchmarkExecutionNanos;
+        auto const apiNanos = hookCtx.hookApiBenchmarkTotalNanos;
+        auto const wallWasmNanos =
+            executionNanos > apiNanos ? executionNanos - apiNanos : 0;
+        double const nsPerWasmInstruction = instrPerSecond > 0.0
+            ? 1'000'000'000.0 / instrPerSecond
+            : 0.0;
+        double const statsWasmInstructionNanos =
+            static_cast<double>(instructionCount) * nsPerWasmInstruction;
+
+        JLOG(j.info()) << "HookApiBenchmark summary"
+                       << " instruction_count=" << instructionCount
+                       << " instr_per_second=" << instrPerSecond
+                       << " execution_ns=" << executionNanos
+                       << " hook_api_ns=" << apiNanos
+                       << " wall_wasm_ns=" << wallWasmNanos
+                       << " stats_wasm_instruction_ns="
+                       << statsWasmInstructionNanos
+                       << " ns_per_wasm_instruction=" << nsPerWasmInstruction;
+        std::fprintf(
+            stderr,
+            "hook_api_benchmark_summary,instruction_count,instr_per_second,"
+            "execution_ns,hook_api_ns,wall_wasm_ns,"
+            "stats_wasm_instruction_ns,ns_per_wasm_instruction\n"
+            "hook_api_benchmark_summary,%llu,%.9f,%llu,%llu,%llu,%.9f,%.9f\n",
+            static_cast<unsigned long long>(instructionCount),
+            instrPerSecond,
+            static_cast<unsigned long long>(executionNanos),
+            static_cast<unsigned long long>(apiNanos),
+            static_cast<unsigned long long>(wallWasmNanos),
+            statsWasmInstructionNanos,
+            nsPerWasmInstruction);
+        std::fprintf(
+            stderr,
+            "hook_api_benchmark_api,name,calls,total_ns,avg_ns,"
+            "relative_cost,success_calls,success_ns,success_avg_ns,"
+            "success_relative_cost,error_calls,error_ns,terminal_calls,"
+            "terminal_ns\n");
+
+        for (auto const& [name, entry] : hookCtx.hookApiBenchmark)
+        {
+            double const avgNanos = entry.calls
+                ? static_cast<double>(entry.nanos) /
+                    static_cast<double>(entry.calls)
+                : 0.0;
+            double const relativeCost = nsPerWasmInstruction > 0.0
+                ? avgNanos / nsPerWasmInstruction
+                : 0.0;
+            double const successAvgNanos = entry.successCalls
+                ? static_cast<double>(entry.successNanos) /
+                    static_cast<double>(entry.successCalls)
+                : 0.0;
+            double const successRelativeCost = nsPerWasmInstruction > 0.0
+                ? successAvgNanos / nsPerWasmInstruction
+                : 0.0;
+            JLOG(j.info()) << "HookApiBenchmark api=" << name
+                           << " calls=" << entry.calls
+                           << " total_ns=" << entry.nanos
+                           << " avg_ns=" << avgNanos
+                           << " relative_cost=" << relativeCost
+                           << " success_calls=" << entry.successCalls
+                           << " success_ns=" << entry.successNanos
+                           << " success_avg_ns=" << successAvgNanos
+                           << " success_relative_cost=" << successRelativeCost
+                           << " error_calls=" << entry.errorCalls
+                           << " error_ns=" << entry.errorNanos
+                           << " terminal_calls=" << entry.terminalCalls
+                           << " terminal_ns=" << entry.terminalNanos;
+            std::fprintf(
+                stderr,
+                "hook_api_benchmark_api,%s,%llu,%llu,%.9f,%.9f,"
+                "%llu,%llu,%.9f,%.9f,%llu,%llu,%llu,%llu\n",
+                name.c_str(),
+                static_cast<unsigned long long>(entry.calls),
+                static_cast<unsigned long long>(entry.nanos),
+                avgNanos,
+                relativeCost,
+                static_cast<unsigned long long>(entry.successCalls),
+                static_cast<unsigned long long>(entry.successNanos),
+                successAvgNanos,
+                successRelativeCost,
+                static_cast<unsigned long long>(entry.errorCalls),
+                static_cast<unsigned long long>(entry.errorNanos),
+                static_cast<unsigned long long>(entry.terminalCalls),
+                static_cast<unsigned long long>(entry.terminalNanos));
+        }
+#endif
 
         // RH NOTE: stack unwind will clean up WasmEdgeVM
     }

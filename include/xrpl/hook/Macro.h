@@ -10,6 +10,10 @@
  * were then used.
  */
 
+#ifdef HOOK_API_BENCHMARK
+#include <chrono>
+#endif
+
 #define LPAREN (
 #define RPAREN )
 #define COMMA ,
@@ -106,6 +110,22 @@
     extern WasmEdge_FunctionTypeContext* WasmFunctionType##F;     \
     extern WasmEdge_String WasmFunctionName##F;
 
+#ifdef HOOK_API_BENCHMARK
+#define HOOK_API_BENCHMARK_START(F) \
+    auto const _hookApiBenchmarkStart = std::chrono::steady_clock::now();
+#define HOOK_API_BENCHMARK_STOP(F, return_code)                            \
+    hookCtx->recordHookApiBenchmark(                                       \
+        #F,                                                                \
+        static_cast<uint64_t>(                                             \
+            std::chrono::duration_cast<std::chrono::nanoseconds>(          \
+                std::chrono::steady_clock::now() - _hookApiBenchmarkStart) \
+                .count()),                                                 \
+        return_code);
+#else
+#define HOOK_API_BENCHMARK_START(F)
+#define HOOK_API_BENCHMARK_STOP(F, return_code)
+#endif
+
 #define DEFINE_HOOK_FUNCTION(R, F, ...)                                        \
     WasmEdge_Result hook_api::WasmFunction##F(                                 \
         void* data_ptr,                                                        \
@@ -117,10 +137,12 @@
         __VA_OPT__(FOR_VARS(VAR_ASSIGN, 2, __VA_ARGS__);)                      \
         hook::HookContext* hookCtx =                                           \
             reinterpret_cast<hook::HookContext*>(data_ptr);                    \
+        HOOK_API_BENCHMARK_START(F)                                            \
         auto const& return_code = hook_api::F(                                 \
             *hookCtx,                                                          \
             *const_cast<WasmEdge_CallingFrameContext*>(frameCtx)               \
                 __VA_OPT__(COMMA STRIP_TYPES(__VA_ARGS__)));                   \
+        HOOK_API_BENCHMARK_STOP(F, return_code)                                \
         if (std::holds_alternative<hook_api::hook_return_code>(return_code) && \
             (std::get<hook_api::hook_return_code>(return_code) ==              \
                  RC_ROLLBACK ||                                                \

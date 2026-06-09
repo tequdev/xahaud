@@ -165,6 +165,9 @@ if(xrpld)
   if(tests)
     target_compile_definitions(rippled PUBLIC ENABLE_TESTS)
   endif()
+  if(HOOK_BENCHMARK)
+    target_compile_definitions(rippled PRIVATE HOOK_API_BENCHMARK=1)
+  endif()
   target_include_directories(rippled
     PRIVATE
       $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>

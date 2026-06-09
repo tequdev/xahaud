@@ -12,6 +12,10 @@ option(xrpld "Build xrpld" ON)
 
 option(tests "Build tests" ON)
 
+option(HOOK_BENCHMARK
+  "Build opt-in Hook API cost measurement instrumentation. Not for production."
+  OFF)
+
 option(unity "Creates a build using UNITY support in cmake. This is the default" ON)
 if(unity)
   if(NOT is_ci)
