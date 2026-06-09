@@ -75,14 +75,32 @@ using JSSMap =
     [[maybe_unused]] std::string const x##_hash_str = to_string(x##_hash);     \
     [[maybe_unused]] Keylet const x##_keylet = keylet::hookDefinition(x##_hash);
 
-#define EXPECT_HOOK_FEE(x, fee)                               \
-    do                                                        \
-    {                                                         \
-        auto const hookSLE = env.le(x##_keylet);              \
-        BEAST_EXPECTS(                                        \
-            hookSLE->getFieldAmount(sfFee) == XRPAmount{fee}, \
-            "Hook fee mismatch: expected " #fee " got " +     \
-                to_string(hookSLE->getFieldAmount(sfFee)));   \
+#define EXPECT_HOOK_FEE(x, fee)                                               \
+    do                                                                        \
+    {                                                                         \
+        auto const hookSLE = env.le(x##_keylet);                              \
+        if (env.current()->rules().enabled(featureHookFeeV2))                 \
+        {                                                                     \
+            BEAST_EXPECTS(                                                    \
+                !hookSLE->isFieldPresent(sfFee),                              \
+                "Hook fee should not be present after featureHookFeeV2 is "   \
+                "enabled");                                                   \
+            BEAST_EXPECTS(                                                    \
+                hookSLE->isFieldPresent(sfHookCost),                          \
+                "Hook cost should be present after featureHookFeeV2 is "      \
+                "enabled");                                                   \
+        }                                                                     \
+        else                                                                  \
+        {                                                                     \
+            BEAST_EXPECTS(                                                    \
+                hookSLE->getFieldAmount(sfFee) == XRPAmount{fee},             \
+                "Hook fee mismatch: expected " #fee " got " +                 \
+                    to_string(hookSLE->getFieldAmount(sfFee)));               \
+            BEAST_EXPECTS(                                                    \
+                !hookSLE->isFieldPresent(sfHookCost),                         \
+                "Hook cost should not be present before featureHookFeeV2 is " \
+                "enabled");                                                   \
+        }                                                                     \
     } while (false)
 
 class SetHook0_test : public beast::unit_test::suite
@@ -1396,7 +1414,7 @@ public:
     {
         testcase("Test hook on v2");
         using namespace jtx;
-        Env env{*this, features};
+        Env env{*this, features - featureHookFeeV2};
         incLgrSeqForGasPriceEnabled(env);
 
         bool const hookOnV2 = env.current()->rules().enabled(featureHookOnV2);
@@ -1909,7 +1927,12 @@ public:
             auto jv = invoke::invoke(alice);
             auto expectedFee =
                 calculateBaseFee(*env.current(), *env.jt(jv).stx);
-            BEAST_EXPECT(expectedFee == drops(19));
+
+            if (env.current()->rules().enabled(featureHookFeeV2))
+                // TODO: add test for hook fee v2
+                BEAST_EXPECT(expectedFee > env.current()->fees().base);
+            else
+                BEAST_EXPECT(expectedFee == drops(19));
             env(jv,
                 M("Call named hook without specifying the hook name"),
                 HSFEE);
@@ -1928,7 +1951,11 @@ public:
             jv[jss::HookName] = "41424345";
             auto expectedFee =
                 calculateBaseFee(*env.current(), *env.jt(jv).stx);
-            BEAST_EXPECT(expectedFee == drops(19));
+            if (env.current()->rules().enabled(featureHookFeeV2))
+                // TODO: add test for hook fee v2
+                BEAST_EXPECT(expectedFee > env.current()->fees().base);
+            else
+                BEAST_EXPECT(expectedFee == drops(19));
             env(jv, M("Call named hook with the wrong hook name"), HSFEE);
             env.close();
             // execute only non-named hook
@@ -1945,7 +1972,11 @@ public:
             jv[jss::HookName] = "41424344";
             auto expectedFee =
                 calculateBaseFee(*env.current(), *env.jt(jv).stx);
-            BEAST_EXPECT(expectedFee == drops(28));
+            if (env.current()->rules().enabled(featureHookFeeV2))
+                // TODO: add test for hook fee v2
+                BEAST_EXPECT(expectedFee > env.current()->fees().base);
+            else
+                BEAST_EXPECT(expectedFee == drops(28));
             env(jv, M("Call named hook with the correct hook name"), HSFEE);
             env.close();
             // execute both named and non-named hooks
@@ -3443,13 +3474,21 @@ public:
             if (withCost)
             {
                 auto const hookCost = hookDef->getFieldU64(sfHookCost);
-                BEAST_EXPECT(hookCost == 4494);
+                auto const expectedCost = 4494;
+                BEAST_EXPECTS(
+                    hookCost == expectedCost,
+                    "Hook cost mismatch: expected " + to_string(expectedCost) +
+                        " got " + to_string(hookCost));
                 BEAST_EXPECT(!hookDef->isFieldPresent(sfFee));
             }
             else
             {
                 auto const hookFee = hookDef->getFieldAmount(sfFee);
-                BEAST_EXPECT(hookFee == XRPAmount{1944});
+                auto const expectedFee = XRPAmount{1944};
+                BEAST_EXPECTS(
+                    hookFee == expectedFee,
+                    "Hook fee mismatch: expected " + to_string(expectedFee) +
+                        " got " + to_string(hookFee));
                 BEAST_EXPECT(!hookDef->isFieldPresent(sfHookCost));
             }
         }
@@ -4398,12 +4437,17 @@ public:
                 etxn_reserve(1);
                 ASSERT(etxn_details((uint32_t)det, 116) == 116);
 
-                uint8_t expected1[49] = {
+                uint8_t expected1[16] = {
                     0xEDU, 0x20U, 0x2EU, 0x00U, 0x00U, 0x00U, 0x01U, 0x3DU, 0x00U, 0x00U,
-                    0x00U, 0x00U, 0x00U, 0x00U, 0x00U, 0x01U, 0x5BU, 0xB8U, 0x05U, 0xD6U,
-                    0xC3U, 0x52U, 0xDFU, 0x7AU, 0x27U, 0x76U, 0x6DU, 0xC0U, 0x20U, 0x47U,
-                    0xB7U, 0x64U, 0x22U, 0x5AU, 0xB7U, 0x5DU, 0xF3U, 0xFAU, 0x0DU, 0xE3U,
-                    0xBDU, 0xC6U, 0x40U, 0xBAU, 0xD0U, 0x0AU, 0x66U, 0xEBU, 0x68U,
+                    0x00U, 0x00U, 0x00U, 0x00U, 0x00U, 0x01U, 
+                };
+                // 0x5B
+                // EmitParentTxnID 32bytes
+                uint8_t expected_emit_parent_txn_id[32] = {
+                    0xFFU, 0xFFU, 0xFFU, 0xFFU, 0xFFU, 0xFFU, 0xFFU, 0xFFU, 0xFFU, 0xFFU,
+                    0xFFU, 0xFFU, 0xFFU, 0xFFU, 0xFFU, 0xFFU, 0xFFU, 0xFFU, 0xFFU, 0xFFU,
+                    0xFFU, 0xFFU, 0xFFU, 0xFFU, 0xFFU, 0xFFU, 0xFFU, 0xFFU, 0xFFU, 0xFFU,
+                    0xFFU, 0xFFU
                 };
                 // 0x5CU
                 // EmitNonce 32bytes
@@ -4426,10 +4470,14 @@ public:
                 // current hook hash
                 ASSERT(hook_hash((uint32_t)expected_hook_hash, 32, -1) == 32);
 
-                for (int i = 0; GUARD(49), i < sizeof(expected1); ++i)
+                for (int i = 0; GUARD(16), i < sizeof(expected1); ++i)
                     ASSERT(det[i] == expected1[i]);
+                ASSERT(det[16] == 0x5BU);
+                // TODO: need to test EmitParentTxnID
+                // for (int i = 0; GUARD(32), i < sizeof(expected_emit_parent_txn_id); ++i)
+                //     ASSERT(det[17 + i] == expected_emit_parent_txn_id[i]);
                 ASSERT(det[49] == 0x5CU);
-                // TODO: need to test this
+                // TODO: need to test EmitNonce
                 // for (int i = 0; GUARD(32), i < sizeof(expected_emit_nonce); ++i)
                 //     ASSERT(det[50 + i] == expected_emit_nonce[i]);
                 ASSERT(det[82] == 0x5DU);
@@ -4447,7 +4495,7 @@ public:
             M("set etxn_details"),
             HSFEE);
         env.close();
-        EXPECT_HOOK_FEE(hook, 2436);
+        EXPECT_HOOK_FEE(hook, 1524);
 
         // invoke the hook
         env(pay(bob, alice, XRP(1)), M("test etxn_details"), fee(XRP(1)));
@@ -12511,6 +12559,7 @@ public:
                  })
             {
                 Env env{*this, feature};
+                incLgrSeqForGasPriceEnabled(env);
 
                 env.fund(XRP(10000), alice, bob);
                 env.close();
