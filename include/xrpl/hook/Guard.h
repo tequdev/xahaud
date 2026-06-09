@@ -205,9 +205,13 @@ struct WasmBlkInf
     }
 // compute worst case execution time
 inline std::pair<uint64_t, uint64_t>
-compute_wce(const WasmBlkInf* blk, int level, bool* recursion_limit_reached)
+compute_wce(
+    const WasmBlkInf* blk,
+    int level,
+    int max_level,
+    bool* recursion_limit_reached)
 {
-    if (level > 16)
+    if (level > max_level)
     {
         *recursion_limit_reached = true;
         return {0, 0};
@@ -236,8 +240,8 @@ compute_wce(const WasmBlkInf* blk, int level, bool* recursion_limit_reached)
     if (blk->children.size() > 0)
         for (auto const& child : blk->children)
         {
-            auto [child_instruction_count, child_execution_cost] =
-                compute_wce(child, level + 1, recursion_limit_reached);
+            auto [child_instruction_count, child_execution_cost] = compute_wce(
+                child, level + 1, max_level, recursion_limit_reached);
             instruction_count += child_instruction_count;
             execution_cost += child_execution_cost;
         }
@@ -801,13 +805,17 @@ check_guard(
     }
 
     bool recursion_limit_reached = false;
+    int max_level = 16;
+    if (rulesVersion & hook_api::GuardRuleDepth32)
+        max_level = 32;
     auto [instruction_count, execution_cost] =
-        compute_wce(&(*root), 0, &recursion_limit_reached);
+        compute_wce(&(*root), 0, max_level, &recursion_limit_reached);
     if (recursion_limit_reached)
     {
         GUARDLOG(hook::log::NESTING_LIMIT)
             << "GuardCheck "
-            << "Maximum allowable depth of blocks reached (16 levels). Flatten "
+            << "Maximum allowable depth of blocks reached (" << max_level
+            << " levels). Flatten "
                "your loops and conditions!.\n";
         return {};
     }
