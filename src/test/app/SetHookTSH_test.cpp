@@ -5073,7 +5073,7 @@ private:
                 env,
                 {.owner = account,
                  .series = {{"XRP", "USD", 740, 1}},
-                 .fee = 10000});
+                 .fee = 1'000'000});
 
             // verify tsh hook triggered
             testTSHStrongWeak(env, tshSTRONG, __LINE__);
