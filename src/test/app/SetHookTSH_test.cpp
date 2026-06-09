@@ -5071,9 +5071,11 @@ private:
             env.close(std::chrono::seconds(300));
             Oracle oracle(
                 env,
-                {.owner = account,
-                 .series = {{"XRP", "USD", 740, 1}},
-                 .fee = 1'000'000});
+                {
+                    .owner = account,
+                    .series = {{"XRP", "USD", 740, 1}},
+                    .fee = 1'000'000,
+                });
 
             // verify tsh hook triggered
             testTSHStrongWeak(env, tshSTRONG, __LINE__);
@@ -5111,6 +5113,7 @@ private:
                 {
                     .owner = account,
                     .series = {{"XRP", "USD", 740, 1}},
+                    .fee = 1'000'000,
                 });
 
             // set tsh collect
@@ -5123,7 +5126,7 @@ private:
             // delete oracle
             oracle.remove(oracle::RemoveArg{
                 .documentID = oracle.documentID(),
-                .fee = 10000,
+                .fee = 1'000'000,
             });
 
             // verify tsh hook triggered
