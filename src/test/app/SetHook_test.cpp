@@ -1397,6 +1397,7 @@ public:
         testcase("Test hook on v2");
         using namespace jtx;
         Env env{*this, features};
+        incLgrSeqForGasPriceEnabled(env);
 
         bool const hookOnV2 = env.current()->rules().enabled(featureHookOnV2);
 
@@ -1737,6 +1738,7 @@ public:
         auto const USD = alice["USD"];
 
         Env env{*this, features};
+        incLgrSeqForGasPriceEnabled(env);
 
         env.fund(XRP(10000), alice, bob);
         env.close();
