@@ -1207,11 +1207,13 @@ validateGuards(
                 // read the limits flag (0x00 = no max, 0x01 = has max)
                 if (i >= wasm.size())
                 {
+                    // LCOV_EXCL_START
                     GUARDLOG(hook::log::SHORT_HOOK)
                         << "Malformed transaction. "
                         << "Hook memory section ended abruptly."
                         << "\n";
                     return {};
+                    // LCOV_EXCL_STOP
                 }
                 uint8_t limits = wasm[i++];
 
