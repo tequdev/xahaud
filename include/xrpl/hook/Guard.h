@@ -160,6 +160,7 @@ struct WasmBlkInf
         : sanity_check(0x1234ABCDU)
         , iteration_bound(iteration_bound_)
         , instruction_count(instruction_count_)
+        , execution_cost(0)
         , parent(parent_)
         , children({})
         , start_byte(start_byte_)
