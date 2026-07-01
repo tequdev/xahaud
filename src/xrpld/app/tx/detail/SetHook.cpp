@@ -312,6 +312,12 @@ SetHook::validateHookSetEntry(SetHookCtx& ctx, STObject const& hookSetObj)
     switch (inferOperation(hookSetObj))
     {
         case hsoNOOP: {
+            if (ctx.rules.enabled(fixHookOnV2InstallUpdate) &&
+                (hookSetObj.isFieldPresent(sfHookOnOutgoing) ||
+                 hookSetObj.isFieldPresent(sfHookOnIncoming)) &&
+                !validateHookOn(ctx, hookSetObj))
+                return false;
+
             return true;
         }
 
@@ -1391,6 +1397,7 @@ SetHook::setHook()
         std::optional<ripple::Keylet> newDirKeylet;
 
         std::optional<uint256> newHookOn;
+        // Empty for HookOnV2 direction-only definitions.
         std::optional<uint256> defHookOn;
 
         std::optional<uint256> newHookOnOutgoing;
@@ -1662,7 +1669,7 @@ SetHook::setHook()
                 // set the hookon field if it differs from definition
                 if (newHookOn)
                 {
-                    if (*defHookOn == *newHookOn)
+                    if (defHookOn.has_value() && *defHookOn == *newHookOn)
                     {
                         if (newHook.isFieldPresent(sfHookOn))
                             newHook.makeFieldAbsent(sfHookOn);

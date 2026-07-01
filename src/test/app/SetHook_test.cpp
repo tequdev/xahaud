@@ -1661,6 +1661,28 @@ public:
             env.fund(XRP(10000), alice, bob);
             env.close();
 
+            TER const expected =
+                env.current()->rules().enabled(fixHookOnV2InstallUpdate)
+                ? TER(temMALFORMED)
+                : TER(tesSUCCESS);
+
+            for (auto const& key : {jss::HookOnIncoming, jss::HookOnOutgoing})
+            {
+                auto noopJv = Json::Value{};
+                noopJv[key] =
+                    "fffffffffffffffffffffffffffffffffffffff7ffffffffffffffffff"
+                    "bfffff";
+
+                env(ripple::test::jtx::hook(alice, {{noopJv}}, 0),
+                    M("Lone direction HookOn NOOP"),
+                    HSFEE,
+                    ter(expected));
+                env.close();
+
+                if (!withFix)
+                    BEAST_EXPECT(!env.le(keylet::hook(alice)));
+            }
+
             // 1. Create Hook with HookOnIncoming/Outgoing to alice
             auto jv = hso(accept_wasm);
             jv.removeMember(jss::HookOn);
@@ -1672,11 +1694,6 @@ public:
                 "bffffe";  // Payment high
             env(ripple::test::jtx::hook(alice, {{jv}}, 0), HSFEE);
             env.close();
-
-            TER const expected =
-                env.current()->rules().enabled(fixHookOnV2InstallUpdate)
-                ? TER(temMALFORMED)
-                : TER(tesSUCCESS);
 
             // 2. Install Hook with HookOn, Incoming/Outgoing to bob
             jv = Json::Value{};
