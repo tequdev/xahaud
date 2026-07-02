@@ -2690,7 +2690,7 @@ struct URIToken_test : public beast::unit_test::suite
 
         // TransferFeeRecipient must not be an AMM Account
         {
-            Env env{*this, features};
+            Env env{*this, features | featureAMM};
             auto const alice = Account("alice");
             auto const USD = alice["USD"];
             env.fund(XRP(10000), alice);
