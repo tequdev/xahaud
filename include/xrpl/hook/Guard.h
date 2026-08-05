@@ -265,6 +265,12 @@ compute_wce(
     if (instruction_count < 1.0)
         instruction_count = 1.0;
 
+    // the loop multiplier must apply to the execution cost as well, otherwise
+    // an api call inside a loop is only ever charged for a single iteration
+    execution_cost *= multiplier;
+    if (execution_cost < 1.0)
+        execution_cost = 1.0;
+
     PRINT_WCE(3);
     return {instruction_count, execution_cost};
 };
@@ -281,8 +287,8 @@ check_guard(
     int codesec,
     int start_offset,
     int end_offset,
-    std::map<int, std::pair<std::map<int, std::string>, uint32_t>>
-        import_type_map,
+    std::map<int, std::map<int, std::string>> import_type_map,
+    std::map<int, uint32_t> const& import_cost_map,
     int guard_func_idx,
     int last_import_idx,
     GuardLog guardLog,
@@ -527,8 +533,9 @@ check_guard(
                     GUARD_ERROR("Too many guard calls! Limit is 1024");
             }
 
-            uint32_t cost = import_type_map[callee_idx].second;
-            current->execution_cost += cost;
+            if (auto const it = import_cost_map.find(callee_idx);
+                it != import_cost_map.end())
+                current->execution_cost += it->second;
 
             continue;
         }
@@ -898,12 +905,15 @@ validateGuards(
     // this maps function ids to type ids, used for looking up the type of cbak
     // and hook as established inside the wasm binary.
     std::map<int, int> func_type_map;
+    // used to check that every import sharing a type has the same signature
     std::map<
         int /* type idx */,
-        std::pair<
-            std::map<int /* import index */, std::string /* api name */>,
-            uint32_t /* cost */>>
+        std::map<int /* import index */, std::string /* api name */>>
         import_type_map;
+
+    // api costs must be keyed by function index, which is the index space a
+    // call instruction refers to, not by type index
+    std::map<int /* import func idx */, uint32_t /* cost */> import_cost_map;
 
     // now we check for guards... first check if _g is imported
     int guard_import_number = -1;
@@ -1070,16 +1080,11 @@ validateGuards(
                     return {};
                 }
 
+                import_cost_map[func_upto] = cost;
+
                 // add to import map
-                if (import_type_map.find(type_idx) == import_type_map.end())
-                    import_type_map[type_idx] = {
-                        {{func_upto, std::move(import_name)}}, cost};
-                else
-                {
-                    import_type_map[type_idx].first.emplace(
-                        func_upto, std::move(import_name));
-                    import_type_map[type_idx].second = cost;
-                }
+                import_type_map[type_idx].emplace(
+                    func_upto, std::move(import_name));
 
                 func_upto++;
             }
@@ -1282,8 +1287,7 @@ validateGuards(
                 if (auto const& usage = import_type_map.find(j);
                     usage != import_type_map.end())
                 {
-                    for (auto const& [import_idx, api_name] :
-                         usage->second.first)
+                    for (auto const& [import_idx, api_name] : usage->second)
                     {
                         auto const& api_signature =
                             import_whitelist.find(api_name)->second.first;
@@ -1526,6 +1530,7 @@ validateGuards(
                     i,
                     code_end,
                     import_type_map,
+                    import_cost_map,
                     guard_import_number,
                     last_import_number,
                     guardLog,
