@@ -207,7 +207,7 @@ validateHookParams(SetHookCtx& ctx, STArray const& hookParams)
 // infer which operation the user is attempting to execute from the present and
 // absent fields
 HookSetOperation
-SetHook::inferOperation(STObject const& hookSetObj)
+SetHook::inferOperation(SetHookCtx& ctx, STObject const& hookSetObj)
 {
     uint64_t wasmByteCount = hookSetObj.isFieldPresent(sfCreateCode)
         ? hookSetObj.getFieldVL(sfCreateCode).size()
@@ -216,7 +216,12 @@ SetHook::inferOperation(STObject const& hookSetObj)
     bool hasHash = hookSetObj.isFieldPresent(sfHookHash);
     bool hasCode = hookSetObj.isFieldPresent(sfCreateCode);
 
-    if (hasHash && hasCode)  // Both HookHash and CreateCode: invalid
+    bool invalidHookOn = ctx.rules.enabled(fixHookOnV2InstallUpdate) &&
+        hookSetObj.isFieldPresent(sfHookOnOutgoing) ^
+            hookSetObj.isFieldPresent(sfHookOnIncoming);
+
+    if ((hasHash && hasCode) || invalidHookOn)  // Both HookHash and CreateCode
+                                                // or invalid HookOn: invalid
         return hsoINVALID;
     else if (hasHash)  // Hookhash only: install
         return hsoINSTALL;
@@ -309,7 +314,7 @@ SetHook::validateHookSetEntry(SetHookCtx& ctx, STObject const& hookSetObj)
         ? hookSetObj.getFieldU32(sfFlags)
         : 0;
 
-    switch (inferOperation(hookSetObj))
+    switch (inferOperation(ctx, hookSetObj))
     {
         case hsoNOOP: {
             return true;
@@ -1426,7 +1431,7 @@ SetHook::setHook()
         HookSetOperation op = hsoNOOP;
 
         if (hookSetObj)
-            op = inferOperation(hookSetObj->get());
+            op = inferOperation(ctx, hookSetObj->get());
 
         // these flags are not able to be passed onto the ledger object
         int newFlags = 0;
@@ -1662,7 +1667,7 @@ SetHook::setHook()
                 // set the hookon field if it differs from definition
                 if (newHookOn)
                 {
-                    if (*defHookOn == *newHookOn)
+                    if (defHookOn.has_value() && *defHookOn == *newHookOn)
                     {
                         if (newHook.isFieldPresent(sfHookOn))
                             newHook.makeFieldAbsent(sfHookOn);

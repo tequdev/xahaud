@@ -1661,6 +1661,29 @@ public:
             env.fund(XRP(10000), alice, bob);
             env.close();
 
+            TER const expected =
+                env.current()->rules().enabled(fixHookOnV2InstallUpdate)
+                ? TER(temMALFORMED)
+                : TER(tesSUCCESS);
+
+            // 0. only one direction HookOn is not allowed
+            for (auto const& key : {jss::HookOnIncoming, jss::HookOnOutgoing})
+            {
+                auto noopJv = Json::Value{};
+                noopJv[key] =
+                    "fffffffffffffffffffffffffffffffffffffff7ffffffffffffffffff"
+                    "bfffff";
+
+                env(ripple::test::jtx::hook(alice, {{noopJv}}, 0),
+                    M("Lone direction HookOn NOOP"),
+                    HSFEE,
+                    ter(expected));
+                env.close();
+
+                if (!withFix)
+                    BEAST_EXPECT(!env.le(keylet::hook(alice)));
+            }
+
             // 1. Create Hook with HookOnIncoming/Outgoing to alice
             auto jv = hso(accept_wasm);
             jv.removeMember(jss::HookOn);
@@ -1672,11 +1695,6 @@ public:
                 "bffffe";  // Payment high
             env(ripple::test::jtx::hook(alice, {{jv}}, 0), HSFEE);
             env.close();
-
-            TER const expected =
-                env.current()->rules().enabled(fixHookOnV2InstallUpdate)
-                ? TER(temMALFORMED)
-                : TER(tesSUCCESS);
 
             // 2. Install Hook with HookOn, Incoming/Outgoing to bob
             jv = Json::Value{};
@@ -3238,25 +3256,34 @@ public:
     testInferHookSetOperation()
     {
         testcase("Test operation inference");
+        using namespace jtx;
+
+        Env env{*this};
+
+        SetHookCtx shCtx{
+            .j = env.app().journal("SetHook"),
+            .tx = *env.tx(),
+            .app = env.app(),
+            .rules = env.current()->rules()};
 
         // hsoNOOP
         {
             STObject hso{sfHook};
-            BEAST_EXPECT(SetHook::inferOperation(hso) == hsoNOOP);
+            BEAST_EXPECT(SetHook::inferOperation(shCtx, hso) == hsoNOOP);
         }
 
         // hsoCREATE
         {
             STObject hso{sfHook};
             hso.setFieldVL(sfCreateCode, {1});  // non-empty create code
-            BEAST_EXPECT(SetHook::inferOperation(hso) == hsoCREATE);
+            BEAST_EXPECT(SetHook::inferOperation(shCtx, hso) == hsoCREATE);
         }
 
         // hsoDELETE
         {
             STObject hso{sfHook};
             hso.setFieldVL(sfCreateCode, ripple::Blob{});  // empty create code
-            BEAST_EXPECT(SetHook::inferOperation(hso) == hsoDELETE);
+            BEAST_EXPECT(SetHook::inferOperation(shCtx, hso) == hsoDELETE);
         }
 
         // hsoINSTALL
@@ -3264,7 +3291,7 @@ public:
             STObject hso{sfHook};
             hso.setFieldH256(
                 sfHookHash, uint256{beast::zero});  // all zeros hook hash
-            BEAST_EXPECT(SetHook::inferOperation(hso) == hsoINSTALL);
+            BEAST_EXPECT(SetHook::inferOperation(shCtx, hso) == hsoINSTALL);
         }
 
         // hsoNSDELETE
@@ -3273,14 +3300,14 @@ public:
             hso.setFieldH256(
                 sfHookNamespace, uint256{beast::zero});  // all zeros hook hash
             hso.setFieldU32(sfFlags, hsfNSDELETE);
-            BEAST_EXPECT(SetHook::inferOperation(hso) == hsoNSDELETE);
+            BEAST_EXPECT(SetHook::inferOperation(shCtx, hso) == hsoNSDELETE);
         }
 
         // hsoUPDATE
         {
             STObject hso{sfHook};
             hso.setFieldH256(sfHookOn, UINT256_BIT[0]);
-            BEAST_EXPECT(SetHook::inferOperation(hso) == hsoUPDATE);
+            BEAST_EXPECT(SetHook::inferOperation(shCtx, hso) == hsoUPDATE);
         }
 
         // hsoINVALID
@@ -3289,7 +3316,37 @@ public:
             hso.setFieldVL(sfCreateCode, {1});  // non-empty create code
             hso.setFieldH256(
                 sfHookHash, uint256{beast::zero});  // all zeros hook hash
-            BEAST_EXPECT(SetHook::inferOperation(hso) == hsoINVALID);
+            BEAST_EXPECT(SetHook::inferOperation(shCtx, hso) == hsoINVALID);
+
+            for (auto fix : {true, false})
+            {
+                auto feature =
+                    supported_amendments() - fixHookOnV2InstallUpdate;
+                if (fix)
+                    feature = feature | fixHookOnV2InstallUpdate;
+                Env env{*this, feature};
+                SetHookCtx shCtx{
+                    .j = env.app().journal("SetHook"),
+                    .tx = *env.tx(),
+                    .app = env.app(),
+                    .rules = env.current()->rules()};
+
+                STObject hso2{sfHook};
+                hso2.setFieldH256(
+                    sfHookOnOutgoing,
+                    uint256{beast::zero});  // all zeros hook on outgoing
+                BEAST_EXPECT(
+                    SetHook::inferOperation(shCtx, hso2) ==
+                    (fix ? hsoINVALID : hsoNOOP));
+
+                STObject hso3{sfHook};
+                hso3.setFieldH256(
+                    sfHookOnIncoming,
+                    uint256{beast::zero});  // all zeros hook on incoming
+                BEAST_EXPECT(
+                    SetHook::inferOperation(shCtx, hso3) ==
+                    (fix ? hsoINVALID : hsoNOOP));
+            }
         }
     }
 
