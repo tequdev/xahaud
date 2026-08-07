@@ -259,6 +259,13 @@ HookAPI::sto_emplace(
             return Unexpected(TOO_SMALL);
     }
 
+    if (hookCtx.applyCtx.view().rules().enabled(fixHookAPISType))
+    {
+        auto const source_valid = sto_validate(source_object);
+        if (!source_valid || !source_valid.value())
+            return Unexpected(PARSE_ERROR);
+    }
+
     if (field_object.has_value() &&
         hookCtx.applyCtx.view().rules().enabled(fixHookAPI20251128))
     {
@@ -278,6 +285,9 @@ HookAPI::sto_emplace(
             hookCtx.applyCtx.view().rules(),
             0);
         if (!length)
+            return Unexpected(PARSE_ERROR);
+        if (hookCtx.applyCtx.view().rules().enabled(fixHookAPISType) &&
+            length.value() != field_object->size())
             return Unexpected(PARSE_ERROR);
         if ((type << 16) + field != field_id)
         {
@@ -3092,6 +3102,8 @@ HookAPI::get_stobject_length(
         auto zero20 = std::array<char, 20>{0};
         // if first 20 byte is all zeros return 20
         // else return 40
+        if (rules.enabled(fixHookAPISType) && end - upto < 20)
+            return Unexpected(pe_unexpected_end);
         if (memcmp(upto, zero20.data(), 20) == 0)
             length = 20;
         else
@@ -3104,6 +3116,8 @@ HookAPI::get_stobject_length(
         length = 1;    // Door Account1 prefix length
         length += 20;  // Door Account1 length
         // Door Issue1
+        if (rules.enabled(fixHookAPISType) && end - upto < length + 20)
+            return Unexpected(pe_unexpected_end);
         if (memcmp(upto + length, zero20.data(), 20) == 0)
             length += 20;  // only Currency
         else
@@ -3113,6 +3127,8 @@ HookAPI::get_stobject_length(
         length += 1;   // Door Account2 prefix length
         length += 20;  // Door Account2 length
         // Door Issue2
+        if (rules.enabled(fixHookAPISType) && end - upto < length + 20)
+            return Unexpected(pe_unexpected_end);
         if (memcmp(upto + length, zero20.data(), 20) == 0)
             length += 20;  // only Currency
         else
@@ -3133,6 +3149,10 @@ HookAPI::get_stobject_length(
             length,
             payload_start,
             payload_length);
+
+        if (rules.enabled(fixHookAPISType) && length > end - upto)
+            return Unexpected(pe_unexpected_end);
+
         return length + (upto - start);
     }
 
