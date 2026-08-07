@@ -3066,6 +3066,9 @@ HookAPI::get_stobject_length(
                 if (flag & 0x20)  // issuer
                     length += 20;
 
+                if (rules.enabled(fixHookAPISType) && upto + length > end)
+                    return Unexpected(pe_unexpected_end);
+
                 int next_flag = *(upto + length);
                 if (next_flag == 0x00 || next_flag == 0xff)
                     // end of Path step
