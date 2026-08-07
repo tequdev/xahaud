@@ -4087,6 +4087,38 @@ public:
         }
 
         {
+            // Invalid: wrapped array has an invalid end marker.
+            // should be "F9EA7D02BEEFE1F1" {Memos:[{Memo:{MemoData:"BEEF"}}]}
+            auto const invalid_end_marker = *strUnHex("F9EA7D02BEEFE100");
+            auto const result = api.sto_subarray(invalid_end_marker, 0);
+            if (env.closed()->rules().enabled(fixHookAPISType))
+            {
+                BEAST_EXPECT(!result.has_value());
+                BEAST_EXPECT(result.error() == PARSE_ERROR);
+            }
+            else
+            {
+                BEAST_EXPECT(result.value() == std::make_pair(1u, 6u));
+            }
+        }
+
+        {
+            // Invalid: the first element is valid but a following element is
+            // truncated.
+            auto const invalid_tail = *strUnHex("F9EA7D02BEEFE1EA7D02BEEFF1");
+            auto const result = api.sto_subarray(invalid_tail, 0);
+            if (env.closed()->rules().enabled(fixHookAPISType))
+            {
+                BEAST_EXPECT(!result.has_value());
+                BEAST_EXPECT(result.error() == PARSE_ERROR);
+            }
+            else
+            {
+                BEAST_EXPECT(result.value() == std::make_pair(1u, 6u));
+            }
+        }
+
+        {
             // doesn't found
             // { Memos: [{Memo: {MemoData: "BEEF"}}] }
             auto const memos = *strUnHex("F9EA7D02BEEFE1F1");
@@ -4139,6 +4171,25 @@ public:
             BEAST_EXPECT(
                 api.sto_subfield(Bytes{0xFF, 0xFF, 0xFF, 0xFF}, 0).error() ==
                 PARSE_ERROR);
+        }
+
+        {
+            // Invalid: the requested field is valid but a later field is
+            // truncated.
+            auto const data = *strUnHex(
+                "240000000181140000000000000000000000000000000000000000");
+            auto const invalid_tail = Blob{data.begin(), data.end() - 1};
+            auto const result =
+                api.sto_subfield(invalid_tail, sfSequence.getCode());
+            if (env.closed()->rules().enabled(fixHookAPISType))
+            {
+                BEAST_EXPECT(!result.has_value());
+                BEAST_EXPECT(result.error() == PARSE_ERROR);
+            }
+            else
+            {
+                BEAST_EXPECT(result.value() == std::make_pair(1u, 4u));
+            }
         }
 
         {
@@ -4706,7 +4757,9 @@ public:
         test_sto_emplace(features - fixHookAPISType);
         // test_sto_erase(features); // tested in test_sto_emplace
         test_sto_subarray(features);
+        test_sto_subarray(features - fixHookAPISType);
         test_sto_subfield(features);
+        test_sto_subfield(features - fixHookAPISType);
         test_sto_validate(features);
 
         test_trace(features);

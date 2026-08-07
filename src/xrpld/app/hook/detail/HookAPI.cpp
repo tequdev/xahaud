@@ -101,6 +101,14 @@ HookAPI::sto_subfield(Bytes const& data, uint32_t field_id) const
     if (data.size() < 2)
         return Unexpected(TOO_SMALL);
 
+    if (hookCtx.applyCtx.view().rules().enabled(fixHookAPISType))
+    {
+        // validate the data
+        auto const valid = sto_validate(data);
+        if (!valid || !valid.value())
+            return Unexpected(PARSE_ERROR);
+    }
+
     unsigned char* start = const_cast<unsigned char*>(data.data());
     unsigned char* upto = start;
     unsigned char* end = start + data.size();
@@ -164,6 +172,18 @@ HookAPI::sto_subarray(Bytes const& data, uint32_t index_id) const
     unsigned char* start = const_cast<unsigned char*>(data.data());
     unsigned char* upto = start;
     unsigned char* end = start + data.size();
+
+    if (hookCtx.applyCtx.view().rules().enabled(fixHookAPISType))
+    {
+        // check if the array has valid trailing data
+        if ((*upto & 0xF0U) == 0xF0U && *(end - 1) != 0xF1U)
+            return Unexpected(PARSE_ERROR);
+
+        // validate the array
+        auto const valid = sto_validate(data);
+        if (!valid || !valid.value())
+            return Unexpected(PARSE_ERROR);
+    }
 
     // unwrap the array if it is wrapped,
     // by removing a byte from the start and end
