@@ -3991,8 +3991,14 @@ public:
              sfClaimCurrency.getCode(),
              "05180000000000000000000000005553440000000000054F6F784A58F9EFB0A9E"
              "B90B83464F9D1664619"},
-            // XCHAIN_BRIDGE
-            // CURRENCY
+            {// XChainBridge Native-Native
+             sfXChainBridge.getCode(),
+             "011914AE123A8556F3CF91154711376AFB0F894F832B3D000000000000"
+             "000000000000000000000000000014AE123A8556F3CF91154711376AFB"
+             "0F894F832B3D0000000000000000000000000000000000000000"},
+            {// Currency BaseAsset
+             sfBaseAsset.getCode(),
+             "011A0000000000000000000000005553440000000000"},
         };
         bool returnError = false;
         for (auto const& data : data_list)
