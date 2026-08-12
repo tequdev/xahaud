@@ -18,6 +18,7 @@
 //==============================================================================
 
 #include <xrpld/app/tx/detail/HookDefinitionUpdate.h>
+#include <xrpl/protocol/TxFlags.h>
 
 namespace ripple {
 
@@ -27,13 +28,13 @@ HookDefinitionUpdate::preflight(PreflightContext const& ctx)
     if (!ctx.rules.enabled(featureHookFeeV2))
         return temDISABLED;
 
-    auto const& tx = ctx.tx;
-    auto const& j = ctx.j;
-
     if (auto const ret = preflight1(ctx); !isTesSuccess(ret))
         return ret;
 
-    // TODO: check flags
+    auto const& tx = ctx.tx;
+
+    if (tx.getFlags() & tfHookDefinitionUpdateMask)
+        return temINVALID_FLAG;
 
     return preflight2(ctx);
 }
@@ -44,9 +45,7 @@ HookDefinitionUpdate::preclaim(PreclaimContext const& ctx)
     auto const& view = ctx.view;
     auto const& tx = ctx.tx;
 
-    auto exists =
-        view.exists(keylet::hookDefinition(tx.getFieldH256(sfHookHash)));
-    if (!exists)
+    if (!view.exists(keylet::hookDefinition(tx.getFieldH256(sfHookHash))))
         return tecNO_ENTRY;
 
     return tesSUCCESS;
@@ -61,9 +60,12 @@ HookDefinitionUpdate::doApply()
     auto hookDefSle =
         view.peek(keylet::hookDefinition(tx.getFieldH256(sfHookHash)));
     if (!hookDefSle)
-        return tefINTERNAL;
+        return tefINTERNAL;  // LCOV_EXCL_LINE
 
     Blob hook = hookDefSle->getFieldVL(sfCreateCode);
+
+    if (!tx.isFlag(tfValidateGuards))
+        return tecINTERNAL;  // LCOV_EXCL_LINE
 
     auto const result =
         hook::doValidateGuards(tx, hook, view.rules(), ctx_.journal);
@@ -109,9 +111,17 @@ HookDefinitionUpdate::calculateBaseFee(ReadView const& view, STTx const& tx)
 {
     auto const baseFee = Transactor::calculateBaseFee(view, tx);
 
-    // TODO: add a cost based on the size of the hook code?
+    auto const& hookDefSle =
+        view.read(keylet::hookDefinition(tx.getFieldH256(sfHookHash)));
 
-    return baseFee;
+    if (!hookDefSle || !hookDefSle->isFieldPresent(sfCreateCode))
+        // if hook definition is not present, doValidateGuards will not call, so
+        // no additional fee is needed
+        return baseFee;
+
+    auto const hookCodeSize = hookDefSle->getFieldVL(sfCreateCode).size();
+
+    return baseFee + XRPAmount{hook::computeCreationFee(hookCodeSize)};
 }
 
 }  // namespace ripple

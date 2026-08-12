@@ -575,6 +575,9 @@ getTransactionalStakeHolders(STTx const& tx, ReadView const& rv)
         case ttREMARKS_SET: {
             break;
         }
+        case ttHOOK_DEFINITION_UPDATE: {
+            break;
+        }
         // pseudo transactions
         case ttAMENDMENT:
         case ttFEE:
