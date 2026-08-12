@@ -3258,11 +3258,14 @@ public:
         testcase("Test operation inference");
         using namespace jtx;
 
+        auto const alice = Account{"alice"};
         Env env{*this};
+        env.fund(XRP(10000), alice);
+        env(noop(alice));
 
         SetHookCtx shCtx{
             .j = env.app().journal("SetHook"),
-            .tx = *env.tx(),
+            .tx = *(env.tx()),
             .app = env.app(),
             .rules = env.current()->rules()};
 

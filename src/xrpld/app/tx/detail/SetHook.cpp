@@ -1667,7 +1667,9 @@ SetHook::setHook()
                 // set the hookon field if it differs from definition
                 if (newHookOn)
                 {
-                    if (defHookOn.has_value() && *defHookOn == *newHookOn)
+                    if ((!view().rules().enabled(fixHookOnV2InstallUpdate) ||
+                         defHookOn.has_value()) &&
+                        *defHookOn == *newHookOn)
                     {
                         if (newHook.isFieldPresent(sfHookOn))
                             newHook.makeFieldAbsent(sfHookOn);
