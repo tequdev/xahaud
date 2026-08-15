@@ -265,10 +265,9 @@ validateHookOn(SetHookCtx& ctx, STObject const& hookSetObj)
 }
 
 bool
-validateCreateCode(SetHookCtx& ctx, STObject const& hookSetObj)
+validateCreateCode(SetHookCtx& ctx, Blob const& createCode)
 {
-    if (hookSetObj.isFieldPresent(sfCreateCode) &&
-        hookSetObj.getFieldVL(sfCreateCode).size() > hook::maxHookWasmSize())
+    if (createCode.size() > hook::maxHookWasmSize())
     {
         JLOG(ctx.j.trace())
             << "HookSet(" << hook::log::WASM_TOO_BIG << ")[" << HS_ACC()
@@ -282,6 +281,9 @@ validateCreateCode(SetHookCtx& ctx, STObject const& hookSetObj)
 std::variant<bool, std::pair<uint64_t, uint64_t>>
 validateWasmCode(SetHookCtx& ctx, STObject const& hookSetObj)
 {
+    if (!hookSetObj.isFieldPresent(sfCreateCode))
+        return false;
+
     Blob hook = hookSetObj.getFieldVL(sfCreateCode);
 
     // RH NOTE: validateGuards has a generic non-rippled specific
@@ -360,9 +362,8 @@ validateWasmCode(SetHookCtx& ctx, STObject const& hookSetObj)
 }
 
 bool
-validateHookAPIVersion(SetHookCtx& ctx, STObject const& hookSetObj)
+validateHookAPIVersion(SetHookCtx& ctx, uint16_t apiVersion)
 {
-    auto const apiVersion = hookSetObj.getFieldU16(sfHookApiVersion);
     if (apiVersion != 0)
     {
         JLOG(ctx.j.trace())
@@ -389,7 +390,7 @@ validateHookSetFields(SetHookCtx& ctx, STObject const& hookSetObj)
     }
 
     if (hookSetObj.isFieldPresent(sfCreateCode) &&
-        !validateCreateCode(ctx, hookSetObj))
+        !validateCreateCode(ctx, hookSetObj.getFieldVL(sfCreateCode)))
     {
         return false;
     }
@@ -412,7 +413,7 @@ validateHookSetFields(SetHookCtx& ctx, STObject const& hookSetObj)
     }
 
     if (hookSetObj.isFieldPresent(sfHookApiVersion) &&
-        !validateHookAPIVersion(ctx, hookSetObj))
+        !validateHookAPIVersion(ctx, hookSetObj.getFieldU16(sfHookApiVersion)))
     {
         return false;
     }
@@ -639,18 +640,12 @@ SetHook::validateHookSetEntry(SetHookCtx& ctx, STObject const& hookSetObj)
             // validate sfHookName
             if (hookSetObj.isFieldPresent(sfHookName))
             {
-                auto name = hookSetObj.getFieldVL(sfHookName);
-                if (!validateHookName(name, ctx.j))
+                if (!validateHookName(hookSetObj.getFieldVL(sfHookName), ctx.j))
                     return false;
             }
 
             // finally validate web assembly byte code
-            {
-                if (!hookSetObj.isFieldPresent(sfCreateCode))
-                    return {};
-
-                return validateWasmCode(ctx, hookSetObj);
-            }
+            return validateWasmCode(ctx, hookSetObj);
         }
 
         case hsoINVALID:
