@@ -2375,6 +2375,44 @@ SetHook::setHook()
                             sfHookName,
                             hookSetObj->get().getFieldVL(sfHookName));
 
+                    if (hookSetObj->get().isFieldPresent(sfHookFunctions))
+                    {
+                        const STArray& origFunctions =
+                            hookSetObj->get().getFieldArray(sfHookFunctions);
+                        STArray newFunctions(sfHookFunctions);
+
+                        for (auto const& function : origFunctions)
+                        {
+                            STObject newFunction = function;  // copy
+
+                            Blob functionName =
+                                newFunction.getFieldVL(sfFunctionName);
+                            std::string hexStr(
+                                functionName.begin(), functionName.end());
+
+                            if (instructionCountMap.find(hexStr) !=
+                                instructionCountMap.end())
+                            {
+                                auto fee = XRPAmount{hook::computeExecutionFee(
+                                    instructionCountMap.at(hexStr))};
+                                newFunction.setFieldAmount(sfFee, fee);
+                            }
+                            else
+                            {
+                                return tecINTERNAL;
+                            }
+
+                            if (newFunction.isFlag(
+                                    FunctionalHookFlags::hffINITIALIZE))
+                                initializationFunctionName = hexStr;
+
+                            newFunctions.push_back(std::move(newFunction));
+                        }
+
+                        newHookDef->setFieldArray(
+                            sfHookFunctions, std::move(newFunctions));
+                    }
+
                     slesToInsert.emplace(keylet, newHookDef);
                     newHook.setFieldH256(sfHookHash, *createHookHash);
                     newHooks.push_back(std::move(newHook));

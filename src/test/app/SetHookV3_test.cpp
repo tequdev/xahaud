@@ -1158,7 +1158,7 @@ public:
         }
 
         // Initialize function failure should cause hook installation to fail
-        env(ripple::test::jtx::hook(alice, {{jvFail}}, 1),
+        env(ripple::test::jtx::hook(alice, {{jvFail}}, 0),
             HSFEE,
             ter(tecHOOK_REJECTED));
         env.close();
@@ -1191,7 +1191,7 @@ public:
             Json::Value jv = hso(testv3_simple_wasm, overrideFlag);
             jv[jss::HookApiVersion] = 3;
             jv[jss::HookFunctions] = addFunc({{"hook_accept", {}}});
-            env(ripple::test::jtx::hook(alice, {{{}, jv}}, 1),
+            env(ripple::test::jtx::hook(alice, {{{}, jv}}, 0),
                 HSFEE,
                 ter(temMALFORMED));
             env.close();
@@ -1209,7 +1209,7 @@ public:
             Json::Value jv = hso(testv3_simple_wasm, overrideFlag);
             jv[jss::HookApiVersion] = 3;
             jv[jss::HookFunctions] = addFunc({{"hook_accept", {}}});
-            env(ripple::test::jtx::hook(alice, {{jv, {}}}, 1),
+            env(ripple::test::jtx::hook(alice, {{jv, {}}}, 0),
                 HSFEE,
                 ter(tecHOOK_INVALID_ENTRY));
             env.close();
@@ -1555,7 +1555,6 @@ public:
     testWithFeatures(FeatureBitset features)
     {
         testInvalid(features);
-        return;
         testFeeRPC(features);
         testSimple(features);
         testFunctionParameters(features);
