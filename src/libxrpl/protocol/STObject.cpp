@@ -24,9 +24,9 @@
 #include <xrpl/protocol/STAccount.h>
 #include <xrpl/protocol/STArray.h>
 #include <xrpl/protocol/STBlob.h>
+#include <xrpl/protocol/STCurrency.h>
 #include <xrpl/protocol/STData.h>
 #include <xrpl/protocol/STDataType.h>
-#include <xrpl/protocol/STCurrency.h>
 #include <xrpl/protocol/STNumber.h>
 #include <xrpl/protocol/STObject.h>
 

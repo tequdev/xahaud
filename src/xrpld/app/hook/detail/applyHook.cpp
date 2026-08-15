@@ -866,7 +866,6 @@ hook::getHookOn(
     return uint256{0};
 }
 
-
 std::vector<hook::FunctionParameterValueVec>
 hook::getFunctionParameterValueVec(ripple::STArray const& functionParameters)
 {
