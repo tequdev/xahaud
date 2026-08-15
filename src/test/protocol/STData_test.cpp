@@ -17,10 +17,10 @@
 */
 //==============================================================================
 
-#include <ripple/basics/StringUtilities.h>
-#include <ripple/beast/unit_test.h>
-#include <ripple/protocol/SField.h>
-#include <ripple/protocol/STData.h>
+#include <xrpl/basics/StringUtilities.h>
+#include <xrpl/beast/unit_test.h>
+#include <xrpl/protocol/SField.h>
+#include <xrpl/protocol/STData.h>
 
 #include <arpa/inet.h>  // For htonl/ntohl (needed for serialization simulation)
 
