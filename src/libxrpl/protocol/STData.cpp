@@ -23,7 +23,9 @@
 #include <xrpl/protocol/STAccount.h>
 #include <xrpl/protocol/STAmount.h>
 #include <xrpl/protocol/STBlob.h>
+#include <xrpl/protocol/STCurrency.h>
 #include <xrpl/protocol/STData.h>
+#include <xrpl/protocol/STIssue.h>
 #include <xrpl/protocol/detail/STVar.h>
 #include <xrpl/protocol/jss.h>
 #include <cstring>
@@ -117,6 +119,16 @@ STData::STData(SField const& n, STAmount const& v)
     setFieldUsingAssignment(v);
 }
 
+STData::STData(SField const& n, Issue const& v)
+    : STBase(n), inner_type_(STI_ISSUE), data_(STIssue{sfAsset, v})
+{
+}
+
+STData::STData(SField const& n, Currency const& v)
+    : STBase(n), inner_type_(STI_CURRENCY), data_(STCurrency{sfBaseAsset, v})
+{
+}
+
 // TODO
 STData::STData(SerialIter& sit, SField const& name)
     : STBase(name), data_(STBase{})
@@ -160,6 +172,14 @@ STData::STData(SerialIter& sit, SField const& name)
         }
         case STI_AMOUNT: {
             data_ = detail::STVar(sit, sfAmount);
+            break;
+        }
+        case STI_ISSUE: {
+            data_ = detail::STVar(sit, sfAsset);
+            break;
+        }
+        case STI_CURRENCY: {
+            data_ = detail::STVar(sit, sfBaseAsset);
             break;
         }
         default:
@@ -280,6 +300,18 @@ STData::add(Serializer& s) const
             st_amt.add(s);
             break;
         }
+        case STI_ISSUE: {
+            const ripple::STIssue& st_issue =
+                data_.get().downcast<ripple::STIssue>();
+            st_issue.add(s);
+            break;
+        }
+        case STI_CURRENCY: {
+            const STCurrency& st_currency =
+                data_.get().downcast<ripple::STCurrency>();
+            st_currency.add(s);
+            break;
+        }
         default:
             Throw<std::runtime_error>("STData: unknown type");
     }
@@ -333,6 +365,12 @@ STData::getInnerTypeString() const
             break;
         case STI_AMOUNT:
             inner_type_str = "AMOUNT";
+            break;
+        case STI_ISSUE:
+            inner_type_str = "ISSUE";
+            break;
+        case STI_CURRENCY:
+            inner_type_str = "CURRENCY";
             break;
         // Add other known types as needed
         default:
@@ -451,6 +489,20 @@ STData::setFieldAmount(STAmount const& v)
     setFieldUsingAssignment(v);
 }
 
+void
+STData::setFieldIssue(Issue const& v)
+{
+    inner_type_ = STI_ISSUE;
+    data_ = detail::STVar(STIssue{sfAsset, v});
+}
+
+void
+STData::setFieldCurrency(Currency const& v)
+{
+    inner_type_ = STI_CURRENCY;
+    data_ = detail::STVar(STCurrency{sfBaseAsset, v});
+}
+
 unsigned char
 STData::getFieldU8() const
 {
@@ -507,11 +559,23 @@ STData::getFieldVL() const
     return Blob(b.data(), b.data() + b.size());
 }
 
-STAmount const&
+STAmount
 STData::getFieldAmount() const
 {
     static STAmount const empty{};
     return getFieldByConstRef<STAmount>(empty);
+}
+
+Issue
+STData::getFieldIssue() const
+{
+    return getFieldByValue<STIssue>().get<Issue>();
+}
+
+Currency
+STData::getFieldCurrency() const
+{
+    return getFieldByValue<STCurrency>();
 }
 
 STData
@@ -584,6 +648,16 @@ dataFromJson(SField const& field, Json::Value const& v)
     else if (typeStr == "AMOUNT")
     {
         STData data(field, amountFromJson(field, value));
+        return data;
+    }
+    else if (typeStr == "ISSUE")
+    {
+        STData data(field, issueFromJson(value));
+        return data;
+    }
+    else if (typeStr == "CURRENCY")
+    {
+        STData data(field, static_cast<Currency>(value.asUInt()));
         return data;
     }
 

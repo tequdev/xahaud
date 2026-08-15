@@ -127,6 +127,12 @@ STDataType::getInnerTypeString() const
         case STI_AMOUNT:
             inner_type_str = "AMOUNT";
             break;
+        case STI_ISSUE:
+            inner_type_str = "ISSUE";
+            break;
+        case STI_CURRENCY:
+            inner_type_str = "CURRENCY";
+            break;
         // Add other known types as needed
         default:
             inner_type_str = std::to_string(inner_type_);
@@ -216,6 +222,18 @@ dataTypeFromJson(SField const& field, Json::Value const& v)
     else if (typeStr == "AMOUNT")
     {
         typeId = STI_AMOUNT;
+        STDataType data(field, typeId);
+        return data;
+    }
+    else if (typeStr == "ISSUE")
+    {
+        typeId = STI_ISSUE;
+        STDataType data(field, typeId);
+        return data;
+    }
+    else if (typeStr == "CURRENCY")
+    {
+        typeId = STI_CURRENCY;
         STDataType data(field, typeId);
         return data;
     }

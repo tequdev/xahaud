@@ -56,6 +56,8 @@ public:
     STData(SField const& n, Slice const&);
     STData(SField const& n, AccountID const&);
     STData(SField const& n, STAmount const&);
+    STData(SField const& n, Issue const&);
+    STData(SField const& n, Currency const&);
 
     STData(SerialIter& sit, SField const& name);
 
@@ -105,6 +107,10 @@ public:
     setAccountID(AccountID const&);
     void
     setFieldAmount(STAmount const&);
+    void
+    setFieldIssue(Issue const&);
+    void
+    setFieldCurrency(Currency const&);
 
     unsigned char
     getFieldU8() const;
@@ -124,8 +130,12 @@ public:
     getAccountID() const;
     Blob
     getFieldVL() const;
-    STAmount const&
+    STAmount
     getFieldAmount() const;
+    Issue
+    getFieldIssue() const;
+    Currency
+    getFieldCurrency() const;
 
 private:
     STBase*
@@ -189,12 +199,12 @@ STData::getFieldByValue() const
     SerializedTypeID id = rf->getSType();
 
     if (id == STI_NOTPRESENT)
-        Throw<std::runtime_error>("Field not present");
+        Throw<std::runtime_error>("getFieldByValue: field not present");
 
     const T* cf = dynamic_cast<const T*>(rf);
 
     if (!cf)
-        Throw<std::runtime_error>("Wrong field type");
+        Throw<std::runtime_error>("getFieldByValue: wrong field type");
 
     return cf->value();
 }
@@ -221,7 +231,7 @@ STData::getFieldByConstRef(V const& empty) const
     const T* cf = dynamic_cast<const T*>(rf);
 
     if (!cf)
-        Throw<std::runtime_error>("Wrong field type");
+        Throw<std::runtime_error>("getFieldByConstRef: wrong field type");
 
     return *cf;
 }
@@ -244,7 +254,7 @@ STData::setFieldUsingSetValue(V value)
     T* cf = dynamic_cast<T*>(rf);
 
     if (!cf)
-        Throw<std::runtime_error>("Wrong field type");
+        Throw<std::runtime_error>("setFieldUsingSetValue: Wrong field type");
 
     cf->setValue(std::move(value));
 }
@@ -265,7 +275,7 @@ STData::setFieldUsingAssignment(T const& value)
     T* cf = dynamic_cast<T*>(rf);
 
     if (!cf)
-        Throw<std::runtime_error>("Wrong field type");
+        Throw<std::runtime_error>("setFieldUsingAssignment: Wrong field type");
 
     (*cf) = value;
 }

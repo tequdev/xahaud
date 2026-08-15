@@ -232,12 +232,79 @@ struct STData_test : public beast::unit_test::suite
                 "0006D5471AFD498D00000000000000000000000000005553440000000000AE"
                 "123A8556F3CF91154711376AFB0F894F832B3D");
         }
+
+        {
+            // STI_ISSUE (Native)
+            Serializer s;
+            Issue const issue = xrpIssue();
+            STData s1(sf);
+            s1.setFieldIssue(issue);
+            BEAST_EXPECT(s1.getFieldIssue() == issue);
+            s1.add(s);
+            BEAST_EXPECT(
+                strHex(s) == "00180000000000000000000000000000000000000000");
+            s.erase();
+
+            STData s2(sf, xrpIssue());
+            BEAST_EXPECT(s2.getFieldIssue() == xrpIssue());
+            s2.add(s);
+            BEAST_EXPECT(
+                strHex(s) == "00180000000000000000000000000000000000000000");
+        }
+        {
+            // STI_ISSUE (IOU)
+            Serializer s;
+            Issue const issue =
+                Issue(Currency(0x5841480000000000), AccountID(1));
+            STData s1(sf);
+            s1.setFieldIssue(issue);
+            BEAST_EXPECT(s1.getFieldIssue() == issue);
+            s1.add(s);
+            BEAST_EXPECT(
+                strHex(s) ==
+                "00180000000000000000000000005841480000000000000000000000000000"
+                "0000000000000000000001");
+            s.erase();
+
+            Issue const usd(
+                Currency(0x5553440000000000),
+                parseBase58<AccountID>("rG1QQv2nh2gr7RCZ1P8YYcBUKCCN633jCn")
+                    .value());
+            STData s2(sf, usd);
+            BEAST_EXPECT(s2.getFieldIssue() == usd);
+            s2.add(s);
+            BEAST_EXPECT(
+                strHex(s) ==
+                "00180000000000000000000000005553440000000000AE123A8556F3CF9115"
+                "4711376AFB0F894F832B3D");
+        }
+        {
+            // STI_CURRENCY
+            Serializer s;
+            Currency currency = Currency(0x5553440000000000);
+            STData s1(sf);
+            s1.setFieldCurrency(currency);
+            BEAST_EXPECT(s1.getFieldCurrency() == currency);
+            s1.add(s);
+            BEAST_EXPECT(
+                strHex(s) == "001A0000000000000000000000005553440000000000");
+            s.erase();
+
+            Currency currency2 = Currency(0x4555520000000000);
+            STData s2(sf, currency2);
+            BEAST_EXPECT(s2.getFieldCurrency() == currency2);
+            s2.add(s);
+            BEAST_EXPECT(
+                strHex(s) == "001A0000000000000000000000004555520000000000");
+        }
+        // Invalid STI
     }
 
     void
     run() override
     {
         testFields();
+        // testJson();
     }
 };
 

@@ -122,12 +122,32 @@ struct STDataType_test : public beast::unit_test::suite
             s1.add(s);
             BEAST_EXPECT(strHex(s) == "0006");
         }
+        {
+            // STI_ISSUE
+            Serializer s;
+            STDataType s1(sf);
+            s1.setInnerSType(STI_ISSUE);
+            BEAST_EXPECT(s1.getInnerSType() == STI_ISSUE);
+            s1.add(s);
+            BEAST_EXPECT(strHex(s) == "0018");
+        }
+        {
+            // STI_CURRENCY
+            Serializer s;
+            STDataType s1(sf);
+            s1.setInnerSType(STI_CURRENCY);
+            BEAST_EXPECT(s1.getInnerSType() == STI_CURRENCY);
+            s1.add(s);
+            BEAST_EXPECT(strHex(s) == "001A");
+        }
+        // Invalid STI
     }
 
     void
     run() override
     {
         testFields();
+        // testJson();
     }
 };
 
