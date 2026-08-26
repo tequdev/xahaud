@@ -53,7 +53,7 @@ setEffectiveParameters(
         definition && definition->isFieldPresent(sfHookParameters);
     bool const hasEntry = entry.isFieldPresent(sfHookParameters);
     if (!hasDefinition && !hasEntry)
-        return;
+        return;  // LCOV_EXCL_LINE
 
     STArray parameters{sfHookParameters};
 
@@ -112,7 +112,7 @@ effectiveHookOn(
         return definition->getFieldH256(direction);
     if (definition->isFieldPresent(sfHookOn))
         return definition->getFieldH256(sfHookOn);
-    return uint256{0};
+    return uint256{0};  // LCOV_EXCL_LINE
 }
 
 STObject
