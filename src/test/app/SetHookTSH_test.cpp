@@ -870,7 +870,7 @@ private:
             test::jtx::Env env{
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
-                features};
+                features | featureAMM};
 
             auto const issuer = Account("gw");
             auto const account = Account("alice");
@@ -920,7 +920,7 @@ private:
             test::jtx::Env env{
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
-                features};
+                features | featureAMM};
 
             auto const issuer = Account("gw");
             auto const account = Account("alice");
@@ -975,7 +975,7 @@ private:
                     cfg->FEES.reference_fee = XRPAmount(1);
                     return cfg;
                 }),
-                features);
+                features | featureAMM);
 
             auto const issuer = Account("gw");
             auto const account = Account("alice");
@@ -1035,7 +1035,7 @@ private:
             test::jtx::Env env{
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
-                features};
+                features | featureAMM | featureAMMClawback};
 
             auto const issuer = Account("gw");
             auto const account = Account("alice");
@@ -1093,7 +1093,7 @@ private:
             test::jtx::Env env{
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
-                features};
+                features | featureAMM};
 
             auto const issuer = Account("gw");
             auto const account = Account("alice");
@@ -1148,7 +1148,7 @@ private:
             test::jtx::Env env{
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
-                features};
+                features | featureAMM};
 
             auto const issuer = Account("gw");
             auto const account = Account("alice");
@@ -1195,7 +1195,7 @@ private:
             test::jtx::Env env{
                 *this,
                 network::makeNetworkConfig(21337, "10", "1000000", "200000"),
-                features};
+                features | featureAMM};
 
             auto const issuer = Account("gw");
             auto const account = Account("alice");
