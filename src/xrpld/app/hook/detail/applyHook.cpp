@@ -1456,6 +1456,12 @@ hook::finalizeHookState(
     auto const& j = applyCtx.app.journal("View");
     uint16_t changeCount = 0;
 
+#ifdef HOOK_COST_BENCH
+    std::uint64_t benchItemCount = 0;
+    hook::bench::FinalizeTimer benchTimer(
+        hook::bench::finalizeState, benchItemCount);
+#endif
+
     // write all changes to state, if in "apply" mode
     for (const auto& accEntry : stateMap)
     {
@@ -1494,6 +1500,9 @@ hook::finalizeHookState(
                         return result;
                     }
                     // ^ should not fail... checks were done before map insert
+#ifdef HOOK_COST_BENCH
+                    benchItemCount++;
+#endif
                 }
             }
         }
@@ -1572,6 +1581,12 @@ hook::finalizeHookResult(
 {
     auto const& j = applyCtx.app.journal("View");
 
+#ifdef HOOK_COST_BENCH
+    std::uint64_t benchItemCount = 0;
+    hook::bench::FinalizeTimer benchTimer(
+        hook::bench::finalizeResult, benchItemCount);
+#endif
+
     // open views do not modify add/remove ledger entries
     if (applyCtx.view().open() && !(applyCtx.flags() & tapDRY_RUN))
         return tesSUCCESS;
@@ -1629,6 +1644,9 @@ hook::finalizeHookResult(
                 {
                     (*sleEmitted)[sfOwnerNode] = *page;
                     applyCtx.view().insert(sleEmitted);
+#ifdef HOOK_COST_BENCH
+                    benchItemCount++;
+#endif
                 }
                 else
                 {

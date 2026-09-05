@@ -22,6 +22,7 @@
 #include <xrpld/app/tx/detail/Transactor.h>
 #include <xrpl/basics/Log.h>
 #include <xrpl/beast/utility/instrumentation.h>
+#include <xrpl/hook/Bench.h>
 #include <xrpl/json/to_string.h>
 #include <xrpl/protocol/Feature.h>
 #include <xrpl/protocol/Indexes.h>
@@ -99,6 +100,29 @@ ApplyContext::checkInvariantsHelper(
     {
         auto checkers = getInvariantChecks();
 
+#ifdef HOOK_COST_BENCH
+        // bench-review2 finding 5: brace the timer around visit() only (not
+        // the finalize() pass below, a fixed per-transaction cost with no
+        // relation to entry count), and count only ltHOOK_STATE entries so
+        // the per-entry amortisation in HookAPICost_test.cpp's measureApi()
+        // means what it says.
+        {
+            std::uint64_t benchItemCount = 0;
+            hook::bench::FinalizeTimer benchTimer(
+                hook::bench::invariants, benchItemCount);
+            visit([&checkers, &benchItemCount](
+                      uint256 const& index,
+                      bool isDelete,
+                      std::shared_ptr<SLE const> const& before,
+                      std::shared_ptr<SLE const> const& after) {
+                auto const& sle = after ? after : before;
+                if (sle && sle->getType() == ltHOOK_STATE)
+                    benchItemCount++;
+                (...,
+                 std::get<Is>(checkers).visitEntry(isDelete, before, after));
+            });
+        }
+#else
         // call each check's per-entry method
         visit([&checkers](
                   uint256 const& index,
@@ -107,6 +131,7 @@ ApplyContext::checkInvariantsHelper(
                   std::shared_ptr<SLE const> const& after) {
             (..., std::get<Is>(checkers).visitEntry(isDelete, before, after));
         });
+#endif
 
         // Note: do not replace this logic with a `...&&` fold expression.
         // The fold expression will only run until the first check fails (it

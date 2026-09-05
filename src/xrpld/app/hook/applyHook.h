@@ -454,6 +454,10 @@ public:
         WasmEdge_Value params[1] = {WasmEdge_ValueGenI32((int64_t)wasmParam)};
         WasmEdge_Value returns[1];
 
+#ifdef HOOK_COST_BENCH
+        std::uint64_t const bench_exec_t0 = hook::bench::nowNs();
+#endif
+
         res = WasmEdge_VMRunWasmFromBuffer(
             vm.ctx,
             reinterpret_cast<const uint8_t*>(wasm),
@@ -463,6 +467,11 @@ public:
             1,
             returns,
             1);
+
+#ifdef HOOK_COST_BENCH
+        hook::bench::exec.ns += hook::bench::nowNs() - bench_exec_t0;
+        hook::bench::exec.count++;
+#endif
 
         if (auto err = getWasmError("WASM VM error", res); err)
         {
@@ -474,6 +483,10 @@ public:
         auto* statsCtx = WasmEdge_VMGetStatisticsContext(vm.ctx);
         hookCtx.result.instructionCount =
             WasmEdge_StatisticsGetInstrCount(statsCtx);
+
+#ifdef HOOK_COST_BENCH
+        hook::bench::exec.instructions += hookCtx.result.instructionCount;
+#endif
 
         // RH NOTE: stack unwind will clean up WasmEdgeVM
     }

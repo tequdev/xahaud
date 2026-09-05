@@ -10,6 +10,8 @@
  * were then used.
  */
 
+#include <xrpl/hook/Bench.h>
+
 #define LPAREN (
 #define RPAREN )
 #define COMMA ,
@@ -106,7 +108,22 @@
     extern WasmEdge_FunctionTypeContext* WasmFunctionType##F;     \
     extern WasmEdge_String WasmFunctionName##F;
 
+#ifdef HOOK_COST_BENCH
+#define HOOK_BENCH_COUNTER_DECL(F) \
+    static hook::bench::ApiCounter benchCounter_##F{#F};
+#define HOOK_BENCH_T0(F) \
+    std::uint64_t const bench_t0_##F = hook::bench::nowNs();
+#define HOOK_BENCH_T1(F)                                        \
+    benchCounter_##F.ns += hook::bench::nowNs() - bench_t0_##F; \
+    benchCounter_##F.calls++;
+#else
+#define HOOK_BENCH_COUNTER_DECL(F)
+#define HOOK_BENCH_T0(F)
+#define HOOK_BENCH_T1(F)
+#endif
+
 #define DEFINE_HOOK_FUNCTION(R, F, ...)                                        \
+    HOOK_BENCH_COUNTER_DECL(F)                                                 \
     WasmEdge_Result hook_api::WasmFunction##F(                                 \
         void* data_ptr,                                                        \
         const WasmEdge_CallingFrameContext* frameCtx,                          \
@@ -117,10 +134,12 @@
         __VA_OPT__(FOR_VARS(VAR_ASSIGN, 2, __VA_ARGS__);)                      \
         hook::HookContext* hookCtx =                                           \
             reinterpret_cast<hook::HookContext*>(data_ptr);                    \
+        HOOK_BENCH_T0(F)                                                       \
         auto const& return_code = hook_api::F(                                 \
             *hookCtx,                                                          \
             *const_cast<WasmEdge_CallingFrameContext*>(frameCtx)               \
                 __VA_OPT__(COMMA STRIP_TYPES(__VA_ARGS__)));                   \
+        HOOK_BENCH_T1(F)                                                       \
         if (std::holds_alternative<hook_api::hook_return_code>(return_code) && \
             (std::get<hook_api::hook_return_code>(return_code) ==              \
                  RC_ROLLBACK ||                                                \
