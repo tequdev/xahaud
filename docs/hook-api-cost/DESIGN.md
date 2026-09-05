@@ -86,7 +86,8 @@ time (both from 2.1), `I` the runtime instruction count from metadata:
     dTw = t_instr * dI + t_call            (least squares over the 4 hooks)
 
 `t_call` is the part of a host call that lives outside the wrapper timer
-(WasmEdge's host-call dispatch); it is added to every API. Gates: R^2 > 0.99,
+(WasmEdge's host-call dispatch); it is added to every API after subtracting
+`t_clk` once more (the second clock read of the wrapper lands in the intercept). Gates: R^2 > 0.99,
 `dI` must equal the per-iteration instruction count the guard checker
 reports for that loop body (catches compiler unrolling), and `t_instr` from
 two extra bodies (pure i64 arithmetic; memory-copy heavy) is reported as a
@@ -160,6 +161,45 @@ differencing estimate `((T(N2) - T(N1))/(N2 - N1) - dI*t_instr - t_g) / K`
 is printed next to the primary value; a disagreement > 20 % is flagged.
 This is what a third party without the build flag can reproduce, and it bounds
 the systematic error of the instrumented path.
+
+Phase 1 showed the two agree within 5 % for pure APIs but the cross-check was
+30-70 % higher for `state`/`state_set`. Code review traced this to (a) a
+cross-check formula that omitted `t_call` from the per-iteration guard cost and
+(b) real per-entry work outside the host function: `ApplyContext::checkInvariants`
+re-reads every modified entry from the base ledger and runs all invariant
+checkers on it. (b) is now measured by a third timer around the invariant
+visit and attributed per modified entry to `state_set`/`state_foreign_set`.
+Table rule: primary; if the corrected cross-check still exceeds the primary by
+more than 20 % with low noise (min vs median of T within 10 %), the row uses
+the cross-check and is annotated "unattributed per-call work outside the host
+function". Both values are always printed.
+
+### 2.5a Closed-ledger apply
+
+JTX `env(tx)` applies to the *open* ledger: no metadata is generated and
+`finalizeHookResult` returns early, so emitted-transaction objects are never
+created in that window. Validators run the canonical apply on the *closed*
+ledger during consensus, which includes both. All timing therefore happens
+around `env.close()`: submit untimed, reset counters, time the close, snapshot,
+then one extra untimed close to drain emitted transactions. The wrapper
+counters, `exec.ns`, finalize/invariant timers and the cross-check all come
+from the timed close.
+
+### 2.5b Clock resolution and one-shot APIs
+
+`steady_clock` on Apple Silicon ticks every 41.67 ns; the tick is measured and
+printed in the header. Loop APIs average thousands of samples so quantisation
+is harmless; one-shot APIs (`accept`, `rollback`, `etxn_reserve`, `hook_again`)
+use the *mean* over R = 200 executions (min would always select the low tick)
+and `accept`/`rollback` are additionally derived from `exec.ns` differencing
+against a hook that exits without calling either.
+
+### 2.5c `t_call` directly
+
+Because the fit intercept has a large standard error relative to cheap APIs,
+`t_call` is also measured directly with a hook calling `hook_pos` (body ~ 0)
+16 times per iteration; the direct value populates the table and must agree
+with the intercept within 15 %.
 
 ### 2.6 Environment controls
 
