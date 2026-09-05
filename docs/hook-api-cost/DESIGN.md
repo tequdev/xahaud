@@ -86,11 +86,29 @@ attributed per modified entry / emitted transaction:
     HF(api) = (M_api - 2 * t_clk) + t_call [+ side-effect shares]
 
 `t_clk` is the clock-read overhead (two reads per wrapper) and `t_call` the
-0-argument host-call boundary derived as `E2E(hook_pos) - (M_pos - 2 t_clk)`.
+0-argument host-call boundary, measured on purpose by differencing two hooks
+that call `hook_pos` 16 and 1 times per iteration (the loop-head `_g` cancels):
+`t_call = (excess_k16 - excess_k1) / 15 - (M_pos - 2 t_clk)`, gated at 5 %
+propagated uncertainty before any HF row is emitted.
 The boundary grows with the number of wasm arguments (about +25 ns per
 argument on the draft platform: the 2-argument `_g` costs ~55 ns more than
 `hook_pos`), which is why HF is the fallback, not the primary. Every row
 prints both estimators; a difference above 30 % is annotated.
+
+Table rule: E2E when it exists and is resolvable — propagated per-call
+uncertainty `(median(T) - min(T)) / ((N2 - N1) K)` below `max(20 ns, 10 % of E2E)`
+and E2E not below the physical floor `t_call + (M - 2 t_clk)` — otherwise HF,
+with the reason printed. No value is ever substituted by the other estimator.
+
+`state_set` / `state_foreign_set` are HF by construction. Their E2E is far larger
+(about 24 us per *created* and 7 us per *modified* hook-state entry on the draft
+platform) and that excess is genuine closed-apply work (SHAMap leaf and path
+rehash, node-store write, CreatedNode metadata, owner-directory insert), but it
+is a cost per ledger *entry* rather than per API call, it depends on the
+node-store backend, and ledger growth is what the owner reserve prices. The
+report lists it separately as "apply-time ledger cost, not charged by
+HOOK_API_COST" so HookFeeV2 can decide on a per-created-entry charge
+explicitly rather than by where the cost happens to land.
 
 ### 2.2 Baselines
 
@@ -99,7 +117,9 @@ load/store, add/xor/and, compare, br_if) unrolled 1/2/4/8/16/64 times, each
 with its own N1/N2 fitting its static budget (N2 <= 65534 / static
 instructions per iteration). Gates: R^2 > 0.99 and the standard error of the
 intercept `G` printed; `dI` must match the guard checker's own per-iteration
-count for that body within 30 % (catches compiler unrolling). Two extra
+count for that body within 40 % (catches compiler unrolling, which is a
+multiplicative 2x+ effect; the slack absorbs the guard prologue's
+static-vs-runtime accounting gap at low `dI`). Two extra
 bodies (pure i64 arithmetic; memory-copy heavy) give a sensitivity range for
 `t_instr`; if they differ from the buffer walk by more than 2x the geometric
 mean is used and stated.
