@@ -53,153 +53,126 @@ Facts established during review that shape everything below:
 
 ## 2. Measurement
 
-### 2.1 Instrumentation (primary measurement, build flag)
+### 2.1 Two estimators
 
-CMake option `hook_cost_bench` (default OFF) defines `HOOK_COST_BENCH`. It
-never ships in a validator binary. Under the flag:
+**E2E (end-to-end differencing)** — the table value wherever it can be
+measured. Each benchmark hook loops N times (N read at runtime from a 4-byte
+big-endian HookParameter, so the wasm is byte-identical across N) calling the
+API K times per iteration. The same transaction is measured at N1 and N2
+(10 repetitions each, minimum) on the closed-ledger apply (§2.5a):
 
-* `DEFINE_HOOK_FUNCTION` (Macro.h) wraps the call to `hook_api::F` in a
-  `steady_clock` scope and accumulates `{calls, ns}` into a per-API counter.
-* `HookExecutor::executeWasm` times `WasmEdge_VMRunWasmFromBuffer` and records
-  `{execNs, instructionCount}` for the last execution.
-* `hook::finalizeHookState` records `{ns, modifiedEntries}`;
-  `hook::finalizeHookResult` records `{ns, emittedTxns}`.
-* `include/xrpl/hook/Bench.h` (header-only) holds the counters and exposes
-  `snapshot()` / `reset()` to the test.
+    dT  = (T(N2) - T(N1)) / (N2 - N1)     ns per iteration (env.close wall time)
+    dI  = (I(N2) - I(N1)) / (N2 - N1)     runtime wasm instructions per iteration
+    E2E(api) = (dT - dI * t_instr - G) / K
 
-The clock overhead `t_clk` (empty timed scope, 1e6 samples) is measured at
-start-up and subtracted from every per-call reading.
+`t_instr` (slope) and `G` (intercept: the total per-iteration cost of the
+mandatory loop-head `_g` call) come from a least-squares fit of `dT` against
+`dI` over pure-wasm baseline hooks whose body is unrolled 1/2/4/8/16/64 times.
+E2E contains everything the call causes inside the apply: host-call boundary,
+host function body, hook-state flush, invariant checks, ledger/SHAMap writes.
+It needs no build flag and is what a third party reproduces from a Release
+build. A multi-API loop body is decomposed by subtracting the other APIs' own
+E2E values; rows that cannot be decomposed fall back to HF.
 
-### 2.2 Baseline: `t_instr` and the host-call boundary `t_call`
+**HF (host-function timer)** — needed for APIs that cannot be looped enough
+for differencing (capped per execution or one-shot). CMake option
+`hook_cost_bench` (default OFF, never in a validator binary) defines
+`HOOK_COST_BENCH`; `DEFINE_HOOK_FUNCTION` then times each host function body
+into a per-API counter, `executeWasm` times the wasm run, and
+`finalizeHookState`, `finalizeHookResult` and the invariant visit in
+`ApplyContext::checkInvariantsHelper` (hook-state entries only) are timed and
+attributed per modified entry / emitted transaction:
 
-Baseline hooks: the loop scaffold (`GUARD`, N read from a 4-byte big-endian
-HookParameter "N", one `accept`) with a pure-wasm body unrolled 1x, 4x, 16x,
-64x (byte-wise buffer walk compiled at -O2: local.get/set, i32 load/store,
-add/xor/and, compare, br_if). Each hook runs at two N values that fit its own
-static-count budget (N2 <= 65534 / static-instr-per-iteration, N1 = N2/10).
+    HF(api) = (M_api - 2 * t_clk) + t_call [+ side-effect shares]
 
-Per iteration, with `Tw` the timed wasm execution and `Tg` the `_g` wrapper
-time (both from 2.1), `I` the runtime instruction count from metadata:
+`t_clk` is the clock-read overhead (two reads per wrapper) and `t_call` the
+0-argument host-call boundary derived as `E2E(hook_pos) - (M_pos - 2 t_clk)`.
+The boundary grows with the number of wasm arguments (about +25 ns per
+argument on the draft platform: the 2-argument `_g` costs ~55 ns more than
+`hook_pos`), which is why HF is the fallback, not the primary. Every row
+prints both estimators; a difference above 30 % is annotated.
 
-    dTw = (Tw(N2) - Tg(N2) - Tw(N1) + Tg(N1)) / (N2 - N1)
-    dI  = (I(N2) - I(N1)) / (N2 - N1)
-    dTw = t_instr * dI + t_call            (least squares over the 4 hooks)
+### 2.2 Baselines
 
-`t_call` is the part of a host call that lives outside the wrapper timer
-(WasmEdge's host-call dispatch); it is added to every API after subtracting
-`t_clk` once more (the second clock read of the wrapper lands in the intercept). Gates: R^2 > 0.99,
-`dI` must equal the per-iteration instruction count the guard checker
-reports for that loop body (catches compiler unrolling), and `t_instr` from
-two extra bodies (pure i64 arithmetic; memory-copy heavy) is reported as a
-sensitivity range. If the buffer-walk and i64 baselines differ by more than
-2x, the geometric mean is used and stated.
+Body: byte-wise buffer walk compiled from C at -O2 (local.get/set, i32
+load/store, add/xor/and, compare, br_if) unrolled 1/2/4/8/16/64 times, each
+with its own N1/N2 fitting its static budget (N2 <= 65534 / static
+instructions per iteration). Gates: R^2 > 0.99 and the standard error of the
+intercept `G` printed; `dI` must match the guard checker's own per-iteration
+count for that body within 30 % (catches compiler unrolling). Two extra
+bodies (pure i64 arithmetic; memory-copy heavy) give a sensitivity range for
+`t_instr`; if they differ from the buffer walk by more than 2x the geometric
+mean is used and stated.
 
-### 2.3 Per-API
+### 2.3 Per-API scenarios
 
-    t_api = (ns_wrapper / calls - t_clk) + t_call  [+ side-effect share]
-
-Each API hook calls the API K times per execution (K = min(cap, ~200) for
-capped APIs, otherwise a loop of N <= ~4000 iterations), and is executed R = 10
-times; the statistic is the minimum over executions of the per-call mean.
-Side-effect shares: `state_set`/`state_foreign_set` add
-`finalizeHookState.ns / modifiedEntries`; `emit` adds
-`finalizeHookResult.ns / emittedTxns`.
-
-Scenario rules from the review:
+K = calls per iteration (4 for APIs cheaper than ~100 ns so the signal
+dominates `G`, else 1); capped APIs use K = min(cap, 200) calls per execution
+and a single N point; one-shot APIs are timed by HF as the mean over 200
+executions (see §2.5b). Every hook checks the return value of every call and
+rolls back with the code on error, so an error path can never be recorded as
+a measurement; the harness additionally flags any ledger-touching API whose
+HF time sits at the trivial-API floor.
 
 | API | scenario |
 |---|---|
-| `accept`, `rollback` | timed directly by the wrapper (one call per execution, R = 50) |
-| `etxn_reserve`, `hook_again` | first call timed directly; loop not needed |
-| `emit` | `etxn_reserve(K)`, K = 200 emits, each with its own `etxn_nonce`/`etxn_details` (timed separately by their own counters) |
-| `state`, `state_foreign` | reads are cached per key in `stateMap`: loop over 200 *distinct* pre-created keys per execution |
-| `state_set` | 200 distinct keys per execution (same-key rewrites also count toward the 256 cap) |
-| `state_foreign_set` | needs a HookGrant; grant scan happens on the first call then is cached: report K = 1 (first call) and K = 200 (mean); table uses the first-call value |
-| `slot_set` | 34-byte keylet form only (the 32-byte txid form hits the master transaction cache, not reproducible) |
-| `slot_*`, `otxn_slot`, `meta_slot`, `xpop_slot` | always pass explicit slot numbers (slot 0 allocates and exhausts 255) |
-| `slot_clear` | paired with `slot_set` in the loop; each has its own counter |
-| `hook_skip` | alternate flags 1/0 so the scan path runs every iteration |
+| `accept`, `rollback` | HF, one call per execution, mean over 200 |
+| `etxn_reserve`, `hook_again` | HF, first call; later calls are `ALREADY_SET` |
+| `emit` | `etxn_reserve(200)`, 200 emits each with its own `etxn_nonce`/`etxn_details`, decomposed by their single-API E2E values; the window includes emitted-txn object creation and the TxQ injection at close |
+| `state`, `state_foreign` | reads are cached per key: 200 *distinct* pre-created keys per execution, disjoint key ranges per size |
+| `state_set` | `_create` (fresh keys every rep via a salt parameter) and `_modify` (fixed keys); table = max, stated |
+| `state_foreign_set` | HookGrant on the foreign account; K = 1 (first call, grant scan) and K = 200; table = first call |
+| `slot_set` | 34-byte keylet form only |
+| `slot_*`, `otxn_slot`, `meta_slot`, `xpop_slot` | explicit slot numbers |
+| `slot_clear` | paired with `slot_set`, decomposed |
+| `hook_skip` | two hooks installed; flags alternate 1/0 |
 | `hook_param_set` | K = 16 (cap) |
-| `meta_slot` | strong pass calls `hook_again()`, weak (AAW) pass loops `meta_slot` |
-| `xpop_slot` | on a `ttIMPORT` transaction with a valid XPOP (as in `SetHook_test` `test_xpop_slot`) |
-| `util_verify` | one *passing* verification each for ed25519 and secp256k1; table = max |
-| `float_sto` | XRP, IOU and short-form paths; table = max |
-| `util_keylet`, `slot_type`, `otxn_id` | all modes; table = max |
+| `meta_slot` | the hook calls `hook_again()` in the strong pass and loops `meta_slot` in the weak pass; both inside the same close |
+| `xpop_slot` | on a `ttIMPORT` transaction with the `ImportTCAccountSet` fixtures |
+| `util_verify` | passing ed25519 and secp256k1 verifications; table = max |
+| `float_sto` | XRP / IOU / short-form; table = max |
+| `util_keylet`, `slot_type`, `otxn_id` | all implemented modes; table = max (types that return INVALID_ARGUMENT unconditionally on this branch are listed as not measurable) |
 | `trace*` | early-return at production journal level; measured as such and stated |
-| `ledger_keylet` | stated as a lower bound: JTX ledger is near-empty |
-| `etxn_fee_base` | on an emitted Payment whose destination has no hooks (stated) |
+| `ledger_keylet` | lower bound on a near-empty JTX ledger, stated |
 
 ### 2.4 Size dependence
-
-Sizes measured and the value used for the table:
 
 | API family | sizes | table value |
 |---|---|---|
 | `util_sha512h` | 32 B, 1 KiB, 16 KiB | 1 KiB (see rule) |
-| `sto_validate/subfield/subarray/emplace/erase` | ~100 B, ~500 B, 4 KiB | 500 B (see rule) |
-| `state/state_foreign/state_set/state_foreign_set` | 32 B, 256 B, 4096 B (ExtendedHookState) | 256 B |
-| `otxn_field`, `otxn_slot`, `slot` | 20 B field / 1 KiB Blob / 16 KiB Blob (Invoke) | 1 KiB (see rule) |
+| `sto_*` | ~30 B, ~250 B (real tx), ~4 KiB | 250 B (see rule) |
+| `state*` | 32 B, 256 B, 4096 B (ExtendedHookState) | 256 B |
+| `otxn_field`, `otxn_slot`, `slot` | 20 B field / 1 KiB Blob / 16 KiB Blob | 1 KiB (see rule) |
 | `otxn_param`, `hook_param`, `hook_param_set` | 32 B, 256 B | 256 B (hard cap) |
-| `prepare`, `emit`, `etxn_fee_base` | minimal Payment, Payment + 1 KiB Memo | + 1 KiB Memo |
+| `prepare`, `emit`, `etxn_fee_base` | minimal Payment, Invoke + 1 KiB Blob | + 1 KiB |
 
-Rule (from review): the table uses the reference value; if
-`cost(largest) / cost(reference) > 10` the geometric mean of the two is used
-instead, so that repeated worst-case calls cannot buy native CPU at the
-reference price while everyone else is not charged the worst case. The report
-always shows the fitted `a + b*size` line and the largest-size value so the
-other policy can be applied without re-measuring. Justification for not using
-the worst case for `util_sha512h`/`sto_*`/`prepare`: the hook must first write
-those bytes into linear memory at one instruction each, which the instruction
-term already charges. That defence does not hold for `otxn_field`, `otxn_slot`,
-`slot`, `xpop_slot` (the object is materialised by the host), hence the >10x
-rule.
+Rule: the table uses the reference value; if `cost(largest)/cost(reference) > 10`
+the geometric mean of the two is used instead. The report always prints the
+fitted `a + b*size` line and the largest-size value.
 
-### 2.5 Cross-check column (secondary)
+### 2.5 Crypto caveat
 
-The test also times `env(tx)` for every run. For loopable APIs the v1
-differencing estimate `((T(N2) - T(N1))/(N2 - N1) - dI*t_instr - t_g) / K`
-is printed next to the primary value; a disagreement > 20 % is flagged.
-This is what a third party without the build flag can reproduce, and it bounds
-the systematic error of the instrumented path.
-
-Phase 1 showed the two agree within 5 % for pure APIs but the cross-check was
-30-70 % higher for `state`/`state_set`. Code review traced this to (a) a
-cross-check formula that omitted `t_call` from the per-iteration guard cost and
-(b) real per-entry work outside the host function: `ApplyContext::checkInvariants`
-re-reads every modified entry from the base ledger and runs all invariant
-checkers on it. (b) is now measured by a third timer around the invariant
-visit and attributed per modified entry to `state_set`/`state_foreign_set`.
-Table rule: primary; if the corrected cross-check still exceeds the primary by
-more than 20 % with low noise (min vs median of T within 10 %), the row uses
-the cross-check and is annotated "unattributed per-call work outside the host
-function". Both values are always printed.
+`util_sha512h` and `util_verify` run on ARMv8 SHA-512 hardware on the draft
+platform; x86-64 validators without that acceleration are several times slower
+*relative to the interpreter*. Those rows are marked and must be taken from
+the Linux x86-64 run (§5) before adoption.
 
 ### 2.5a Closed-ledger apply
 
 JTX `env(tx)` applies to the *open* ledger: no metadata is generated and
 `finalizeHookResult` returns early, so emitted-transaction objects are never
 created in that window. Validators run the canonical apply on the *closed*
-ledger during consensus, which includes both. All timing therefore happens
-around `env.close()`: submit untimed, reset counters, time the close, snapshot,
-then one extra untimed close to drain emitted transactions. The wrapper
-counters, `exec.ns`, finalize/invariant timers and the cross-check all come
-from the timed close.
+ledger during consensus. All timing therefore happens around `env.close()`:
+submit untimed, reset counters, time the close, snapshot, read the metadata,
+then one extra untimed close to drain emitted transactions. The harness
+asserts the hook executed exactly once inside the timed close.
 
 ### 2.5b Clock resolution and one-shot APIs
 
 `steady_clock` on Apple Silicon ticks every 41.67 ns; the tick is measured and
 printed in the header. Loop APIs average thousands of samples so quantisation
-is harmless; one-shot APIs (`accept`, `rollback`, `etxn_reserve`, `hook_again`)
-use the *mean* over R = 200 executions (min would always select the low tick)
-and `accept`/`rollback` are additionally derived from `exec.ns` differencing
-against a hook that exits without calling either.
-
-### 2.5c `t_call` directly
-
-Because the fit intercept has a large standard error relative to cheap APIs,
-`t_call` is also measured directly with a hook calling `hook_pos` (body ~ 0)
-16 times per iteration; the direct value populates the table and must agree
-with the intercept within 15 %.
+is harmless; one-shot APIs use the *mean* over 200 executions (a minimum would
+always select the low tick).
 
 ### 2.6 Environment controls
 
@@ -246,15 +219,15 @@ include/xrpl/hook/hook_api.macro          HOOK_API_COST values from RESULTS.md (
    reviewers concur; cheapest-opcode rejected (inflates every API 2-3x for no
    CPU reason), deployed-hook mix rejected (not reproducible).
 2. Size policy: reference size + linear model in the report, geometric-mean
-   rule above 10x (methodology review), hard caps used where they exist
-   (design review).
+   rule above 10x, hard caps used where they exist.
 3. Synchronous side effects are in the window, attributed per call. Owner
    reserve prices storage, not apply-time CPU.
-4. Primary measurement: in-process timers under a build flag (design review)
-   because the 65535 static cap and the per-execution API caps make
-   `env(tx)` differencing too coarse for capped and one-shot APIs. The
-   methodology review preferred a single measurement path; resolved by keeping
-   `env(tx)` differencing as a reported cross-check for every loopable API.
+4. Estimators: E2E differencing is the table value (reproducible without a
+   build flag, contains all apply-time work); the host-function timer is the
+   fallback for capped and one-shot APIs. Two code-review rounds established
+   that the host-call boundary depends on argument count, so a timer-based
+   primary with a single `t_call` constant is not self-consistent; the earlier
+   `max(primary, cross-check)` rule was withdrawn for the same reason.
 5. Floor 10, 2 significant digits, round up.
 
 ## 5. Platform requirement
