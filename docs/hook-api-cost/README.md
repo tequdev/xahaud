@@ -147,3 +147,43 @@ The table is not final until the Linux x86-64 run required by
 `DESIGN.md` §5 exists: the interpreter-vs-native ratio is platform
 dependent, and the `util_sha512h` / `util_verify` rows in particular use
 ARM SHA-512 hardware acceleration that x86-64 validators do not have.
+
+## 6. Linux x86-64 with nix (canonical platform)
+
+Everything except nix itself installs without root. Tested on Ubuntu 26.04
+with Determinate Nix; the exact procedure that produced
+`RESULTS-linux-x86_64.md`:
+
+```sh
+# one-time: nix (needs sudo once)
+curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install
+# conan without root
+curl -LsSf https://astral.sh/uv/install.sh | sh && uv tool install conan
+
+PKGS="nixpkgs#gcc13 nixpkgs#cmake nixpkgs#ninja nixpkgs#ccache nixpkgs#pkg-config \
+      nixpkgs#python3 nixpkgs#perl nixpkgs#gnumake nixpkgs#autoconf nixpkgs#automake \
+      nixpkgs#libtool nixpkgs#git nixpkgs#which nixpkgs#gnused nixpkgs#gawk nixpkgs#file nixpkgs#binutils"
+nix shell $PKGS -c bash -c '
+  export CC=gcc CXX=g++ CMAKE_POLICY_VERSION_MINIMUM=3.5   # cmake 4 vs old recipes
+  conan profile detect --force
+  # then set compiler.cppstd=20, compiler.libcxx=libstdc++11, build_type=Release in the profile
+  conan export external/snappy   --version 1.1.10 --user xahaud --channel stable
+  conan export external/soci     --version 4.0.3  --user xahaud --channel stable
+  conan export external/wasmedge --version 0.11.2 --user xahaud --channel stable
+  mkdir -p build-release && cd build-release
+  conan install .. --output-folder . --build missing -s build_type=Release
+  cmake -G Ninja -DCMAKE_TOOLCHAIN_FILE=build/generators/conan_toolchain.cmake \
+        -DCMAKE_BUILD_TYPE=Release -Dxrpld=ON -Dtests=ON -Dhook_cost_bench=ON ..
+  ninja rippled
+'
+# run: the binary links nix zlib/libstdc++, pin to one core, repeat and keep the best fit
+Z=$(nix build --no-link --print-out-paths nixpkgs#zlib); L=$(nix build --no-link --print-out-paths nixpkgs#gcc13.cc.lib)
+export LD_LIBRARY_PATH=$Z/lib:$L/lib
+for i in $(seq 1 15); do mkdir -p run$i; taskset -c 7 ./build-release/rippled --unittest=HookAPICost --unittest-jobs=1 --unittest-arg=run$i; done
+```
+
+Notes: gcc 15 (nixpkgs default `gcc`) does not compile this tree (explicit
+default constructors on hash functors); use `gcc13`. On a VM, pin the run
+to one vCPU and expect a run-to-run spread of about 1.25x; use the median over
+the runs that pass the fit gates. `compare_results.py CANONICAL.md OTHER.md`
+prints the cross-platform table and the merged block (`COMPARISON.md`).

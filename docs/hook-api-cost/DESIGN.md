@@ -257,3 +257,8 @@ The M3 Ultra / apple-clang run is the harness-validation draft. Before
 Conan WasmEdge validators get, server hardware, turbo state recorded) at the
 same git SHA. Gate: every API within 1.5x of the draft; outliers take the
 larger value and a note. The Linux numbers are the canonical table.
+
+Status: done on 2026-09-06 (`COMPARISON.md`, `RESULTS-linux-x86_64.md`). The
+Linux host was a QEMU VM with gcc 13; 10 of 75 APIs fell outside the 1.5x
+gate and took the larger (M3) value. A bare-metal x86-64 run would tighten
+the VM's ~1.25x run-to-run spread.
