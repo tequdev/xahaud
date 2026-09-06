@@ -112,7 +112,7 @@ class Xrpl(ConanFile):
 
     def requirements(self):
         # Force sqlite3 version to avoid conflicts with soci
-        self.requires('sqlite3/3.47.0', override=True)
+        self.requires('sqlite3/3.47.0', force=True)
         # Force our custom snappy build for all dependencies
         self.requires('snappy/1.1.10@xahaud/stable', override=True)
         # Force boost version for all dependencies to avoid conflicts
