@@ -2835,7 +2835,7 @@ private:
     }
 
     void
-    reportFamilyCosts(Rules const& rules)
+    reportFamilyCosts(Rules const& rules, double tInstr, double G)
     {
         std::map<std::string, std::vector<ReportRow const*>> byApi;
         for (auto const& row : rows_)
@@ -2914,6 +2914,19 @@ private:
             finalCost[api] = cost;
             report_ << "| " << api << " | " << rule << " | " << group.size()
                     << " | " << cost << " |\n";
+        }
+        // _g: the loop-head guard is the one host call every guarded loop
+        // makes. Its per-call cost is the baseline fit intercept G (the
+        // per-iteration time not explained by dI * t_instr), measured
+        // without any API in the loop body. The guard checker does not
+        // charge loop-head guards today, so the value is informational
+        // until that changes.
+        if (tInstr > 0 && G > 0)
+        {
+            auto const gCost = proposedCost(G, tInstr);
+            finalCost["_g"] = gCost;
+            report_ << "| _g | loop-head guard: fit intercept G / t_instr | "
+                    << "6 | " << gCost << " |\n";
         }
 
         // hook_api.macro's own HOOK_API_DEFINITION order (parsed once by
@@ -3015,7 +3028,9 @@ private:
         report_ << "In include/xrpl/hook/hook_api.macro declaration order; "
                    "amendment column preserved from that file. An API with "
                    "no measured row this run keeps its current value, "
-                   "annotated `// unmeasured`.\n\n";
+                   "annotated `// unmeasured`. `_g` is the baseline fit "
+                   "intercept G over "
+                   "t_instr (not charged by the guard checker today).\n\n";
         // bench-review2 finding 9: ARM SHA-512 hardware acceleration is
         // baked into these two rows on this (Apple Silicon) run.
         static std::vector<std::string> const cryptoApis = {
@@ -3202,7 +3217,7 @@ public:
         reportLedgerWriteCost();
         runTerminal(env, tInstr, tClk);
 
-        reportFamilyCosts(env.current()->rules());
+        reportFamilyCosts(env.current()->rules(), tInstr, G);
 
         report_ << "\n## Deferred (not measured this run)\n\n";
         report_ << "* `util_keylet` -- every keylet_type with a dedicated "

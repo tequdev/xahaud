@@ -23,129 +23,141 @@ Canonical platform: Linux x86-64. Draft platform: Apple M3 Ultra (`RESULTS.md`).
   than on the M3 while the host functions are not, which is why most Linux
   costs come out lower.
 
-## Adopted table
+## Adopted table (common-baseline method)
 
-Decision: **the Linux median is adopted for every API** (no cross-platform
-max). Rounding: values with three or more digits are rounded up to two
-significant digits, two-digit values are rounded up to one significant
-digit (1234 -> 1300, 123 -> 130, 39 -> 40, 12 -> 20). `_g` keeps its current
-value because loop-head guards are not charged by the guard checker.
+Decision (2026-09-07): **the Linux measurement is adopted for every API,
+including `_g`**. Method: the API time per call is the median over all
+quality Linux runs (12 runs from two batches: pin1/3/6/8/9/10 of the first
+and pin2/6/12/19/25/26 of the second; `sto_validate` and `prepare` use the
+second batch only because their hooks were corrected in between) of the
+per-run table value times that run's `t_instr`, i.e. the API's wall time in
+ns at the DESIGN §2.4 table rule. That time is divided by the **pooled**
+instruction time, the median `t_instr` over the same 12 runs
+(5.84 ns, range 4.90-6.72), instead of each run's own value: the API
+times reproduce to well under 1 % between batches while the per-run
+interpreter baseline drifts by about 10 % on this VM, so pairing them per
+run only adds noise. `_g` is the pooled median of the baseline fit intercept
+`G` (397 ns) over the same `t_instr`; the guard checker does not charge
+loop-head guards today, so applying it needs a checker change.
 
-| API | current | Linux median | adopted |
-|---|---:|---:|---:|
-| _g | 220 | - | 220 |
-| accept | 150 | 73 | 80 |
-| rollback | 180 | 69 | 70 |
-| util_raddr | 980 | 110 | 110 |
-| util_accid | 690 | 103 | 110 |
-| util_verify | 24000 | 4000 | 4000 |
-| util_sha512h | 340 | 899 | 900 |
-| util_keylet | 230 | 92 | 100 |
-| sto_validate | 350 | 110 | 110 |
-| sto_subfield | 340 | 84 | 90 |
-| sto_subarray | 290 | 67 | 70 |
-| sto_emplace | 980 | 91 | 100 |
-| sto_erase | 970 | 72 | 80 |
-| etxn_burden | 260 | 58 | 60 |
-| etxn_details | 470 | 130 | 130 |
-| etxn_fee_base | 4600 | 755 | 760 |
-| etxn_reserve | 150 | 80 | 80 |
-| etxn_generation | 130 | 50 | 50 |
-| etxn_nonce | 230 | 103 | 110 |
-| emit | 8700 | 1650 | 1700 |
-| float_set | 110 | 68 | 70 |
-| float_multiply | 240 | 72 | 80 |
-| float_mulratio | 390 | 58 | 60 |
-| float_negate | 160 | 51 | 60 |
-| float_compare | 140 | 57 | 60 |
-| float_sum | 350 | 60 | 60 |
-| float_sto | 230 | 55 | 60 |
-| float_sto_set | 140 | 51 | 60 |
-| float_invert | 230 | 50 | 50 |
-| float_divide | 280 | 54 | 60 |
-| float_one | 20 | 43 | 50 |
-| float_mantissa | 170 | 51 | 60 |
-| float_sign | 80 | 50 | 50 |
-| float_int | 100 | 51 | 60 |
-| float_log | 100 | 52 | 60 |
-| float_root | 190 | 60 | 60 |
-| fee_base | 70 | 51 | 60 |
-| ledger_seq | 140 | 51 | 60 |
-| ledger_last_time | 110 | 51 | 60 |
-| ledger_last_hash | 210 | 52 | 60 |
-| ledger_nonce | 170 | 84 | 90 |
-| ledger_keylet | 300 | 125 | 130 |
-| hook_account | 140 | 52 | 60 |
-| hook_hash | 340 | 58 | 60 |
-| hook_param_set | 370 | 82 | 90 |
-| hook_param | 510 | 57 | 60 |
-| hook_again | 260 | 71 | 80 |
-| hook_skip | 170 | 58 | 60 |
-| hook_pos | 40 | 43 | 50 |
-| slot | 1400 | 115 | 120 |
-| slot_clear | 230 | 74 | 80 |
-| slot_count | 230 | 52 | 60 |
-| slot_set | 350 | 300 | 300 |
-| slot_size | 330 | 81 | 90 |
-| slot_subarray | 330 | 54 | 60 |
-| slot_subfield | 220 | 55 | 60 |
-| slot_type | 210 | 55 | 60 |
-| slot_float | 150 | 63 | 70 |
-| state_set | 900 | 635 | 640 |
-| state_foreign_set | 3400 | 5650 | 5700 |
-| state | 1700 | 385 | 390 |
-| state_foreign | 1700 | 405 | 410 |
-| trace | 100 | 225 | 230 |
-| trace_num | 100 | 83 | 90 |
-| trace_float | 100 | 91 | 100 |
-| otxn_burden | 260 | 56 | 60 |
-| otxn_field | 460 | 62 | 70 |
-| otxn_generation | 280 | 56 | 60 |
-| otxn_id | 450 | 51 | 60 |
-| otxn_type | 130 | 51 | 60 |
-| otxn_slot | 310 | 110 | 110 |
-| otxn_param | 830 | 66 | 70 |
-| meta_slot | 220 | 53 | 60 |
-| xpop_slot | 37000 | 4600 | 4600 |
-| prepare | 36000 | 5400 | 5400 |
+Rounding: three or more digits round up to two significant digits, two-digit
+values round up to one significant digit (1234 -> 1300, 123 -> 130, 39 -> 40).
+
+| API | current | API time ns | ratio | adopted |
+|---|---:|---:|---:|---:|
+| _g | 220 | 397 | 68.0 | 70 |
+| accept | 150 | 436 | 74.6 | 80 |
+| rollback | 180 | 414 | 71.0 | 80 |
+| util_raddr | 980 | 678 | 116.2 | 120 |
+| util_accid | 690 | 635 | 108.7 | 110 |
+| util_verify | 24000 | 24555 | 4206.5 | 4300 |
+| util_sha512h | 340 | 5514 | 944.7 | 950 |
+| util_keylet | 230 | 573 | 98.2 | 100 |
+| sto_validate | 350 | 682 | 116.9 | 120 |
+| sto_subfield | 340 | 520 | 89.1 | 90 |
+| sto_subarray | 290 | 408 | 69.9 | 70 |
+| sto_emplace | 980 | 559 | 95.8 | 100 |
+| sto_erase | 970 | 443 | 75.9 | 80 |
+| etxn_burden | 260 | 353 | 60.6 | 70 |
+| etxn_details | 470 | 769 | 131.8 | 140 |
+| etxn_fee_base | 4600 | 4589 | 786.2 | 790 |
+| etxn_reserve | 150 | 482 | 82.7 | 90 |
+| etxn_generation | 130 | 310 | 53.1 | 60 |
+| etxn_nonce | 230 | 617 | 105.7 | 110 |
+| emit | 8700 | 10086 | 1727.8 | 1800 |
+| float_set | 110 | 417 | 71.4 | 80 |
+| float_multiply | 240 | 445 | 76.2 | 80 |
+| float_mulratio | 390 | 356 | 61.0 | 70 |
+| float_negate | 160 | 312 | 53.4 | 60 |
+| float_compare | 140 | 347 | 59.5 | 60 |
+| float_sum | 350 | 366 | 62.7 | 70 |
+| float_sto | 230 | 341 | 58.4 | 60 |
+| float_sto_set | 140 | 316 | 54.1 | 60 |
+| float_invert | 230 | 309 | 53.0 | 60 |
+| float_divide | 280 | 331 | 56.8 | 60 |
+| float_one | 20 | 266 | 45.6 | 50 |
+| float_mantissa | 170 | 312 | 53.5 | 60 |
+| float_sign | 80 | 309 | 53.0 | 60 |
+| float_int | 100 | 316 | 54.1 | 60 |
+| float_log | 100 | 324 | 55.6 | 60 |
+| float_root | 190 | 368 | 63.0 | 70 |
+| fee_base | 70 | 313 | 53.6 | 60 |
+| ledger_seq | 140 | 316 | 54.2 | 60 |
+| ledger_last_time | 110 | 312 | 53.5 | 60 |
+| ledger_last_hash | 210 | 319 | 54.6 | 60 |
+| ledger_nonce | 170 | 516 | 88.4 | 90 |
+| ledger_keylet | 300 | 758 | 129.8 | 130 |
+| hook_account | 140 | 319 | 54.6 | 60 |
+| hook_hash | 340 | 357 | 61.1 | 70 |
+| hook_param_set | 370 | 497 | 85.1 | 90 |
+| hook_param | 510 | 347 | 59.5 | 60 |
+| hook_again | 260 | 438 | 75.1 | 80 |
+| hook_skip | 170 | 360 | 61.6 | 70 |
+| hook_pos | 40 | 265 | 45.4 | 50 |
+| slot | 1400 | 686 | 117.6 | 120 |
+| slot_clear | 230 | 451 | 77.3 | 80 |
+| slot_count | 230 | 319 | 54.6 | 60 |
+| slot_set | 350 | 1824 | 312.5 | 320 |
+| slot_size | 330 | 505 | 86.5 | 90 |
+| slot_subarray | 330 | 335 | 57.3 | 60 |
+| slot_subfield | 220 | 335 | 57.3 | 60 |
+| slot_type | 210 | 338 | 57.9 | 60 |
+| slot_float | 150 | 385 | 66.0 | 70 |
+| state_set | 900 | 3757 | 643.7 | 650 |
+| state_foreign_set | 3400 | 34466 | 5904.4 | 6000 |
+| state | 1700 | 2344 | 401.6 | 410 |
+| state_foreign | 1700 | 2439 | 417.9 | 420 |
+| trace | 100 | 1389 | 237.9 | 240 |
+| trace_num | 100 | 514 | 88.0 | 90 |
+| trace_float | 100 | 566 | 97.0 | 100 |
+| otxn_burden | 260 | 347 | 59.5 | 60 |
+| otxn_field | 460 | 376 | 64.3 | 70 |
+| otxn_generation | 280 | 347 | 59.5 | 60 |
+| otxn_id | 450 | 318 | 54.5 | 60 |
+| otxn_type | 130 | 320 | 54.8 | 60 |
+| otxn_slot | 310 | 665 | 113.9 | 120 |
+| otxn_param | 830 | 408 | 69.9 | 70 |
+| meta_slot | 220 | 328 | 56.2 | 60 |
+| xpop_slot | 37000 | 28926 | 4955.2 | 5000 |
+| prepare | 36000 | 32518 | 5570.6 | 5600 |
 
 ```
-HOOK_API_COST(_g, 220, uint256{})  // unmeasured: loop-head guards are not charged
+HOOK_API_COST(_g, 70, uint256{})  // loop-head guard; not charged by the guard checker today
 HOOK_API_COST(accept, 80, uint256{})
-HOOK_API_COST(rollback, 70, uint256{})
-HOOK_API_COST(util_raddr, 110, uint256{})
+HOOK_API_COST(rollback, 80, uint256{})
+HOOK_API_COST(util_raddr, 120, uint256{})
 HOOK_API_COST(util_accid, 110, uint256{})
-HOOK_API_COST(util_verify, 4000, uint256{})
-HOOK_API_COST(util_sha512h, 900, uint256{})
+HOOK_API_COST(util_verify, 4300, uint256{})
+HOOK_API_COST(util_sha512h, 950, uint256{})
 HOOK_API_COST(util_keylet, 100, uint256{})
-HOOK_API_COST(sto_validate, 110, uint256{})
+HOOK_API_COST(sto_validate, 120, uint256{})
 HOOK_API_COST(sto_subfield, 90, uint256{})
 HOOK_API_COST(sto_subarray, 70, uint256{})
 HOOK_API_COST(sto_emplace, 100, uint256{})
 HOOK_API_COST(sto_erase, 80, uint256{})
-HOOK_API_COST(etxn_burden, 60, uint256{})
-HOOK_API_COST(etxn_details, 130, uint256{})
-HOOK_API_COST(etxn_fee_base, 760, uint256{})
-HOOK_API_COST(etxn_reserve, 80, uint256{})
-HOOK_API_COST(etxn_generation, 50, uint256{})
+HOOK_API_COST(etxn_burden, 70, uint256{})
+HOOK_API_COST(etxn_details, 140, uint256{})
+HOOK_API_COST(etxn_fee_base, 790, uint256{})
+HOOK_API_COST(etxn_reserve, 90, uint256{})
+HOOK_API_COST(etxn_generation, 60, uint256{})
 HOOK_API_COST(etxn_nonce, 110, uint256{})
-HOOK_API_COST(emit, 1700, uint256{})
-HOOK_API_COST(float_set, 70, uint256{})
+HOOK_API_COST(emit, 1800, uint256{})
+HOOK_API_COST(float_set, 80, uint256{})
 HOOK_API_COST(float_multiply, 80, uint256{})
-HOOK_API_COST(float_mulratio, 60, uint256{})
+HOOK_API_COST(float_mulratio, 70, uint256{})
 HOOK_API_COST(float_negate, 60, uint256{})
 HOOK_API_COST(float_compare, 60, uint256{})
-HOOK_API_COST(float_sum, 60, uint256{})
+HOOK_API_COST(float_sum, 70, uint256{})
 HOOK_API_COST(float_sto, 60, uint256{})
 HOOK_API_COST(float_sto_set, 60, uint256{})
-HOOK_API_COST(float_invert, 50, uint256{})
+HOOK_API_COST(float_invert, 60, uint256{})
 HOOK_API_COST(float_divide, 60, uint256{})
 HOOK_API_COST(float_one, 50, uint256{})
 HOOK_API_COST(float_mantissa, 60, uint256{})
-HOOK_API_COST(float_sign, 50, uint256{})
+HOOK_API_COST(float_sign, 60, uint256{})
 HOOK_API_COST(float_int, 60, uint256{})
 HOOK_API_COST(float_log, 60, uint256{})
-HOOK_API_COST(float_root, 60, uint256{})
+HOOK_API_COST(float_root, 70, uint256{})
 HOOK_API_COST(fee_base, 60, uint256{})
 HOOK_API_COST(ledger_seq, 60, uint256{})
 HOOK_API_COST(ledger_last_time, 60, uint256{})
@@ -153,26 +165,26 @@ HOOK_API_COST(ledger_last_hash, 60, uint256{})
 HOOK_API_COST(ledger_nonce, 90, uint256{})
 HOOK_API_COST(ledger_keylet, 130, uint256{})
 HOOK_API_COST(hook_account, 60, uint256{})
-HOOK_API_COST(hook_hash, 60, uint256{})
+HOOK_API_COST(hook_hash, 70, uint256{})
 HOOK_API_COST(hook_param_set, 90, uint256{})
 HOOK_API_COST(hook_param, 60, uint256{})
 HOOK_API_COST(hook_again, 80, uint256{})
-HOOK_API_COST(hook_skip, 60, uint256{})
+HOOK_API_COST(hook_skip, 70, uint256{})
 HOOK_API_COST(hook_pos, 50, uint256{})
 HOOK_API_COST(slot, 120, uint256{})
 HOOK_API_COST(slot_clear, 80, uint256{})
 HOOK_API_COST(slot_count, 60, uint256{})
-HOOK_API_COST(slot_set, 300, uint256{})
+HOOK_API_COST(slot_set, 320, uint256{})
 HOOK_API_COST(slot_size, 90, uint256{})
 HOOK_API_COST(slot_subarray, 60, uint256{})
 HOOK_API_COST(slot_subfield, 60, uint256{})
 HOOK_API_COST(slot_type, 60, uint256{})
 HOOK_API_COST(slot_float, 70, uint256{})
-HOOK_API_COST(state_set, 640, uint256{})
-HOOK_API_COST(state_foreign_set, 5700, uint256{})
-HOOK_API_COST(state, 390, uint256{})
-HOOK_API_COST(state_foreign, 410, uint256{})
-HOOK_API_COST(trace, 230, uint256{})
+HOOK_API_COST(state_set, 650, uint256{})
+HOOK_API_COST(state_foreign_set, 6000, uint256{})
+HOOK_API_COST(state, 410, uint256{})
+HOOK_API_COST(state_foreign, 420, uint256{})
+HOOK_API_COST(trace, 240, uint256{})
 HOOK_API_COST(trace_num, 90, uint256{})
 HOOK_API_COST(trace_float, 100, uint256{})
 HOOK_API_COST(otxn_burden, 60, uint256{})
@@ -180,11 +192,11 @@ HOOK_API_COST(otxn_field, 70, uint256{})
 HOOK_API_COST(otxn_generation, 60, uint256{})
 HOOK_API_COST(otxn_id, 60, uint256{})
 HOOK_API_COST(otxn_type, 60, uint256{})
-HOOK_API_COST(otxn_slot, 110, uint256{})
+HOOK_API_COST(otxn_slot, 120, uint256{})
 HOOK_API_COST(otxn_param, 70, uint256{})
 HOOK_API_COST(meta_slot, 60, uint256{})
-HOOK_API_COST(xpop_slot, 4600, uint256{})
-HOOK_API_COST(prepare, 5400, uint256{})
+HOOK_API_COST(xpop_slot, 5000, uint256{})
+HOOK_API_COST(prepare, 5600, uint256{})
 ```
 
 ## Per-API comparison against the M3 draft (1.5x gate, informational)

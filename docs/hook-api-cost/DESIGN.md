@@ -208,6 +208,19 @@ always select the low tick).
   wasmcc/clang and hook-cleaner versions, SHA-256 of every wasm blob, `t_clk`,
   `t_instr`, `t_call`, baseline fit R^2.
 
+### 2.6a Aggregating runs (common baseline)
+
+The API times reproduce to well under 1 % between runs and batches, but the
+baseline fit's `t_instr` drifts by about 10 % between batches on a VM. A
+ratio taken per run therefore inherits the baseline's noise. The adopted
+table is computed from the pooled data instead: per API, the median over
+all quality runs of (per-run table value x that run's `t_instr`) — the API's
+wall time in ns — divided by the median `t_instr` over the same runs.
+`_g` is measured the same way: the pooled median of the fit intercept `G`
+(the loop-head guard's own per-call time, taken with no API in the loop
+body) over the pooled `t_instr`; the harness prints it in the family table
+and the proposed block. `COMPARISON.md` records the adopted table.
+
 ### 2.7 Rounding
 
 `ceil(t_api / t_instr)`, round **up** to 2 significant digits, floor 10.

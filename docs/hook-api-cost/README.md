@@ -132,7 +132,9 @@ final (see `DESIGN.md` §5 — the Linux x86-64 run is canonical).
 
 ## 5. What to expect from a run
 
-A full run takes about 15 s. Four consecutive runs on an Apple M3 Ultra
+A full run takes about 15 s. The family table and the proposed block include
+`_g` (the loop-head guard), derived from the baseline fit intercept `G`; note
+the guard checker does not charge loop-head guards today. Four consecutive runs on an Apple M3 Ultra
 (apple-clang 16, Release, other desktop applications running) gave
 `t_instr` 3.56-4.11 ns, `G` 224-339 ns, `t_call` 194-222 ns. Of the 74
 proposed costs, 64 moved by less than 1.2x between runs after the
@@ -186,4 +188,6 @@ Notes: gcc 15 (nixpkgs default `gcc`) does not compile this tree (explicit
 default constructors on hash functors); use `gcc13`. On a VM, pin the run
 to one vCPU and expect a run-to-run spread of about 1.25x; use the median over
 the runs that pass the fit gates. `compare_results.py CANONICAL.md OTHER.md`
-prints the cross-platform table and the merged block (`COMPARISON.md`).
+prints the cross-platform table and the merged block. The adopted table in
+`COMPARISON.md` uses the common-baseline aggregation of DESIGN §2.6a over all
+quality runs rather than a single run.
