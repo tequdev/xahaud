@@ -21,7 +21,7 @@
 
 // This header only does anything when the hook_cost_bench CMake option is
 // enabled (-DHOOK_COST_BENCH). It is used by the HookAPICost benchmark
-// (docs/hook-api-cost/DESIGN.md, src/test/app/HookAPICost_test.cpp) and must
+// (docs/hook-api-cost/HookAPICost.md, src/test/app/HookAPICost_test.cpp) and must
 // never affect a normal build: every symbol below is compiled out when the
 // flag is off, except the empty namespace declaration.
 
@@ -78,7 +78,7 @@ inline ExecStat exec;
 // finalizeHookState / finalizeHookResult: time the whole function, and count
 // the synchronous side-effect items it produced (modified state entries /
 // emitted transactions) so the per-call cost of state_set/emit can amortise
-// this work (DESIGN.md sec 2.3).
+// this work (HookAPICost.md sec 2.1).
 struct FinalizeStat
 {
     std::uint64_t ns{0};

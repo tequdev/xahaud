@@ -7,7 +7,7 @@
  * a 4-byte big-endian HookParameter named "N") or, for the terminal
  * variants (accept0/rollback0/noexit), does a single fixed thing.
  *
- * See docs/hook-api-cost/DESIGN.md sections 2 and 3 for the measurement
+ * See docs/hook-api-cost/HookAPICost.md sections 2 and 3 for the measurement
  * this feeds.
  */
 #include "hookapi.h"
@@ -916,7 +916,7 @@ hook(uint32_t r)
 }
 
 /* ======================================================================= */
-/* Phase 2 additions (see docs/hook-api-cost/README.md).                    */
+/* Phase 2 additions (see docs/hook-api-cost/HookAPICost.md).                    */
 /* ======================================================================= */
 
 #elif defined(B_util_raddr)

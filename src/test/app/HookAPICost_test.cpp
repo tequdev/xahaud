@@ -17,7 +17,7 @@
 //==============================================================================
 //
 // HookAPICost: measures the wall-clock cost of hook API calls to derive
-// HOOK_API_COST values for HookFeeV2. See docs/hook-api-cost/DESIGN.md.
+// HOOK_API_COST values for HookFeeV2. See docs/hook-api-cost/HookAPICost.md.
 //
 // This is a MANUAL suite: it does not run as part of the normal unit test
 // pass. Run it explicitly:
