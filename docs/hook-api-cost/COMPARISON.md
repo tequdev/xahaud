@@ -8,8 +8,8 @@ Canonical platform: Linux x86-64. Draft platform: Apple M3 Ultra (`RESULTS.md`).
   SSE4/AVX/SHA extensions exposed), kvm-clock, clock resolution 17 ns.
 * Toolchain: nix (nixpkgs weekly rev `56c02bc00adcf003215cc4bd996d6efaf4cff188`),
   gcc 13.4.0, libstdc++, cmake 4 with `CMAKE_POLICY_VERSION_MINIMUM=3.5`,
-  conan 2.32, WasmEdge 0.11.2 (manylinux2014 binary), git SHA 2814f8f578
-  (every API call checked for its documented success value).
+  conan 2.32, WasmEdge 0.11.2 (manylinux2014 binary), git SHA 5c942671dd
+  (every API call checked for its documented success value; `_g` reported).
 * Procedure: `README.md` §6. 30 runs pinned to one vCPU with `taskset -c 7`.
   Six met the fit-quality gate (`SE(G)/G < 15 %`, `R^2 > 0.998`): pin2, pin6,
   pin12, pin19, pin25, pin26; three of those also passed the 15 % `t_call`
@@ -26,100 +26,101 @@ Canonical platform: Linux x86-64. Draft platform: Apple M3 Ultra (`RESULTS.md`).
 ## Adopted table (common-baseline method)
 
 Decision (2026-09-07): **the Linux measurement is adopted for every API,
-including `_g`**. Method: the API time per call is the median over all
-quality Linux runs (12 runs from two batches: pin1/3/6/8/9/10 of the first
-and pin2/6/12/19/25/26 of the second; `sto_validate` and `prepare` use the
-second batch only because their hooks were corrected in between) of the
-per-run table value times that run's `t_instr`, i.e. the API's wall time in
-ns at the DESIGN §2.4 table rule. That time is divided by the **pooled**
-instruction time, the median `t_instr` over the same 12 runs
-(5.84 ns, range 4.90-6.72), instead of each run's own value: the API
-times reproduce to well under 1 % between batches while the per-run
-interpreter baseline drifts by about 10 % on this VM, so pairing them per
-run only adds noise. `_g` is the pooled median of the baseline fit intercept
-`G` (397 ns) over the same `t_instr`; the guard checker does not charge
-loop-head guards today, so applying it needs a checker change.
+including `_g`**. Method (DESIGN §2.6a): per API, the median over all
+quality Linux runs of (per-run table value x that run's `t_instr`) — the
+API's wall time in ns at the DESIGN §2.4 table rule — divided by the pooled
+`t_instr`, the median over the same runs. Quality runs: 14 across three
+batches (`SE(G)/G < 15 %`, `R^2 > 0.998`): first batch pin1/3/6/8/9/10,
+second pin2/6/12/19/25/26, third pin6/10; `sto_validate` and `prepare` use
+the second and third batches only because their hooks were corrected after
+the first. The API times reproduce to well under 1 % between batches while
+the per-run interpreter baseline drifts by about 10 % on this VM, so pairing
+them per run only adds noise. Pooled `t_instr` = 5.81 ns; `_g` is the pooled
+median of the baseline fit intercept `G` (381 ns) over the same `t_instr`.
+The guard checker does not charge loop-head guards today, so applying the
+`_g` value needs a checker change. `RESULTS-linux-x86_64.md` is the third
+batch's pin6 (`SE(G)` 8 ns, `R^2` 1.0000), which also prints the `_g` row.
 
 Rounding: three or more digits round up to two significant digits, two-digit
 values round up to one significant digit (1234 -> 1300, 123 -> 130, 39 -> 40).
 
 | API | current | API time ns | ratio | adopted |
 |---|---:|---:|---:|---:|
-| _g | 220 | 397 | 68.0 | 70 |
-| accept | 150 | 436 | 74.6 | 80 |
-| rollback | 180 | 414 | 71.0 | 80 |
-| util_raddr | 980 | 678 | 116.2 | 120 |
-| util_accid | 690 | 635 | 108.7 | 110 |
-| util_verify | 24000 | 24555 | 4206.5 | 4300 |
-| util_sha512h | 340 | 5514 | 944.7 | 950 |
-| util_keylet | 230 | 573 | 98.2 | 100 |
-| sto_validate | 350 | 682 | 116.9 | 120 |
-| sto_subfield | 340 | 520 | 89.1 | 90 |
-| sto_subarray | 290 | 408 | 69.9 | 70 |
-| sto_emplace | 980 | 559 | 95.8 | 100 |
-| sto_erase | 970 | 443 | 75.9 | 80 |
-| etxn_burden | 260 | 353 | 60.6 | 70 |
-| etxn_details | 470 | 769 | 131.8 | 140 |
-| etxn_fee_base | 4600 | 4589 | 786.2 | 790 |
-| etxn_reserve | 150 | 482 | 82.7 | 90 |
-| etxn_generation | 130 | 310 | 53.1 | 60 |
-| etxn_nonce | 230 | 617 | 105.7 | 110 |
-| emit | 8700 | 10086 | 1727.8 | 1800 |
-| float_set | 110 | 417 | 71.4 | 80 |
-| float_multiply | 240 | 445 | 76.2 | 80 |
-| float_mulratio | 390 | 356 | 61.0 | 70 |
-| float_negate | 160 | 312 | 53.4 | 60 |
-| float_compare | 140 | 347 | 59.5 | 60 |
-| float_sum | 350 | 366 | 62.7 | 70 |
-| float_sto | 230 | 341 | 58.4 | 60 |
-| float_sto_set | 140 | 316 | 54.1 | 60 |
-| float_invert | 230 | 309 | 53.0 | 60 |
-| float_divide | 280 | 331 | 56.8 | 60 |
-| float_one | 20 | 266 | 45.6 | 50 |
-| float_mantissa | 170 | 312 | 53.5 | 60 |
-| float_sign | 80 | 309 | 53.0 | 60 |
-| float_int | 100 | 316 | 54.1 | 60 |
-| float_log | 100 | 324 | 55.6 | 60 |
-| float_root | 190 | 368 | 63.0 | 70 |
-| fee_base | 70 | 313 | 53.6 | 60 |
-| ledger_seq | 140 | 316 | 54.2 | 60 |
-| ledger_last_time | 110 | 312 | 53.5 | 60 |
-| ledger_last_hash | 210 | 319 | 54.6 | 60 |
-| ledger_nonce | 170 | 516 | 88.4 | 90 |
-| ledger_keylet | 300 | 758 | 129.8 | 130 |
-| hook_account | 140 | 319 | 54.6 | 60 |
-| hook_hash | 340 | 357 | 61.1 | 70 |
-| hook_param_set | 370 | 497 | 85.1 | 90 |
-| hook_param | 510 | 347 | 59.5 | 60 |
-| hook_again | 260 | 438 | 75.1 | 80 |
-| hook_skip | 170 | 360 | 61.6 | 70 |
-| hook_pos | 40 | 265 | 45.4 | 50 |
-| slot | 1400 | 686 | 117.6 | 120 |
-| slot_clear | 230 | 451 | 77.3 | 80 |
-| slot_count | 230 | 319 | 54.6 | 60 |
-| slot_set | 350 | 1824 | 312.5 | 320 |
-| slot_size | 330 | 505 | 86.5 | 90 |
-| slot_subarray | 330 | 335 | 57.3 | 60 |
-| slot_subfield | 220 | 335 | 57.3 | 60 |
-| slot_type | 210 | 338 | 57.9 | 60 |
-| slot_float | 150 | 385 | 66.0 | 70 |
-| state_set | 900 | 3757 | 643.7 | 650 |
-| state_foreign_set | 3400 | 34466 | 5904.4 | 6000 |
-| state | 1700 | 2344 | 401.6 | 410 |
-| state_foreign | 1700 | 2439 | 417.9 | 420 |
-| trace | 100 | 1389 | 237.9 | 240 |
-| trace_num | 100 | 514 | 88.0 | 90 |
-| trace_float | 100 | 566 | 97.0 | 100 |
-| otxn_burden | 260 | 347 | 59.5 | 60 |
-| otxn_field | 460 | 376 | 64.3 | 70 |
-| otxn_generation | 280 | 347 | 59.5 | 60 |
-| otxn_id | 450 | 318 | 54.5 | 60 |
-| otxn_type | 130 | 320 | 54.8 | 60 |
-| otxn_slot | 310 | 665 | 113.9 | 120 |
-| otxn_param | 830 | 408 | 69.9 | 70 |
-| meta_slot | 220 | 328 | 56.2 | 60 |
-| xpop_slot | 37000 | 28926 | 4955.2 | 5000 |
-| prepare | 36000 | 32518 | 5570.6 | 5600 |
+| _g | 220 | 381 | 65.6 | 70 |
+| accept | 150 | 442 | 76.1 | 80 |
+| rollback | 180 | 416 | 71.7 | 80 |
+| util_raddr | 980 | 672 | 115.7 | 120 |
+| util_accid | 690 | 635 | 109.3 | 110 |
+| util_verify | 24000 | 24494 | 4217.8 | 4300 |
+| util_sha512h | 340 | 5514 | 949.6 | 950 |
+| util_keylet | 230 | 566 | 97.5 | 100 |
+| sto_validate | 350 | 682 | 117.5 | 120 |
+| sto_subfield | 340 | 520 | 89.5 | 90 |
+| sto_subarray | 290 | 411 | 70.7 | 80 |
+| sto_emplace | 980 | 555 | 95.6 | 100 |
+| sto_erase | 970 | 442 | 76.1 | 80 |
+| etxn_burden | 260 | 354 | 61.0 | 70 |
+| etxn_details | 470 | 769 | 132.4 | 140 |
+| etxn_fee_base | 4600 | 4598 | 791.8 | 800 |
+| etxn_reserve | 150 | 482 | 83.0 | 90 |
+| etxn_generation | 130 | 311 | 53.6 | 60 |
+| etxn_nonce | 230 | 617 | 106.2 | 110 |
+| emit | 8700 | 10086 | 1736.8 | 1800 |
+| float_set | 110 | 414 | 71.3 | 80 |
+| float_multiply | 240 | 446 | 76.8 | 80 |
+| float_mulratio | 390 | 359 | 61.8 | 70 |
+| float_negate | 160 | 315 | 54.3 | 60 |
+| float_compare | 140 | 350 | 60.3 | 70 |
+| float_sum | 350 | 367 | 63.2 | 70 |
+| float_sto | 230 | 341 | 58.7 | 60 |
+| float_sto_set | 140 | 319 | 55.0 | 60 |
+| float_invert | 230 | 313 | 54.0 | 60 |
+| float_divide | 280 | 337 | 58.0 | 60 |
+| float_one | 20 | 267 | 46.0 | 50 |
+| float_mantissa | 170 | 316 | 54.4 | 60 |
+| float_sign | 80 | 313 | 54.0 | 60 |
+| float_int | 100 | 317 | 54.5 | 60 |
+| float_log | 100 | 328 | 56.4 | 60 |
+| float_root | 190 | 371 | 63.9 | 70 |
+| fee_base | 70 | 316 | 54.4 | 60 |
+| ledger_seq | 140 | 317 | 54.6 | 60 |
+| ledger_last_time | 110 | 316 | 54.4 | 60 |
+| ledger_last_hash | 210 | 322 | 55.4 | 60 |
+| ledger_nonce | 170 | 516 | 88.9 | 90 |
+| ledger_keylet | 300 | 758 | 130.5 | 140 |
+| hook_account | 140 | 322 | 55.4 | 60 |
+| hook_hash | 340 | 360 | 62.0 | 70 |
+| hook_param_set | 370 | 494 | 85.1 | 90 |
+| hook_param | 510 | 351 | 60.5 | 70 |
+| hook_again | 260 | 433 | 74.5 | 80 |
+| hook_skip | 170 | 362 | 62.4 | 70 |
+| hook_pos | 40 | 266 | 45.8 | 50 |
+| slot | 1400 | 686 | 118.2 | 120 |
+| slot_clear | 230 | 455 | 78.3 | 80 |
+| slot_count | 230 | 322 | 55.4 | 60 |
+| slot_set | 350 | 1831 | 315.3 | 320 |
+| slot_size | 330 | 503 | 86.6 | 90 |
+| slot_subarray | 330 | 335 | 57.6 | 60 |
+| slot_subfield | 220 | 337 | 58.1 | 60 |
+| slot_type | 210 | 343 | 59.0 | 60 |
+| slot_float | 150 | 387 | 66.6 | 70 |
+| state_set | 900 | 3757 | 647.0 | 650 |
+| state_foreign_set | 3400 | 34466 | 5935.2 | 6000 |
+| state | 1700 | 2337 | 402.5 | 410 |
+| state_foreign | 1700 | 2443 | 420.8 | 430 |
+| trace | 100 | 1390 | 239.4 | 240 |
+| trace_num | 100 | 516 | 88.9 | 90 |
+| trace_float | 100 | 566 | 97.5 | 100 |
+| otxn_burden | 260 | 350 | 60.3 | 70 |
+| otxn_field | 460 | 381 | 65.6 | 70 |
+| otxn_generation | 280 | 349 | 60.1 | 70 |
+| otxn_id | 450 | 321 | 55.3 | 60 |
+| otxn_type | 130 | 319 | 55.0 | 60 |
+| otxn_slot | 310 | 663 | 114.2 | 120 |
+| otxn_param | 830 | 411 | 70.8 | 80 |
+| meta_slot | 220 | 328 | 56.5 | 60 |
+| xpop_slot | 37000 | 28578 | 4921.2 | 5000 |
+| prepare | 36000 | 32518 | 5599.6 | 5600 |
 
 ```
 HOOK_API_COST(_g, 70, uint256{})  // loop-head guard; not charged by the guard checker today
@@ -132,12 +133,12 @@ HOOK_API_COST(util_sha512h, 950, uint256{})
 HOOK_API_COST(util_keylet, 100, uint256{})
 HOOK_API_COST(sto_validate, 120, uint256{})
 HOOK_API_COST(sto_subfield, 90, uint256{})
-HOOK_API_COST(sto_subarray, 70, uint256{})
+HOOK_API_COST(sto_subarray, 80, uint256{})
 HOOK_API_COST(sto_emplace, 100, uint256{})
 HOOK_API_COST(sto_erase, 80, uint256{})
 HOOK_API_COST(etxn_burden, 70, uint256{})
 HOOK_API_COST(etxn_details, 140, uint256{})
-HOOK_API_COST(etxn_fee_base, 790, uint256{})
+HOOK_API_COST(etxn_fee_base, 800, uint256{})
 HOOK_API_COST(etxn_reserve, 90, uint256{})
 HOOK_API_COST(etxn_generation, 60, uint256{})
 HOOK_API_COST(etxn_nonce, 110, uint256{})
@@ -146,7 +147,7 @@ HOOK_API_COST(float_set, 80, uint256{})
 HOOK_API_COST(float_multiply, 80, uint256{})
 HOOK_API_COST(float_mulratio, 70, uint256{})
 HOOK_API_COST(float_negate, 60, uint256{})
-HOOK_API_COST(float_compare, 60, uint256{})
+HOOK_API_COST(float_compare, 70, uint256{})
 HOOK_API_COST(float_sum, 70, uint256{})
 HOOK_API_COST(float_sto, 60, uint256{})
 HOOK_API_COST(float_sto_set, 60, uint256{})
@@ -163,11 +164,11 @@ HOOK_API_COST(ledger_seq, 60, uint256{})
 HOOK_API_COST(ledger_last_time, 60, uint256{})
 HOOK_API_COST(ledger_last_hash, 60, uint256{})
 HOOK_API_COST(ledger_nonce, 90, uint256{})
-HOOK_API_COST(ledger_keylet, 130, uint256{})
+HOOK_API_COST(ledger_keylet, 140, uint256{})
 HOOK_API_COST(hook_account, 60, uint256{})
 HOOK_API_COST(hook_hash, 70, uint256{})
 HOOK_API_COST(hook_param_set, 90, uint256{})
-HOOK_API_COST(hook_param, 60, uint256{})
+HOOK_API_COST(hook_param, 70, uint256{})
 HOOK_API_COST(hook_again, 80, uint256{})
 HOOK_API_COST(hook_skip, 70, uint256{})
 HOOK_API_COST(hook_pos, 50, uint256{})
@@ -183,17 +184,17 @@ HOOK_API_COST(slot_float, 70, uint256{})
 HOOK_API_COST(state_set, 650, uint256{})
 HOOK_API_COST(state_foreign_set, 6000, uint256{})
 HOOK_API_COST(state, 410, uint256{})
-HOOK_API_COST(state_foreign, 420, uint256{})
+HOOK_API_COST(state_foreign, 430, uint256{})
 HOOK_API_COST(trace, 240, uint256{})
 HOOK_API_COST(trace_num, 90, uint256{})
 HOOK_API_COST(trace_float, 100, uint256{})
-HOOK_API_COST(otxn_burden, 60, uint256{})
+HOOK_API_COST(otxn_burden, 70, uint256{})
 HOOK_API_COST(otxn_field, 70, uint256{})
-HOOK_API_COST(otxn_generation, 60, uint256{})
+HOOK_API_COST(otxn_generation, 70, uint256{})
 HOOK_API_COST(otxn_id, 60, uint256{})
 HOOK_API_COST(otxn_type, 60, uint256{})
 HOOK_API_COST(otxn_slot, 120, uint256{})
-HOOK_API_COST(otxn_param, 70, uint256{})
+HOOK_API_COST(otxn_param, 80, uint256{})
 HOOK_API_COST(meta_slot, 60, uint256{})
 HOOK_API_COST(xpop_slot, 5000, uint256{})
 HOOK_API_COST(prepare, 5600, uint256{})

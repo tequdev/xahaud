@@ -7,7 +7,7 @@
 * Compiler: 13.4.0
 * Build type: Release (hook_cost_bench=ON)
 * WasmEdge: 0.11.2
-* git SHA: 2814f8f57860dba25eaf50e1e71359c58603182c
+* git SHA: 5c942671dd879115f90273a90734c52356549131
 * t_clk (mean nowNs() pair overhead): 19 ns
 * clock resolution (smallest non-zero delta, review #4): 17 ns
 * hookcost_sha256:
@@ -155,160 +155,160 @@
 
 | baseline | N1 | N2 | I(N1) | I(N2) | dI | dTw env.close (ns) | dTw exec.ns (ns) | static/iter | static/runtime ratio |
 |---|---|---|---|---|---|---|---|---|---|
-| base1 | 130 | 1300 | 4625 | 45575 | 35 | 534.69 | 531.591 | 43.0377 | 5.52873 |
-| base2 | 70 | 700 | 3855 | 37875 | 54 | 653.341 | 638.187 | 62.0699 | 3.94696 |
-| base4 | 40 | 400 | 4075 | 40075 | 100 | 976.881 | 889.469 | 108.122 | 2.60354 |
-| base8 | 25 | 250 | 4775 | 47075 | 188 | 1401.74 | 1384.51 | 196.195 | 1.86352 |
-| base16 | 5 | 50 | 1895 | 18275 | 364 | 2400.42 | 2328.49 | 372.961 | 1.50484 |
-| base64 | 3 | 38 | 4335 | 54035 | 1420 | 8679.83 | 8245.57 | 1429.26 | 1.1552 |
+| base1 | 130 | 1300 | 4625 | 45575 | 35 | 527.701 | 534.417 | 43.0377 | 5.52873 |
+| base2 | 70 | 700 | 3855 | 37875 | 54 | 655.97 | 648.037 | 62.0699 | 3.94696 |
+| base4 | 40 | 400 | 4075 | 40075 | 100 | 910.583 | 881.975 | 108.122 | 2.60354 |
+| base8 | 25 | 250 | 4775 | 47075 | 188 | 1406.08 | 1373.15 | 196.195 | 1.86352 |
+| base16 | 5 | 50 | 1895 | 18275 | 364 | 2346.67 | 2353.22 | 372.961 | 1.50484 |
+| base64 | 3 | 38 | 4335 | 54035 | 1420 | 8243.17 | 8389.06 | 1429.26 | 1.1552 |
 
-Fitted (env.close() wall-clock, calibration channel): t_instr = 5.87228 ns, G (_g total per-iteration cost) = 326.151 ns, SE(G) = 24.3277 ns, R^2 = 0.999813
-Fitted (exec.ns, wasm-window only, comparison): t_instr = 5.57007 ns, G = 330.151 ns, SE(G) = 8.18056 ns, R^2 = 0.999976
+Fitted (env.close() wall-clock, calibration channel): t_instr = 5.5589 ns, G (_g total per-iteration cost) = 346.232 ns, SE(G) = 8.39571 ns, R^2 = 0.999975
+Fitted (exec.ns, wasm-window only, comparison): t_instr = 5.6772 ns, G = 318.571 ns, SE(G) = 11.6164 ns, R^2 = 0.999954
 
 ### Sensitivity baselines (t_instr alone, using G)
 
 | baseline | dI | dTw env.close (ns) | t_instr alone (ns) |
 |---|---|---|---|
-| basei64 | 194 | 1431.51 | 5.69771 |
-| basemem | 118 | 1132.02 | 6.82941 |
+| basei64 | 194 | 1478.08 | 5.83425 |
+| basemem | 118 | 1028.49 | 5.78184 |
 
-* t_instr = 5.87228 ns
-* G (loop-head _g total per-iteration cost) = 326.151 ns
-* R^2 (baseline fit) = 0.999813
-* t_call (0-arg boundary, from E2E(hook_pos) - (M_pos - 2*t_clk)) = 289.127 ns
-* O_g (the `_g` 2-arg call's own G above) = 326.151 ns vs t_call (0-arg hook_pos) = 289.127 ns -- host-call boundary grows roughly 18.5118 ns per argument
+* t_instr = 5.5589 ns
+* G (loop-head _g total per-iteration cost) = 346.232 ns
+* R^2 (baseline fit) = 0.999975
+* t_call (0-arg boundary, from E2E(hook_pos) - (M_pos - 2*t_clk)) = 283.582 ns
+* O_g (the `_g` 2-arg call's own G above) = 346.232 ns vs t_call (0-arg hook_pos) = 283.582 ns -- host-call boundary grows roughly 31.3252 ns per argument
 
 ## Per-API results
 
 | api | variant | K | calls | ns/call (M) | E2E (ns) | HF (ns) | used | cost (proposed) | cost (current) | notes |
 |---|---|---|---|---|---|---|---|---|---|---|
-| hook_pos | K=4 | 4 | 3400 | 19.1024 | 270.229283 | 270.229 | E2E | 47 | 40 |  |
-| fee_base | K=4 | 4 | 1800 | 65.0228 | 314.381339 | 316.15 | HF | 54 | 70 | HF (E2E noisy) |
-| ledger_seq | K=4 | 4 | 1800 | 64.21 | 325.427018 | 315.337 | HF | 54 | 140 | HF (E2E noisy) |
-| float_one | K=4 | 4 | 1800 | 19.1606 | 260.831742 | 270.287 | HF | 47 | 20 | HF (E2E noisy) |
-| otxn_type | K=4 | 4 | 1800 | 66.4244 | 317.443068 | 317.551 | HF | 55 | 130 | HF (E2E noisy) |
-| etxn_generation | K=4 | 4 | 1800 | 59.8011 | 306.771248 | 310.928 | HF | 53 | 130 | HF (E2E noisy) |
-| util_sha512h | 32B | 1 | 1000 | 241.475 | 494.051236 | 492.602 | HF | 84 | 340 | HF (E2E noisy) |
-| util_sha512h | 1KiB | 1 | 1000 | 1315.37 | 1684.737903 | 1566.5 | HF | 270 | 340 | HF (E2E noisy) |
-| util_sha512h | 16KiB | 1 | 1000 | 17412.9 | 17935.471236 | 17664 | E2E | 3100 | 340 |  |
-| state | 32B | 1 | 200 | 2018.64 | 2717.890431 | 2269.77 | HF | 390 | 1700 | HF (E2E noisy) |
-| state | 256B | 1 | 200 | 2077.39 | 2884.429320 | 2328.51 | HF | 400 | 1700 | HF (E2E noisy) |
-| state_set | 32B, modify (fixed keys) | 1 | 200 | 688.45 | 8073.629263 | 3604.31 | HF | 620 | 900 | HF (ledger-write cost reported separately); E2E/HF ratio 2.239992; review #6: modify path |
-| state_set | 32B, create (fresh keys, salt=rep) | 1 | 200 | 687.57 | 25467.973363 | 2899.86 | HF | 500 | 900 | HF (ledger-write cost reported separately); E2E/HF ratio 8.782478; review #6: create path |
-| state_set | 256B | 1 | 200 | 747.015 | 8497.334818 | 3802.19 | HF | 650 | 900 | HF (ledger-write cost reported separately); E2E/HF ratio 2.234855 |
-| util_raddr | K=4 | 4 | 1200 | 394.752 | 677.068764 | 645.879 | HF | 110 | 980 | HF (E2E noisy) |
-| util_accid | K=4 | 4 | 1200 | 366.224 | 638.410430 | 617.351 | HF | 110 | 690 | HF (E2E noisy) |
-| util_keylet | ACCOUNT | 4 | 1200 | 244.49 | 538.742550 | 495.617 | HF | 85 | 230 | HF (E2E noisy) |
-| util_keylet | CHILD | 4 | 1200 | 77.9883 | 333.686995 | 329.115 | HF | 57 | 230 | HF (E2E noisy) |
-| util_keylet | ESCROW | 4 | 1200 | 257.006 | 563.771254 | 508.133 | HF | 87 | 230 | HF (E2E noisy) |
-| util_keylet | LINE | 4 | 1200 | 258.067 | 558.282365 | 509.194 | HF | 87 | 230 | HF (E2E noisy) |
-| util_keylet | AMENDMENTS | 4 | 1200 | 77.9583 | 333.916625 | 329.085 | HF | 57 | 230 | HF (E2E noisy) |
-| util_keylet | QUALITY | 4 | 1200 | 81.6017 | 372.086995 | 332.729 | HF | 57 | 230 | HF (E2E noisy); AMENDMENTS's case also covers FEES/NEGATIVE_UNL/EMITTED_DIR (identical switch case); AMM/BRIDGE/XCHAIN_*/MPTOKEN_*/CREDENTIAL/PERMISSIONED_DOMAIN not built (complex multi-part operands -- asset pairs, bridge specs); every other keylet_type is covered below |
-| util_keylet | HOOK | 4 | 1200 | 245.683 | 494.036995 | 496.81 | HF | 85 | 230 | HF (E2E noisy) |
-| util_keylet | HOOK_STATE | 4 | 1200 | 252.083 | 612.617550 | 503.21 | HF | 86 | 230 | HF (E2E noisy) |
-| util_keylet | SKIP | 4 | 1200 | 84.5242 | 388.990699 | 335.651 | HF | 58 | 230 | HF (E2E noisy) |
-| util_keylet | OFFER | 4 | 1200 | 256.034 | 537.424958 | 507.161 | HF | 87 | 230 | HF (E2E noisy) |
-| util_keylet | SIGNERS | 4 | 1200 | 249.001 | 525.805513 | 500.128 | HF | 86 | 230 | HF (E2E noisy) |
-| util_keylet | CHECK | 4 | 1200 | 254.443 | 554.782365 | 505.57 | HF | 87 | 230 | HF (E2E noisy) |
-| util_keylet | DEPOSIT_PREAUTH | 4 | 1200 | 250.818 | 514.932365 | 501.945 | HF | 86 | 230 | HF (E2E noisy) |
-| util_keylet | UNCHECKED | 4 | 1200 | 77.6933 | 350.828662 | 328.82 | HF | 56 | 230 | HF (E2E noisy) |
-| util_keylet | OWNER_DIR | 4 | 1200 | 243.566 | 523.524958 | 494.693 | HF | 85 | 230 | HF (E2E noisy) |
-| util_keylet | PAGE | 4 | 1200 | 249.803 | 488.978662 | 500.929 | HF | 86 | 230 | HF (E2E noisy) |
-| util_keylet | PAYCHAN | 4 | 1200 | 258.923 | 536.375884 | 510.05 | HF | 87 | 230 | HF (E2E noisy) |
-| util_keylet | EMITTED_TXN | 4 | 1200 | 246.472 | 498.669402 | 497.599 | HF | 85 | 230 | HF (E2E noisy) |
-| util_keylet | NFT_OFFER | 4 | 1200 | 255.266 | 520.626810 | 506.393 | HF | 87 | 230 | HF (E2E noisy) |
-| util_keylet | HOOK_DEFINITION | 4 | 1200 | 247.632 | 492.994402 | 498.759 | HF | 85 | 230 | HF (E2E noisy) |
-| util_keylet | HOOK_STATE_DIR | 4 | 1200 | 269.252 | 509.645328 | 520.379 | HF | 89 | 230 | HF (E2E noisy) |
-| util_keylet | CRON | 4 | 1200 | 304.188 | 588.168476 | 555.314 | HF | 95 | 230 | HF (E2E noisy) |
-| util_keylet | ORACLE | 4 | 1200 | 282.053 | 561.259217 | 533.18 | HF | 91 | 230 | HF (E2E noisy) |
-| etxn_burden | K=4 | 4 | 1200 | 103.242 | 408.244920 | 354.369 | HF | 61 | 260 | HF (E2E noisy) |
-| otxn_burden | K=4 | 4 | 1200 | 101.085 | 424.305507 | 352.212 | HF | 60 | 260 | HF (E2E noisy) |
-| otxn_generation | K=4 | 4 | 1200 | 100.462 | 352.522174 | 351.589 | HF | 60 | 280 | HF (E2E noisy) |
-| ledger_last_time | K=4 | 4 | 1200 | 64.1633 | 296.296771 | 315.29 | HF | 54 | 110 | HF (E2E noisy) |
-| ledger_last_hash | K=4 | 4 | 1200 | 68.9383 | 382.826286 | 320.065 | HF | 55 | 210 | HF (E2E noisy) |
-| hook_account | K=4 | 4 | 1200 | 69.9133 | 339.994805 | 321.04 | HF | 55 | 140 | HF (E2E noisy) |
-| hook_hash | hook_no=0 | 4 | 1200 | 109.334 | 339.635488 | 360.461 | HF | 62 | 340 | HF (E2E noisy) |
-| hook_hash | hook_no=-1 | 4 | 1200 | 69.6333 | 303.437340 | 320.76 | HF | 55 | 340 | HF (E2E noisy) |
-| otxn_id | flags=0 | 4 | 1200 | 69.0975 | 340.592895 | 320.224 | HF | 55 | 450 | HF (E2E noisy) |
-| otxn_id | flags=1 | 4 | 1200 | 68.8583 | 346.365118 | 319.985 | HF | 55 | 450 | HF (E2E noisy) |
-| float_multiply | K=4 | 4 | 1200 | 185.775 | 452.691503 | 436.902 | HF | 75 | 240 | HF (E2E noisy) |
-| float_mulratio | K=4 | 4 | 1200 | 104.687 | 374.037685 | 355.814 | HF | 61 | 390 | HF (E2E noisy) |
-| float_negate | K=4 | 4 | 1200 | 65.4017 | 313.059153 | 316.529 | HF | 54 | 160 | HF (E2E noisy) |
-| float_compare | COMPARE_EQUAL | 4 | 1200 | 98.0642 | 340.670673 | 349.191 | HF | 60 | 140 | HF (E2E noisy) |
-| float_compare | COMPARE_LESS|COMPARE_EQUAL | 4 | 1200 | 97.515 | 375.954932 | 348.642 | HF | 60 | 140 | HF (E2E noisy) |
-| float_sum | K=4 | 4 | 1200 | 117.466 | 388.524836 | 368.593 | HF | 63 | 350 | HF (E2E noisy) |
-| float_invert | K=4 | 4 | 1200 | 64.39 | 243.102672 | 315.517 | HF | 54 | 230 | HF (E2E noisy) |
-| float_divide | K=4 | 4 | 1200 | 85.0542 | 394.676688 | 336.181 | HF | 58 | 280 | HF (E2E noisy) |
-| float_mantissa | K=4 | 4 | 1200 | 66.9325 | 290.275820 | 318.059 | HF | 55 | 170 | HF (E2E noisy) |
-| float_sign | K=4 | 4 | 1200 | 64.8658 | 327.941561 | 315.993 | HF | 54 | 80 | HF (E2E noisy) |
-| float_int | K=4 | 4 | 1200 | 68.0442 | 342.505335 | 319.171 | HF | 55 | 100 | HF (E2E noisy) |
-| float_log | K=4 | 4 | 1200 | 75.1975 | 310.261005 | 326.324 | HF | 56 | 100 | HF (E2E noisy) |
-| float_root | K=4 | 4 | 1200 | 122.716 | 375.691503 | 373.843 | HF | 64 | 190 | HF (E2E noisy) |
-| float_set | K=4 | 4 | 1200 | 167.241 | 379.797985 | 418.368 | HF | 72 | 110 | HF (E2E noisy) |
-| float_sto | XRP | 4 | 1200 | 86.5067 | 386.007423 | 337.634 | HF | 58 | 230 | HF (E2E noisy) |
-| float_sto | IOU | 4 | 1200 | 90.6842 | 381.466682 | 341.811 | HF | 59 | 230 | HF (E2E noisy) |
-| float_sto | short | 4 | 1200 | 86.6608 | 399.226867 | 337.788 | HF | 58 | 230 | HF (E2E noisy) |
-| float_sto_set | K=4 | 4 | 1200 | 71.7983 | 353.088725 | 322.925 | HF | 55 | 140 | HF (E2E noisy) |
-| trace | 32B | 4 | 1200 | 266.315 | 526.985430 | 517.442 | HF | 89 | 100 | HF (E2E noisy); default journal level: early-returns on !j.trace() (design review B) |
-| trace | 1KiB hex | 4 | 1200 | 1092.86 | 1349.704875 | 1343.99 | E2E | 230 | 100 |  |
-| trace_num | K=4 | 4 | 1200 | 261.11 | 555.470253 | 512.237 | HF | 88 | 100 | HF (E2E noisy) |
-| trace_float | K=4 | 4 | 1200 | 309.204 | 569.664249 | 560.331 | HF | 96 | 100 | HF (E2E noisy) |
-| otxn_param | 32B | 4 | 1201 | 150.07 | 384.777097 | 401.197 | HF | 69 | 830 | HF (E2E noisy) |
-| otxn_param | 256B | 4 | 1201 | 156.203 | 394.953023 | 407.33 | HF | 70 | 830 | HF (E2E noisy) |
-| hook_param | 32B | 4 | 1200 | 99.245 | 399.184504 | 350.372 | HF | 60 | 510 | HF (E2E noisy) |
-| hook_param | 256B | 4 | 1200 | 102.015 | 431.907653 | 353.142 | HF | 61 | 510 | HF (E2E noisy) |
-| otxn_field | sfAccount(20B) | 1 | 300 | 101.133 | 373.677053 | 352.26 | HF | 60 | 460 | HF (E2E noisy) |
-| otxn_field | 1KiB Blob | 1 | 300 | 131.35 | 226.514090 | 382.477 | HF | 66 | 460 | HF (E2E noisy); E2E/HF ratio 0.592229 |
-| otxn_field | 16KiB Blob | 1 | 300 | 701.48 | 1081.306683 | 952.607 | HF | 170 | 460 | HF (E2E noisy) |
-| otxn_slot | small tx | 1 | 300 | 363.917 | 952.969761 | 615.044 | HF | 110 | 310 | HF (E2E noisy); E2E/HF ratio 1.549434 |
-| otxn_slot | 1KiB Blob | 1 | 300 | 369.947 | 686.680872 | 621.074 | HF | 110 | 310 | HF (E2E noisy) |
-| otxn_slot | 16KiB Blob | 1 | 300 | 653.097 | 950.995687 | 904.224 | HF | 160 | 310 | HF (E2E noisy) |
-| slot | 1KiB Blob | 1 | 300 | 400.583 | 740.743720 | 651.71 | HF | 120 | 1400 | HF (E2E noisy) |
-| slot | 16KiB Blob | 1 | 300 | 1019.33 | 1299.410387 | 1270.45 | HF | 220 | 1400 | HF (E2E noisy) |
-| slot_size | K=1 | 1 | 300 | 254.253 | 1057.921613 | 505.38 | HF | 87 | 330 | HF (E2E noisy); E2E/HF ratio 2.093318 |
-| slot_type | flags=0 | 1 | 300 | 68.8267 | 328.907143 | 319.954 | HF | 55 | 210 | HF (E2E noisy) |
-| slot_type | flags=1 | 1 | 300 | 94.8233 | 553.060444 | 345.95 | HF | 59 | 210 | HF (E2E noisy); E2E/HF ratio 1.598670 |
-| slot_count | 3 Memos | 1 | 300 | 72.28 | 271.099390 | 323.407 | HF | 56 | 230 | HF (E2E noisy) |
-| slot_subfield | sfAccount | 1 | 300 | 92.13 | 313.517794 | 343.257 | HF | 59 | 220 | HF (E2E noisy) |
-| slot_float | sfAmount (own tx, Payment) | 1 | 300 | 136.277 | 354.647539 | 387.404 | HF | 66 | 150 | HF (E2E noisy) |
-| slot_subarray | Memos[0] | 1 | 300 | 85.2033 | 354.284461 | 336.33 | HF | 58 | 330 | HF (E2E noisy) |
-| slot_set | 34B keylet | 1 | 300 | 1520.52 | 1940.128905 | 1771.65 | HF | 310 | 350 | HF (E2E noisy) |
-| slot_clear | K=1 | 1 | 300 | 206.497 | 285.438716 | 457.624 | HF | 78 | 230 | HF (E2E noisy); E2E/HF ratio 0.623741 |
-| sto_validate | ~31B | 1 | 300 | 142.223 | 387.282436 | 393.35 | HF | 67 | 350 | HF (E2E noisy) |
-| sto_validate | ~tx (250B) | 1 | 300 | 401.723 | 570.214090 | 652.85 | HF | 120 | 350 | HF (E2E noisy) |
-| sto_validate | ~4KiB (Blob) | 1 | 300 | 490.207 | 1216.606683 | 741.334 | HF | 130 | 350 | HF (E2E noisy); E2E/HF ratio 1.641106 |
-| sto_subfield | ~31B | 1 | 300 | 109.607 | 412.254601 | 360.734 | HF | 62 | 340 | HF (E2E noisy) |
-| sto_subfield | ~tx (250B) | 1 | 300 | 265.67 | 568.845514 | 516.797 | HF | 89 | 340 | HF (E2E noisy) |
-| sto_subfield | ~4KiB (Blob) | 1 | 300 | 365.943 | 1110.019588 | 617.07 | HF | 110 | 340 | HF (E2E noisy); E2E/HF ratio 1.798854 |
-| sto_subarray | ~tx (250B) | 1 | 300 | 160.283 | 182.575144 | 411.41 | HF | 71 | 290 | HF (E2E noisy); E2E/HF ratio 0.443779; no small-object point (deferred); single-point table value |
-| sto_subarray | 3 Memos, one ~1KiB | 1 | 300 | 168.603 | 300.208477 | 419.73 | HF | 72 | 290 | HF (E2E noisy); E2E/HF ratio 0.715241 |
-| sto_emplace | ~31B | 1 | 300 | 220.633 | 540.976594 | 471.76 | HF | 81 | 980 | HF (E2E noisy) |
-| sto_emplace | ~tx (250B) | 1 | 300 | 296.297 | 619.115655 | 547.424 | HF | 94 | 980 | HF (E2E noisy) |
-| sto_emplace | ~4KiB (Blob) | 1 | 300 | 480.187 | 730.860099 | 731.314 | HF | 130 | 980 | HF (E2E noisy) |
-| sto_erase | ~31B | 1 | 300 | 149.457 | 439.010042 | 400.584 | HF | 69 | 970 | HF (E2E noisy) |
-| sto_erase | ~tx (250B) | 1 | 300 | 195.983 | 457.912066 | 447.11 | HF | 77 | 970 | HF (E2E noisy) |
-| sto_erase | ~4KiB (Blob) | 1 | 300 | 393.48 | 772.775029 | 644.607 | HF | 110 | 970 | HF (E2E noisy) |
-| ledger_nonce | K=200/exec | 1 | 200 | 262.995 | 569.164148 | 514.122 | HF | 88 | 170 | HF (E2E noisy) |
-| etxn_nonce | K=200/exec | 1 | 200 | 353.74 | 679.825259 | 604.867 | HF | 110 | 230 | HF (E2E noisy) |
-| util_verify | ed25519 (passing) | 1 | 301 | 23227.2 | 24072.926881 | 23478.3 | E2E | 4100 | 24000 |  |
-| util_verify | secp256k1 (passing) | 1 | 301 | 22176.4 | 22935.497251 | 22427.5 | E2E | 4000 | 24000 |  |
-| hook_param_set | K=16/exec (cap) | 1 | 16 | 242.188 | 207.099162 | 493.314 | HF | 85 | 370 | HF (E2E noisy); E2E/HF ratio 0.419812 |
-| meta_slot | K=200/exec, weak/AAW pass | 1 | 202 | 81.104 | - | 332.231 | HF | 57 | 220 | HF (capped/one-shot) |
-| prepare | min Payment spec | 1 | 250 | 31718 | 33236.830508 | 31969.1 | E2E | 5700 | 36000 | reference size (minimal Payment) |
-| prepare | 1KiB ttINVOKE+sfBlob | 1 | 301 | 31247.7 | 32449.819588 | 31498.8 | E2E | 5600 | 36000 | 1KiB sfBlob variant (Phase 3 item 3) |
-| etxn_fee_base | 1KiB ttINVOKE+sfBlob | 1 | 302 | 4317.3 | 4308.401185 | 4568.43 | HF | 780 | 4600 | HF (E2E noisy); 1KiB sfBlob variant, direct call (not via emit) -- reference (min Payment) value comes from emit_min_k200's loop, see below |
-| ledger_keylet | full range | 1 | 300 | 476.067 | 749.086140 | 727.194 | HF | 130 | 300 | HF (E2E noisy); lower bound: near-empty JTX ledger (design review F3) |
-| state | 4KiB (ExtendedHookState) | 1 | 200 | 2961.68 | 3880.729435 | 3212.81 | HF | 550 | 1700 | HF (E2E noisy) |
-| state_set | 4KiB (ExtendedHookState) | 1 | 200 | 929.195 | 15834.590374 | 4992.8 | HF | 860 | 900 | HF (ledger-write cost reported separately); E2E/HF ratio 3.171484 |
-| state_foreign | read 32B (no grant needed) | 1 | 200 | 2086.07 | 3136.801428 | 2337.2 | HF | 400 | 1700 | HF (E2E noisy); E2E/HF ratio 1.342118 |
-| state_foreign | read 256B (no grant needed) | 1 | 200 | 2207.56 | 3081.273650 | 2458.69 | HF | 420 | 1700 | HF (E2E noisy) |
-| state_foreign_set | write, K=1 (first call, grant scan) | 1 | 1 | 17358 | - | 34425.1 | HF | 5900 | 3400 | HF (capped/one-shot) |
-| state_foreign_set | write, K=200 (grant cached after 1st) | 1 | 200 | 762.06 | 8061.773650 | 3762.77 | HF | 650 | 3400 | HF (ledger-write cost reported separately); E2E/HF ratio 2.142509 |
-| emit | K=200/exec, min Payment, own nonce+details+fee_base | 1 | 200 | 9050.17 | - | 9301.3 | HF | 1600 | 8700 | HF (undecomposable body) |
-| etxn_details | inside emit_min_k200's loop | 1 | 200 | 502.81 | - | 753.937 | HF | 130 | 470 | HF (undecomposable body) |
-| etxn_fee_base | inside emit_min_k200's loop | 1 | 200 | 4335.99 | - | 4587.12 | HF | 790 | 4600 | HF (undecomposable body) |
-| emit | K=200/exec, 1KiB ttINVOKE+sfBlob | 1 | 200 | 9481.93 | - | 9733.06 | HF | 1700 | 8700 | HF (undecomposable body) |
-| hook_skip | alternating scan/erase (2-hook chain) | 1 | 300 | 111.43 | 409.352807 | 362.557 | HF | 62 | 170 | HF (E2E noisy) |
+| hook_pos | K=4 | 4 | 3400 | 19.0938 | 264.675787 | 264.676 | HF | 48 | 40 | HF (E2E noisy) |
+| fee_base | K=4 | 4 | 1800 | 69.4694 | 311.079537 | 315.051 | HF | 57 | 70 | HF (E2E noisy) |
+| ledger_seq | K=4 | 4 | 1800 | 69.2728 | 329.901759 | 314.855 | HF | 57 | 140 | HF (E2E noisy) |
+| float_one | K=4 | 4 | 1800 | 19.1267 | 273.295525 | 264.709 | HF | 48 | 20 | HF (E2E noisy) |
+| otxn_type | K=4 | 4 | 1800 | 68.785 | 329.665339 | 314.367 | HF | 57 | 130 | HF (E2E noisy) |
+| etxn_generation | K=4 | 4 | 1800 | 63.7889 | 303.027007 | 309.371 | HF | 56 | 130 | HF (E2E noisy) |
+| util_sha512h | 32B | 1 | 1000 | 246.871 | 520.609492 | 492.453 | HF | 89 | 340 | HF (E2E noisy) |
+| util_sha512h | 1KiB | 1 | 1000 | 1386.36 | 1654.169492 | 1631.94 | E2E | 300 | 340 |  |
+| util_sha512h | 16KiB | 1 | 1000 | 17845.8 | 18710.527269 | 18091.3 | E2E | 3400 | 340 |  |
+| state | 32B | 1 | 200 | 1989.44 | 2766.598256 | 2235.02 | HF | 410 | 1700 | HF (E2E noisy) |
+| state | 256B | 1 | 200 | 2067.66 | 2524.726034 | 2313.24 | HF | 420 | 1700 | HF (E2E noisy) |
+| state_set | 32B, modify (fixed keys) | 1 | 200 | 679.33 | 7623.767136 | 3504.52 | HF | 640 | 900 | HF (ledger-write cost reported separately); E2E/HF ratio 2.175409; review #6: modify path |
+| state_set | 32B, create (fresh keys, salt=rep) | 1 | 200 | 669.81 | 26396.063749 | 2869.72 | HF | 520 | 900 | HF (ledger-write cost reported separately); E2E/HF ratio 9.198126; review #6: create path |
+| state_set | 256B | 1 | 200 | 731.885 | 8802.544913 | 3726.61 | HF | 680 | 900 | HF (ledger-write cost reported separately); E2E/HF ratio 2.362080 |
+| util_raddr | K=4 | 4 | 1200 | 390.48 | 686.609378 | 636.062 | HF | 120 | 980 | HF (E2E noisy) |
+| util_accid | K=4 | 4 | 1200 | 365.779 | 625.445489 | 611.361 | HF | 110 | 690 | HF (E2E noisy) |
+| util_keylet | ACCOUNT | 4 | 1200 | 247.799 | 519.406555 | 493.381 | HF | 89 | 230 | HF (E2E noisy) |
+| util_keylet | CHILD | 4 | 1200 | 80.2717 | 407.090815 | 325.854 | HF | 59 | 230 | HF (E2E noisy) |
+| util_keylet | ESCROW | 4 | 1200 | 257.827 | 538.560259 | 503.409 | HF | 91 | 230 | HF (E2E noisy) |
+| util_keylet | LINE | 4 | 1200 | 260.144 | 544.920444 | 505.726 | HF | 91 | 230 | HF (E2E noisy) |
+| util_keylet | AMENDMENTS | 4 | 1200 | 78.6733 | 367.276000 | 324.255 | HF | 59 | 230 | HF (E2E noisy) |
+| util_keylet | QUALITY | 4 | 1200 | 83.3017 | 364.427852 | 328.884 | HF | 60 | 230 | HF (E2E noisy); AMENDMENTS's case also covers FEES/NEGATIVE_UNL/EMITTED_DIR (identical switch case); AMM/BRIDGE/XCHAIN_*/MPTOKEN_*/CREDENTIAL/PERMISSIONED_DOMAIN not built (complex multi-part operands -- asset pairs, bridge specs); every other keylet_type is covered below |
+| util_keylet | HOOK | 4 | 1200 | 247.657 | 537.235259 | 493.239 | HF | 89 | 230 | HF (E2E noisy) |
+| util_keylet | HOOK_STATE | 4 | 1200 | 255.778 | 531.566741 | 501.359 | HF | 91 | 230 | HF (E2E noisy) |
+| util_keylet | SKIP | 4 | 1200 | 86.1725 | 391.699148 | 331.754 | HF | 60 | 230 | HF (E2E noisy) |
+| util_keylet | OFFER | 4 | 1200 | 259.97 | 491.716741 | 505.552 | HF | 91 | 230 | HF (E2E noisy) |
+| util_keylet | SIGNERS | 4 | 1200 | 253.178 | 538.741741 | 498.76 | HF | 90 | 230 | HF (E2E noisy) |
+| util_keylet | CHECK | 4 | 1200 | 258.424 | 552.513963 | 504.006 | HF | 91 | 230 | HF (E2E noisy) |
+| util_keylet | DEPOSIT_PREAUTH | 4 | 1200 | 253.261 | 532.001926 | 498.843 | HF | 90 | 230 | HF (E2E noisy) |
+| util_keylet | UNCHECKED | 4 | 1200 | 79.9 | 360.183407 | 325.482 | HF | 59 | 230 | HF (E2E noisy) |
+| util_keylet | OWNER_DIR | 4 | 1200 | 248.587 | 545.488963 | 494.169 | HF | 89 | 230 | HF (E2E noisy) |
+| util_keylet | PAGE | 4 | 1200 | 251.333 | 536.732481 | 496.914 | HF | 90 | 230 | HF (E2E noisy) |
+| util_keylet | PAYCHAN | 4 | 1200 | 262.788 | 518.952852 | 508.369 | HF | 92 | 230 | HF (E2E noisy) |
+| util_keylet | EMITTED_TXN | 4 | 1200 | 246.603 | 508.224148 | 492.185 | HF | 89 | 230 | HF (E2E noisy) |
+| util_keylet | NFT_OFFER | 4 | 1200 | 259.46 | 497.456555 | 505.042 | HF | 91 | 230 | HF (E2E noisy) |
+| util_keylet | HOOK_DEFINITION | 4 | 1200 | 248.179 | 505.122296 | 493.761 | HF | 89 | 230 | HF (E2E noisy) |
+| util_keylet | HOOK_STATE_DIR | 4 | 1200 | 270.246 | 511.602852 | 515.828 | HF | 93 | 230 | HF (E2E noisy) |
+| util_keylet | CRON | 4 | 1200 | 309.124 | 600.322296 | 554.706 | HF | 100 | 230 | HF (E2E noisy) |
+| util_keylet | ORACLE | 4 | 1200 | 283.041 | 537.245444 | 528.623 | HF | 96 | 230 | HF (E2E noisy) |
+| etxn_burden | K=4 | 4 | 1200 | 107.058 | 349.940339 | 352.64 | HF | 64 | 260 | HF (E2E noisy) |
+| otxn_burden | K=4 | 4 | 1200 | 108.007 | 362.571142 | 353.589 | HF | 64 | 260 | HF (E2E noisy) |
+| otxn_generation | K=4 | 4 | 1200 | 104.595 | 351.015587 | 350.177 | HF | 63 | 280 | HF (E2E noisy) |
+| ledger_last_time | K=4 | 4 | 1200 | 69.435 | 336.220895 | 315.017 | HF | 57 | 110 | HF (E2E noisy) |
+| ledger_last_hash | K=4 | 4 | 1200 | 75.305 | 312.444766 | 320.887 | HF | 58 | 210 | HF (E2E noisy) |
+| hook_account | K=4 | 4 | 1200 | 74.3033 | 329.914210 | 319.885 | HF | 58 | 140 | HF (E2E noisy) |
+| hook_hash | hook_no=0 | 4 | 1200 | 111.823 | 382.599757 | 357.405 | HF | 65 | 340 | HF (E2E noisy) |
+| hook_hash | hook_no=-1 | 4 | 1200 | 74.8692 | 339.676609 | 320.451 | HF | 58 | 340 | HF (E2E noisy) |
+| otxn_id | flags=0 | 4 | 1200 | 74.1192 | 312.701609 | 319.701 | HF | 58 | 450 | HF (E2E noisy) |
+| otxn_id | flags=1 | 4 | 1200 | 74.5525 | 319.319201 | 320.134 | HF | 58 | 450 | HF (E2E noisy) |
+| float_multiply | K=4 | 4 | 1200 | 197.374 | 415.107051 | 442.956 | HF | 80 | 240 | HF (E2E noisy) |
+| float_mulratio | K=4 | 4 | 1200 | 110.477 | 372.234625 | 356.059 | HF | 65 | 390 | HF (E2E noisy) |
+| float_negate | K=4 | 4 | 1200 | 68.8433 | 317.335393 | 314.425 | HF | 57 | 160 | HF (E2E noisy) |
+| float_compare | COMPARE_EQUAL | 4 | 1200 | 104.787 | 390.312720 | 350.369 | HF | 64 | 140 | HF (E2E noisy) |
+| float_compare | COMPARE_LESS|COMPARE_EQUAL | 4 | 1200 | 104.588 | 351.252535 | 350.17 | HF | 63 | 140 | HF (E2E noisy) |
+| float_sum | K=4 | 4 | 1200 | 118.357 | 397.801495 | 363.939 | HF | 66 | 350 | HF (E2E noisy) |
+| float_invert | K=4 | 4 | 1200 | 69.0092 | 345.324282 | 314.591 | HF | 57 | 230 | HF (E2E noisy) |
+| float_divide | K=4 | 4 | 1200 | 92.1217 | 334.273717 | 337.704 | HF | 61 | 280 | HF (E2E noisy) |
+| float_mantissa | K=4 | 4 | 1200 | 69.2267 | 329.334467 | 314.809 | HF | 57 | 170 | HF (E2E noisy) |
+| float_sign | K=4 | 4 | 1200 | 69.3142 | 325.237245 | 314.896 | HF | 57 | 80 | HF (E2E noisy) |
+| float_int | K=4 | 4 | 1200 | 70.4225 | 353.192597 | 316.004 | HF | 57 | 100 | HF (E2E noisy) |
+| float_log | K=4 | 4 | 1200 | 82.6092 | 370.477985 | 328.191 | HF | 60 | 100 | HF (E2E noisy) |
+| float_root | K=4 | 4 | 1200 | 125.574 | 397.031125 | 371.156 | HF | 67 | 190 | HF (E2E noisy) |
+| float_set | K=4 | 4 | 1200 | 138.118 | 376.205199 | 383.699 | HF | 70 | 110 | HF (E2E noisy) |
+| float_sto | XRP | 4 | 1200 | 88.4825 | 370.271935 | 334.064 | HF | 61 | 230 | HF (E2E noisy) |
+| float_sto | IOU | 4 | 1200 | 92.1108 | 340.704342 | 337.693 | HF | 61 | 230 | HF (E2E noisy) |
+| float_sto | short | 4 | 1200 | 88.425 | 326.869157 | 334.007 | HF | 61 | 230 | HF (E2E noisy) |
+| float_sto_set | K=4 | 4 | 1200 | 74.7058 | 367.713532 | 320.288 | HF | 58 | 140 | HF (E2E noisy) |
+| trace | 32B | 4 | 1200 | 270.433 | 582.990859 | 516.014 | HF | 93 | 100 | HF (E2E noisy); default journal level: early-returns on !j.trace() (design review B) |
+| trace | 1KiB hex | 4 | 1200 | 1117.86 | 1397.163081 | 1363.44 | HF | 250 | 100 | HF (E2E noisy) |
+| trace_num | K=4 | 4 | 1200 | 277.458 | 538.921708 | 523.04 | HF | 95 | 100 | HF (E2E noisy) |
+| trace_float | K=4 | 4 | 1200 | 322.153 | 597.084581 | 567.735 | HF | 110 | 100 | HF (E2E noisy) |
+| otxn_param | 32B | 4 | 1201 | 159.81 | 438.986230 | 405.392 | HF | 73 | 830 | HF (E2E noisy) |
+| otxn_param | 256B | 4 | 1201 | 165.415 | 459.372341 | 410.997 | HF | 74 | 830 | HF (E2E noisy) |
+| hook_param | 32B | 4 | 1200 | 101.87 | 391.889007 | 347.452 | HF | 63 | 510 | HF (E2E noisy) |
+| hook_param | 256B | 4 | 1200 | 106.085 | 354.114933 | 351.667 | HF | 64 | 510 | HF (E2E noisy) |
+| otxn_field | sfAccount(20B) | 1 | 300 | 103.96 | 318.587367 | 349.542 | HF | 63 | 460 | HF (E2E noisy) |
+| otxn_field | 1KiB Blob | 1 | 300 | 136.19 | 175.772553 | 381.772 | HF | 69 | 460 | HF (E2E noisy); E2E/HF ratio 0.460412 |
+| otxn_field | 16KiB Blob | 1 | 300 | 682.66 | 1012.313293 | 928.242 | HF | 170 | 460 | HF (E2E noisy) |
+| otxn_slot | small tx | 1 | 300 | 368.9 | 743.964422 | 614.482 | HF | 120 | 310 | HF (E2E noisy) |
+| otxn_slot | 1KiB Blob | 1 | 300 | 399.22 | 692.219978 | 644.802 | HF | 120 | 310 | HF (E2E noisy) |
+| otxn_slot | 16KiB Blob | 1 | 300 | 675.19 | 968.360719 | 920.772 | HF | 170 | 310 | HF (E2E noisy) |
+| slot | 1KiB Blob | 1 | 300 | 394.98 | 843.228108 | 640.562 | HF | 120 | 1400 | HF (E2E noisy); E2E/HF ratio 1.316388 |
+| slot | 16KiB Blob | 1 | 300 | 1037.44 | 1348.805886 | 1283.02 | HF | 240 | 1400 | HF (E2E noisy) |
+| slot_size | K=1 | 1 | 300 | 254.413 | 457.053311 | 499.995 | HF | 90 | 330 | HF (E2E noisy) |
+| slot_type | flags=0 | 1 | 300 | 73.3733 | 367.432624 | 318.955 | HF | 58 | 210 | HF (E2E noisy) |
+| slot_type | flags=1 | 1 | 300 | 96.63 | 512.764784 | 342.212 | HF | 62 | 210 | HF (E2E noisy); E2E/HF ratio 1.498384 |
+| slot_count | 3 Memos | 1 | 300 | 75.3367 | 262.331089 | 320.919 | HF | 58 | 230 | HF (E2E noisy) |
+| slot_subfield | sfAccount | 1 | 300 | 92.5467 | 321.709590 | 338.129 | HF | 61 | 220 | HF (E2E noisy) |
+| slot_float | sfAmount (own tx, Payment) | 1 | 300 | 141.093 | 449.560719 | 386.675 | HF | 70 | 150 | HF (E2E noisy) |
+| slot_subarray | Memos[0] | 1 | 300 | 86.99 | 524.268849 | 332.572 | HF | 60 | 330 | HF (E2E noisy); E2E/HF ratio 1.576407 |
+| slot_set | 34B keylet | 1 | 300 | 1542.66 | 1984.642923 | 1788.24 | HF | 330 | 350 | HF (E2E noisy) |
+| slot_clear | K=1 | 1 | 300 | 206.427 | 114.960344 | 452.009 | HF | 82 | 230 | HF (E2E noisy); E2E/HF ratio 0.254332 |
+| sto_validate | ~31B | 1 | 300 | 144.883 | 431.595859 | 390.465 | HF | 71 | 350 | HF (E2E noisy) |
+| sto_validate | ~tx (250B) | 1 | 300 | 407.36 | 748.742923 | 652.942 | HF | 120 | 350 | HF (E2E noisy) |
+| sto_validate | ~4KiB (Blob) | 1 | 300 | 492.84 | 763.916997 | 738.422 | HF | 140 | 350 | HF (E2E noisy) |
+| sto_subfield | ~31B | 1 | 300 | 111.83 | 394.288813 | 357.412 | HF | 65 | 340 | HF (E2E noisy) |
+| sto_subfield | ~tx (250B) | 1 | 300 | 268.067 | 514.546988 | 513.649 | HF | 93 | 340 | HF (E2E noisy) |
+| sto_subfield | ~4KiB (Blob) | 1 | 300 | 361.793 | 744.409951 | 607.375 | HF | 110 | 340 | HF (E2E noisy) |
+| sto_subarray | ~tx (250B) | 1 | 300 | 164.317 | 427.065507 | 409.899 | HF | 74 | 290 | HF (E2E noisy); no small-object point (deferred); single-point table value |
+| sto_subarray | 3 Memos, one ~1KiB | 1 | 300 | 173.257 | 625.472914 | 418.839 | HF | 76 | 290 | HF (E2E noisy); E2E/HF ratio 1.493351 |
+| sto_emplace | ~31B | 1 | 300 | 219.283 | 475.282852 | 464.865 | HF | 84 | 980 | HF (E2E noisy) |
+| sto_emplace | ~tx (250B) | 1 | 300 | 286.127 | 689.941027 | 531.709 | HF | 96 | 980 | HF (E2E noisy) |
+| sto_emplace | ~4KiB (Blob) | 1 | 300 | 473.667 | 1008.707693 | 719.249 | HF | 130 | 980 | HF (E2E noisy); E2E/HF ratio 1.402446 |
+| sto_erase | ~31B | 1 | 300 | 150.313 | 433.593240 | 395.895 | HF | 72 | 970 | HF (E2E noisy) |
+| sto_erase | ~tx (250B) | 1 | 300 | 192.92 | 429.481044 | 438.502 | HF | 79 | 970 | HF (E2E noisy) |
+| sto_erase | ~4KiB (Blob) | 1 | 300 | 389.62 | 571.944007 | 635.202 | HF | 120 | 970 | HF (E2E noisy) |
+| ledger_nonce | K=200/exec | 1 | 200 | 263.52 | 534.918487 | 509.102 | HF | 92 | 170 | HF (E2E noisy) |
+| etxn_nonce | K=200/exec | 1 | 200 | 357.205 | 880.146265 | 602.787 | HF | 110 | 230 | HF (E2E noisy); E2E/HF ratio 1.460128 |
+| util_verify | ed25519 (passing) | 1 | 301 | 23146.1 | 23925.273637 | 23391.7 | E2E | 4400 | 24000 |  |
+| util_verify | secp256k1 (passing) | 1 | 301 | 22127.2 | 22958.940304 | 22372.8 | E2E | 4200 | 24000 |  |
+| hook_param_set | K=16/exec (cap) | 1 | 16 | 242.812 | - | 488.394 | HF | 88 | 370 |  |
+| meta_slot | K=200/exec, weak/AAW pass | 1 | 202 | 81.4505 | - | 327.032 | HF | 59 | 220 | HF (capped/one-shot) |
+| prepare | min Payment spec | 1 | 250 | 31901.3 | 33186.648095 | 32146.8 | E2E | 6000 | 36000 | reference size (minimal Payment) |
+| prepare | 1KiB ttINVOKE+sfBlob | 1 | 301 | 31404.7 | 32234.432173 | 31650.3 | E2E | 5800 | 36000 | 1KiB sfBlob variant (Phase 3 item 3) |
+| etxn_fee_base | 1KiB ttINVOKE+sfBlob | 1 | 302 | 4386.26 | 4189.149969 | 4631.84 | HF | 840 | 4600 | HF (E2E noisy); 1KiB sfBlob variant, direct call (not via emit) -- reference (min Payment) value comes from emit_min_k200's loop, see below |
+| ledger_keylet | full range | 1 | 300 | 481.98 | 733.210674 | 727.562 | HF | 140 | 300 | HF (E2E noisy); lower bound: near-empty JTX ledger (design review F3) |
+| state | 4KiB (ExtendedHookState) | 1 | 200 | 3025.32 | 4054.938274 | 3270.9 | HF | 590 | 1700 | HF (E2E noisy) |
+| state_set | 4KiB (ExtendedHookState) | 1 | 200 | 923.78 | 15751.583802 | 5277.45 | HF | 950 | 900 | HF (ledger-write cost reported separately); E2E/HF ratio 2.984698 |
+| state_foreign | read 32B (no grant needed) | 1 | 200 | 2039.97 | 2519.247127 | 2285.55 | HF | 420 | 1700 | HF (E2E noisy) |
+| state_foreign | read 256B (no grant needed) | 1 | 200 | 2144.97 | 2792.380460 | 2390.55 | HF | 440 | 1700 | HF (E2E noisy) |
+| state_foreign_set | write, K=1 (first call, grant scan) | 1 | 1 | 16496 | - | 33546.6 | HF | 6100 | 3400 | HF (capped/one-shot) |
+| state_foreign_set | write, K=200 (grant cached after 1st) | 1 | 200 | 742.7 | 7843.308238 | 3748.73 | HF | 680 | 3400 | HF (ledger-write cost reported separately); E2E/HF ratio 2.092259 |
+| emit | K=200/exec, min Payment, own nonce+details+fee_base | 1 | 200 | 8970.65 | - | 9216.23 | HF | 1700 | 8700 | HF (undecomposable body) |
+| etxn_details | inside emit_min_k200's loop | 1 | 200 | 500.345 | - | 745.927 | HF | 140 | 470 | HF (undecomposable body) |
+| etxn_fee_base | inside emit_min_k200's loop | 1 | 200 | 4389.98 | - | 4635.57 | HF | 840 | 4600 | HF (undecomposable body) |
+| emit | K=200/exec, 1KiB ttINVOKE+sfBlob | 1 | 200 | 9638.39 | - | 9883.97 | HF | 1800 | 8700 | HF (undecomposable body) |
+| hook_skip | alternating scan/erase (2-hook chain) | 1 | 300 | 117.867 | 697.914378 | 363.449 | HF | 66 | 170 | HF (E2E noisy); E2E/HF ratio 1.920256 |
 
 (`xpop_slot` not observed as a call on fixture `w_regular_key` -- Import tx likely did not reach the hook as ttIMPORT; skipped)
 
@@ -316,11 +316,11 @@ Fitted (exec.ns, wasm-window only, comparison): t_instr = 5.57007 ns, G = 330.15
 
 | api | variant | calls | ns/call | t_api (ns) | cost (proposed) | cost (current) | notes |
 |---|---|---|---|---|---|---|---|
-| xpop_slot | K=100/exec, min over 2 rep(s) (ttIMPORT, one fixture per fresh Env) | 100 | 28541.9 | 28793 | 5000 | 37000 | HF (capped/one-shot): anti-replay caps reps to the number of distinct fixtures, no N1/N2 E2E |
-| util_keylet | AMM (own Env, featureAMM added) | 4 | 1201 | 305.754 | 568.971254 | 556.88 | HF | 95 | 230 | HF (E2E noisy) |
-| util_keylet | DID (own Env, featureDID added) | 4 | 1200 | 263.992 | 539.849032 | 515.119 | HF | 88 | 230 | HF (E2E noisy) |
-| etxn_reserve | direct (1st call) | 1 | 1 | 228 | - | 479.127 | HF | 82 | 150 | HF (capped/one-shot): error path after 1st call is trivial (design review B) |
-| hook_again | direct (1st call, strong pass) | 1 | 1 | 189.5 | - | 440.627 | HF | 76 | 260 | HF (capped/one-shot): error path after 1st call is trivial (design review B) |
+| xpop_slot | K=100/exec, min over 2 rep(s) (ttIMPORT, one fixture per fresh Env) | 100 | 27205.1 | 27450.7 | 5000 | 37000 | HF (capped/one-shot): anti-replay caps reps to the number of distinct fixtures, no N1/N2 E2E |
+| util_keylet | AMM (own Env, featureAMM added) | 4 | 1201 | 306.904 | 597.088963 | 552.486 | HF | 100 | 230 | HF (E2E noisy) |
+| util_keylet | DID (own Env, featureDID added) | 4 | 1200 | 266.103 | 555.849148 | 511.685 | HF | 93 | 230 | HF (E2E noisy) |
+| etxn_reserve | direct (1st call) | 1 | 1 | 231 | - | 476.582 | HF | 86 | 150 | HF (capped/one-shot): error path after 1st call is trivial (design review B) |
+| hook_again | direct (1st call, strong pass) | 1 | 1 | 179 | - | 424.582 | HF | 77 | 260 | HF (capped/one-shot): error path after 1st call is trivial (design review B) |
 
 ## Apply-time ledger cost (not charged by HOOK_API_COST)
 
@@ -328,182 +328,183 @@ Per created / modified hook-state entry on this platform; per ledger entry, node
 
 | variant | E2E (ns/call) | HF (ns/call) | (E2E - HF) ns/entry | path |
 |---|---|---|---|---|
-| state_set: 32B, modify (fixed keys) | 8073.629263 | 3604.31 | 4469.317333 | modify |
-| state_set: 32B, create (fresh keys, salt=rep) | 25467.973363 | 2899.86 | 22568.111433 | create |
-| state_set: 256B | 8497.334818 | 3802.19 | 4695.147889 | modify |
-| state_set: 4KiB (ExtendedHookState) | 15834.590374 | 4992.8 | 10841.788444 | modify |
-| state_foreign_set: write, K=1 (first call, grant scan) | - | 34425.1 | - | modify |
-| state_foreign_set: write, K=200 (grant cached after 1st) | 8061.773650 | 3762.77 | 4299.001720 | modify |
+| state_set: 32B, modify (fixed keys) | 7623.767136 | 3504.52 | 4119.245173 | modify |
+| state_set: 32B, create (fresh keys, salt=rep) | 26396.063749 | 2869.72 | 23526.341786 | create |
+| state_set: 256B | 8802.544913 | 3726.61 | 5075.937951 | modify |
+| state_set: 4KiB (ExtendedHookState) | 15751.583802 | 5277.45 | 10474.136839 | modify |
+| state_foreign_set: write, K=1 (first call, grant scan) | - | 33546.6 | - | modify |
+| state_foreign_set: write, K=200 (grant cached after 1st) | 7843.308238 | 3748.73 | 4094.581275 | modify |
 
 ## Terminal APIs (accept / rollback)
 
 | api | calls | ns/call (min) | ns/call (mean) | t_api (ns, from mean) | cost (proposed) | cost (current) | exec.ns diff vs noexit |
 |---|---|---|---|---|---|---|---|
 
-`noexit` (hook returns 0 without calling accept/rollback/exit): mean exec.ns = 32731.3 over 200/200 reps
+`noexit` (hook returns 0 without calling accept/rollback/exit): mean exec.ns = 35013.4 over 200/200 reps
 
-| accept | 1 | 218 | 249.21 | 500.337 | 86 | 150 | -10564 |
-| rollback | 1 | 162 | 187.012 | 438.139 | 75 | 180 | 3721.16 |
+| accept | 1 | 174 | 237.665 | 483.247 | 87 | 150 | -4046.72 |
+| rollback | 1 | 139.5 | 171.303 | 416.884 | 75 | 180 | 3240.31 |
 
 ## Table value per API (DESIGN §2.4 rule)
 
 | api | rule | rows | table cost |
 |---|---|---|---|
-| accept | max (single size, multiple paths) | 1 | 86 |
-| emit | max (single size, multiple paths) | 2 | 1700 |
-| etxn_burden | max (single size, multiple paths) | 1 | 61 |
-| etxn_details | max (single size, multiple paths) | 1 | 130 |
-| etxn_fee_base | max (single size, multiple paths) | 2 | 780 |
-| etxn_generation | max (single size, multiple paths) | 1 | 53 |
+| accept | max (single size, multiple paths) | 1 | 87 |
+| emit | max (single size, multiple paths) | 2 | 1800 |
+| etxn_burden | max (single size, multiple paths) | 1 | 64 |
+| etxn_details | max (single size, multiple paths) | 1 | 140 |
+| etxn_fee_base | max (single size, multiple paths) | 2 | 840 |
+| etxn_generation | max (single size, multiple paths) | 1 | 56 |
 | etxn_nonce | max (single size, multiple paths) | 1 | 110 |
-| etxn_reserve | max (single size, multiple paths) | 1 | 82 |
-| fee_base | max (single size, multiple paths) | 1 | 54 |
-| float_compare | mode: max | 2 | 60 |
-| float_divide | max (single size, multiple paths) | 1 | 58 |
-| float_int | max (single size, multiple paths) | 1 | 55 |
-| float_invert | max (single size, multiple paths) | 1 | 54 |
-| float_log | max (single size, multiple paths) | 1 | 56 |
-| float_mantissa | max (single size, multiple paths) | 1 | 55 |
-| float_mulratio | max (single size, multiple paths) | 1 | 61 |
-| float_multiply | max (single size, multiple paths) | 1 | 75 |
-| float_negate | max (single size, multiple paths) | 1 | 54 |
-| float_one | max (single size, multiple paths) | 1 | 47 |
-| float_root | max (single size, multiple paths) | 1 | 64 |
-| float_set | max (single size, multiple paths) | 1 | 72 |
-| float_sign | max (single size, multiple paths) | 1 | 54 |
-| float_sto | mode: max | 3 | 59 |
-| float_sto_set | max (single size, multiple paths) | 1 | 55 |
-| float_sum | max (single size, multiple paths) | 1 | 63 |
-| hook_account | max (single size, multiple paths) | 1 | 55 |
-| hook_again | max (single size, multiple paths) | 1 | 76 |
-| hook_hash | mode: max | 2 | 62 |
-| hook_param | max (single size, multiple paths) | 2 | 61 |
-| hook_param_set | max (single size, multiple paths) | 1 | 85 |
-| hook_pos | max (single size, multiple paths) | 1 | 47 |
-| hook_skip | max (single size, multiple paths) | 1 | 62 |
-| ledger_keylet | max (single size, multiple paths) | 1 | 130 |
-| ledger_last_hash | max (single size, multiple paths) | 1 | 55 |
-| ledger_last_time | max (single size, multiple paths) | 1 | 54 |
-| ledger_nonce | max (single size, multiple paths) | 1 | 88 |
-| ledger_seq | max (single size, multiple paths) | 1 | 54 |
-| meta_slot | max (single size, multiple paths) | 1 | 57 |
-| otxn_burden | max (single size, multiple paths) | 1 | 60 |
-| otxn_field | size: reference (DESIGN §2.4) | 3 | 66 |
-| otxn_generation | max (single size, multiple paths) | 1 | 60 |
-| otxn_id | mode: max | 2 | 55 |
-| otxn_param | mode: max | 2 | 70 |
-| otxn_slot | size: reference (DESIGN §2.4) | 3 | 110 |
-| otxn_type | max (single size, multiple paths) | 1 | 55 |
-| prepare | max (single size, multiple paths) | 2 | 5600 |
+| etxn_reserve | max (single size, multiple paths) | 1 | 86 |
+| fee_base | max (single size, multiple paths) | 1 | 57 |
+| float_compare | mode: max | 2 | 64 |
+| float_divide | max (single size, multiple paths) | 1 | 61 |
+| float_int | max (single size, multiple paths) | 1 | 57 |
+| float_invert | max (single size, multiple paths) | 1 | 57 |
+| float_log | max (single size, multiple paths) | 1 | 60 |
+| float_mantissa | max (single size, multiple paths) | 1 | 57 |
+| float_mulratio | max (single size, multiple paths) | 1 | 65 |
+| float_multiply | max (single size, multiple paths) | 1 | 80 |
+| float_negate | max (single size, multiple paths) | 1 | 57 |
+| float_one | max (single size, multiple paths) | 1 | 48 |
+| float_root | max (single size, multiple paths) | 1 | 67 |
+| float_set | max (single size, multiple paths) | 1 | 70 |
+| float_sign | max (single size, multiple paths) | 1 | 57 |
+| float_sto | mode: max | 3 | 61 |
+| float_sto_set | max (single size, multiple paths) | 1 | 58 |
+| float_sum | max (single size, multiple paths) | 1 | 66 |
+| hook_account | max (single size, multiple paths) | 1 | 58 |
+| hook_again | max (single size, multiple paths) | 1 | 77 |
+| hook_hash | mode: max | 2 | 65 |
+| hook_param | max (single size, multiple paths) | 2 | 64 |
+| hook_param_set | max (single size, multiple paths) | 1 | 88 |
+| hook_pos | max (single size, multiple paths) | 1 | 48 |
+| hook_skip | max (single size, multiple paths) | 1 | 66 |
+| ledger_keylet | max (single size, multiple paths) | 1 | 140 |
+| ledger_last_hash | max (single size, multiple paths) | 1 | 58 |
+| ledger_last_time | max (single size, multiple paths) | 1 | 57 |
+| ledger_nonce | max (single size, multiple paths) | 1 | 92 |
+| ledger_seq | max (single size, multiple paths) | 1 | 57 |
+| meta_slot | max (single size, multiple paths) | 1 | 59 |
+| otxn_burden | max (single size, multiple paths) | 1 | 64 |
+| otxn_field | size: reference (DESIGN §2.4) | 3 | 69 |
+| otxn_generation | max (single size, multiple paths) | 1 | 63 |
+| otxn_id | mode: max | 2 | 58 |
+| otxn_param | mode: max | 2 | 74 |
+| otxn_slot | size: reference (DESIGN §2.4) | 3 | 120 |
+| otxn_type | max (single size, multiple paths) | 1 | 57 |
+| prepare | max (single size, multiple paths) | 2 | 5800 |
 | rollback | max (single size, multiple paths) | 1 | 75 |
 | slot | size: reference (DESIGN §2.4) | 2 | 120 |
-| slot_clear | max (single size, multiple paths) | 1 | 78 |
-| slot_count | max (single size, multiple paths) | 1 | 56 |
-| slot_float | max (single size, multiple paths) | 1 | 66 |
-| slot_set | max (single size, multiple paths) | 1 | 310 |
-| slot_size | max (single size, multiple paths) | 1 | 87 |
-| slot_subarray | max (single size, multiple paths) | 1 | 58 |
-| slot_subfield | max (single size, multiple paths) | 1 | 59 |
-| slot_type | mode: max | 2 | 59 |
-| state | size: reference (DESIGN §2.4) | 3 | 400 |
-| state_foreign | mode: max | 2 | 420 |
-| state_foreign_set | mode: max | 2 | 5900 |
-| state_set | size: reference (DESIGN §2.4) | 4 | 650 |
-| sto_emplace | size: reference (DESIGN §2.4) | 3 | 94 |
-| sto_erase | size: reference (DESIGN §2.4) | 3 | 77 |
-| sto_subarray | size: reference (DESIGN §2.4) | 2 | 71 |
-| sto_subfield | size: reference (DESIGN §2.4) | 3 | 89 |
+| slot_clear | max (single size, multiple paths) | 1 | 82 |
+| slot_count | max (single size, multiple paths) | 1 | 58 |
+| slot_float | max (single size, multiple paths) | 1 | 70 |
+| slot_set | max (single size, multiple paths) | 1 | 330 |
+| slot_size | max (single size, multiple paths) | 1 | 90 |
+| slot_subarray | max (single size, multiple paths) | 1 | 60 |
+| slot_subfield | max (single size, multiple paths) | 1 | 61 |
+| slot_type | mode: max | 2 | 62 |
+| state | size: reference (DESIGN §2.4) | 3 | 420 |
+| state_foreign | mode: max | 2 | 440 |
+| state_foreign_set | mode: max | 2 | 6100 |
+| state_set | size: reference (DESIGN §2.4) | 4 | 680 |
+| sto_emplace | size: reference (DESIGN §2.4) | 3 | 96 |
+| sto_erase | size: reference (DESIGN §2.4) | 3 | 79 |
+| sto_subarray | size: reference (DESIGN §2.4) | 2 | 74 |
+| sto_subfield | size: reference (DESIGN §2.4) | 3 | 93 |
 | sto_validate | size: reference (DESIGN §2.4) | 3 | 120 |
-| trace | mode: max | 2 | 230 |
-| trace_float | max (single size, multiple paths) | 1 | 96 |
-| trace_num | max (single size, multiple paths) | 1 | 88 |
+| trace | mode: max | 2 | 250 |
+| trace_float | max (single size, multiple paths) | 1 | 110 |
+| trace_num | max (single size, multiple paths) | 1 | 95 |
 | util_accid | max (single size, multiple paths) | 1 | 110 |
-| util_keylet | mode: max | 25 | 95 |
-| util_raddr | max (single size, multiple paths) | 1 | 110 |
-| util_sha512h | size: geomean(ref, largest) [>10x] | 3 | 915 |
-| util_verify | mode: max | 2 | 4100 |
+| util_keylet | mode: max | 25 | 100 |
+| util_raddr | max (single size, multiple paths) | 1 | 120 |
+| util_sha512h | size: geomean(ref, largest) [>10x] | 3 | 1010 |
+| util_verify | mode: max | 2 | 4400 |
 | xpop_slot | max (single size, multiple paths) | 1 | 5000 |
+| _g | loop-head guard: fit intercept G / t_instr | 6 | 63 |
 
 ## Proposed HOOK_API_COST block
 
-In include/xrpl/hook/hook_api.macro declaration order; amendment column preserved from that file. An API with no measured row this run keeps its current value, annotated `// unmeasured`.
+In include/xrpl/hook/hook_api.macro declaration order; amendment column preserved from that file. An API with no measured row this run keeps its current value, annotated `// unmeasured`. `_g` is the baseline fit intercept G over t_instr (not charged by the guard checker today).
 
 ```
-HOOK_API_COST(_g, 220, uint256{})  // unmeasured
-HOOK_API_COST(accept, 86, uint256{})
+HOOK_API_COST(_g, 63, uint256{})
+HOOK_API_COST(accept, 87, uint256{})
 HOOK_API_COST(rollback, 75, uint256{})
-HOOK_API_COST(util_raddr, 110, uint256{})
+HOOK_API_COST(util_raddr, 120, uint256{})
 HOOK_API_COST(util_accid, 110, uint256{})
-HOOK_API_COST(util_verify, 4100, uint256{})  // ARM SHA-512 hardware acceleration; x86-64 run required before adoption (DESIGN §5)
-HOOK_API_COST(util_sha512h, 915, uint256{})  // ARM SHA-512 hardware acceleration; x86-64 run required before adoption (DESIGN §5)
-HOOK_API_COST(util_keylet, 95, uint256{})
+HOOK_API_COST(util_verify, 4400, uint256{})  // ARM SHA-512 hardware acceleration; x86-64 run required before adoption (DESIGN §5)
+HOOK_API_COST(util_sha512h, 1010, uint256{})  // ARM SHA-512 hardware acceleration; x86-64 run required before adoption (DESIGN §5)
+HOOK_API_COST(util_keylet, 100, uint256{})
 HOOK_API_COST(sto_validate, 120, uint256{})
-HOOK_API_COST(sto_subfield, 89, uint256{})
-HOOK_API_COST(sto_subarray, 71, uint256{})
-HOOK_API_COST(sto_emplace, 94, uint256{})
-HOOK_API_COST(sto_erase, 77, uint256{})
-HOOK_API_COST(etxn_burden, 61, uint256{})
-HOOK_API_COST(etxn_details, 130, uint256{})
-HOOK_API_COST(etxn_fee_base, 780, uint256{})
-HOOK_API_COST(etxn_reserve, 82, uint256{})
-HOOK_API_COST(etxn_generation, 53, uint256{})
+HOOK_API_COST(sto_subfield, 93, uint256{})
+HOOK_API_COST(sto_subarray, 74, uint256{})
+HOOK_API_COST(sto_emplace, 96, uint256{})
+HOOK_API_COST(sto_erase, 79, uint256{})
+HOOK_API_COST(etxn_burden, 64, uint256{})
+HOOK_API_COST(etxn_details, 140, uint256{})
+HOOK_API_COST(etxn_fee_base, 840, uint256{})
+HOOK_API_COST(etxn_reserve, 86, uint256{})
+HOOK_API_COST(etxn_generation, 56, uint256{})
 HOOK_API_COST(etxn_nonce, 110, uint256{})
-HOOK_API_COST(emit, 1700, uint256{})
-HOOK_API_COST(float_set, 72, uint256{})
-HOOK_API_COST(float_multiply, 75, uint256{})
-HOOK_API_COST(float_mulratio, 61, uint256{})
-HOOK_API_COST(float_negate, 54, uint256{})
-HOOK_API_COST(float_compare, 60, uint256{})
-HOOK_API_COST(float_sum, 63, uint256{})
-HOOK_API_COST(float_sto, 59, uint256{})
-HOOK_API_COST(float_sto_set, 55, uint256{})
-HOOK_API_COST(float_invert, 54, uint256{})
-HOOK_API_COST(float_divide, 58, uint256{})
-HOOK_API_COST(float_one, 47, uint256{})
-HOOK_API_COST(float_mantissa, 55, uint256{})
-HOOK_API_COST(float_sign, 54, uint256{})
-HOOK_API_COST(float_int, 55, uint256{})
-HOOK_API_COST(float_log, 56, uint256{})
-HOOK_API_COST(float_root, 64, uint256{})
-HOOK_API_COST(fee_base, 54, uint256{})
-HOOK_API_COST(ledger_seq, 54, uint256{})
-HOOK_API_COST(ledger_last_time, 54, uint256{})
-HOOK_API_COST(ledger_last_hash, 55, uint256{})
-HOOK_API_COST(ledger_nonce, 88, uint256{})
-HOOK_API_COST(ledger_keylet, 130, uint256{})
-HOOK_API_COST(hook_account, 55, uint256{})
-HOOK_API_COST(hook_hash, 62, uint256{})
-HOOK_API_COST(hook_param_set, 85, uint256{})
-HOOK_API_COST(hook_param, 61, uint256{})
-HOOK_API_COST(hook_again, 76, uint256{})
-HOOK_API_COST(hook_skip, 62, uint256{})
-HOOK_API_COST(hook_pos, 47, uint256{})
+HOOK_API_COST(emit, 1800, uint256{})
+HOOK_API_COST(float_set, 70, uint256{})
+HOOK_API_COST(float_multiply, 80, uint256{})
+HOOK_API_COST(float_mulratio, 65, uint256{})
+HOOK_API_COST(float_negate, 57, uint256{})
+HOOK_API_COST(float_compare, 64, uint256{})
+HOOK_API_COST(float_sum, 66, uint256{})
+HOOK_API_COST(float_sto, 61, uint256{})
+HOOK_API_COST(float_sto_set, 58, uint256{})
+HOOK_API_COST(float_invert, 57, uint256{})
+HOOK_API_COST(float_divide, 61, uint256{})
+HOOK_API_COST(float_one, 48, uint256{})
+HOOK_API_COST(float_mantissa, 57, uint256{})
+HOOK_API_COST(float_sign, 57, uint256{})
+HOOK_API_COST(float_int, 57, uint256{})
+HOOK_API_COST(float_log, 60, uint256{})
+HOOK_API_COST(float_root, 67, uint256{})
+HOOK_API_COST(fee_base, 57, uint256{})
+HOOK_API_COST(ledger_seq, 57, uint256{})
+HOOK_API_COST(ledger_last_time, 57, uint256{})
+HOOK_API_COST(ledger_last_hash, 58, uint256{})
+HOOK_API_COST(ledger_nonce, 92, uint256{})
+HOOK_API_COST(ledger_keylet, 140, uint256{})
+HOOK_API_COST(hook_account, 58, uint256{})
+HOOK_API_COST(hook_hash, 65, uint256{})
+HOOK_API_COST(hook_param_set, 88, uint256{})
+HOOK_API_COST(hook_param, 64, uint256{})
+HOOK_API_COST(hook_again, 77, uint256{})
+HOOK_API_COST(hook_skip, 66, uint256{})
+HOOK_API_COST(hook_pos, 48, uint256{})
 HOOK_API_COST(slot, 120, uint256{})
-HOOK_API_COST(slot_clear, 78, uint256{})
-HOOK_API_COST(slot_count, 56, uint256{})
-HOOK_API_COST(slot_set, 310, uint256{})
-HOOK_API_COST(slot_size, 87, uint256{})
-HOOK_API_COST(slot_subarray, 58, uint256{})
-HOOK_API_COST(slot_subfield, 59, uint256{})
-HOOK_API_COST(slot_type, 59, uint256{})
-HOOK_API_COST(slot_float, 66, uint256{})
-HOOK_API_COST(state_set, 650, uint256{})
-HOOK_API_COST(state_foreign_set, 5900, uint256{})
-HOOK_API_COST(state, 400, uint256{})
-HOOK_API_COST(state_foreign, 420, uint256{})
-HOOK_API_COST(trace, 230, uint256{})
-HOOK_API_COST(trace_num, 88, uint256{})
-HOOK_API_COST(trace_float, 96, uint256{})
-HOOK_API_COST(otxn_burden, 60, uint256{})
-HOOK_API_COST(otxn_field, 66, uint256{})
-HOOK_API_COST(otxn_generation, 60, uint256{})
-HOOK_API_COST(otxn_id, 55, uint256{})
-HOOK_API_COST(otxn_type, 55, uint256{})
-HOOK_API_COST(otxn_slot, 110, uint256{})
-HOOK_API_COST(otxn_param, 70, uint256{})
-HOOK_API_COST(meta_slot, 57, uint256{})
+HOOK_API_COST(slot_clear, 82, uint256{})
+HOOK_API_COST(slot_count, 58, uint256{})
+HOOK_API_COST(slot_set, 330, uint256{})
+HOOK_API_COST(slot_size, 90, uint256{})
+HOOK_API_COST(slot_subarray, 60, uint256{})
+HOOK_API_COST(slot_subfield, 61, uint256{})
+HOOK_API_COST(slot_type, 62, uint256{})
+HOOK_API_COST(slot_float, 70, uint256{})
+HOOK_API_COST(state_set, 680, uint256{})
+HOOK_API_COST(state_foreign_set, 6100, uint256{})
+HOOK_API_COST(state, 420, uint256{})
+HOOK_API_COST(state_foreign, 440, uint256{})
+HOOK_API_COST(trace, 250, uint256{})
+HOOK_API_COST(trace_num, 95, uint256{})
+HOOK_API_COST(trace_float, 110, uint256{})
+HOOK_API_COST(otxn_burden, 64, uint256{})
+HOOK_API_COST(otxn_field, 69, uint256{})
+HOOK_API_COST(otxn_generation, 63, uint256{})
+HOOK_API_COST(otxn_id, 58, uint256{})
+HOOK_API_COST(otxn_type, 57, uint256{})
+HOOK_API_COST(otxn_slot, 120, uint256{})
+HOOK_API_COST(otxn_param, 74, uint256{})
+HOOK_API_COST(meta_slot, 59, uint256{})
 HOOK_API_COST(xpop_slot, 5000, uint256{})
-HOOK_API_COST(prepare, 5600, uint256{})
+HOOK_API_COST(prepare, 5800, uint256{})
 ```
 
 ## Deferred (not measured this run)
