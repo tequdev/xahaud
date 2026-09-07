@@ -7,308 +7,308 @@
 * Compiler: Apple LLVM 16.0.0 (clang-1600.0.26.6)
 * Build type: Release (hook_cost_bench=ON)
 * WasmEdge: 0.11.2
-* git SHA: 07e2e64c5e0054c7b256078ad856c77e3579f14e
-* t_clk (mean nowNs() pair overhead): 14 ns
+* git SHA: 0a2462075dde0e1ae4643b9c82cc86f8f1c08cd0
+* t_clk (mean nowNs() pair overhead): 15 ns
 * clock resolution (smallest non-zero delta, review #4): 41 ns
 * hookcost_sha256:
   * accept0: 5bebf48de6b134c278de84ba7aa5b558f7938cb998228f10e9485c4c5c00df56
-  * base1: 059466262aeee81918a3fbe2bc6f6d3596ad547f9a2a013b3ae543dcd905d4ac
-  * base16: 19951f5e0788da99e08a47e6f6c7041ce48313b1d3ee59fa4f77a0843d3b6b9a
-  * base2: 1a9173172b173ff3427a79530e359f4ee0f867d48830beb0187ef1196c5a6d5d
-  * base4: 57c21369c5926fe4e4fd940446fac3c1324cda7779a418feaee1deaebd11a49b
-  * base64: 6ca80fd062a08a9d413f5155e89e6406be5f08f58bd0968c928a9cee78ca5f18
-  * base8: 05a9adb6742a118fd436ae0fa5315836b680700a9c7b662c02fc2ddca2a3c795
-  * basei64: 1f90c906e3fe67a8162db24808346cd2b1917286163b89aedd6021bf8ff170c0
-  * basemem: 461877c2f07716499c659d744f3046b4dd4c922b75f557f8cadbfba5dfb96154
-  * emit_1k_k200: 2d591145b688f0831121a74733a904d83f622f637984804cc696cebf5916756c
-  * emit_min_k200: 9f771a94061d8dbe596442f06df2d4304b566e1f5b9c3dad713e154934eb6760
-  * etxn_burden: 59d8ae18a5a304ff8a8fd59c774eafd008cf6f6d7497e05696bc295e15ff5ade
-  * etxn_fee_base_1k: fad921ba81969cb8e7f72d5b1cddebc286e90fc2778e0e817066e3718b033950
-  * etxn_generation: f2c1ebe61c4c5f1dc96531b15edc454316b82e18eedbd81443686b55624c35b9
-  * etxn_nonce_k200: abde1519f920fc8e33d1caaec1524251bcf350ab68dcaa9e4a0a05dcaded0799
-  * etxn_reserve_once: 4c2b121ac151f8fd1e1e847244e3eca659ffeb98026684ca7115343c58293204
-  * fee_base: 01770e98c09418cda2ab099c9041ca138e13eb381bc93c7965da5f55f7bd69d1
-  * float_compare: c8839855baf4ed3fca0b89164d385f64b2dd7dc54ad4ce999f7c450f09a5a31c
-  * float_compare_le: b2f69a1ca89859cba9ed0e52912129c2b99f60a8284a1b1ecd1a7249704256fc
-  * float_divide: 2e32dd3aba4ac099112784a4583a985859920486b10208832e17538e8a9fe188
-  * float_int: 80ba4a1c0c17e8f36f177b90e50433ca5f74274a91c2eed0601f3f1251167402
-  * float_invert: 739794107f72a7e744051616dfe75fab6d98ea829ed0a70e1c68db7abc18869c
-  * float_log: b02546e99ffe4411d5559edcdbaae6826cf15d9ea89ed9ce1f092cf9666956ef
-  * float_mantissa: 5c42fe9049ab7a942de11975e97faf581430abf5671c21b01b4e3535ee295723
-  * float_mulratio: c12370259e92181a46763403304c40448d9c27d37d1500222fefd902dae2fd04
-  * float_multiply: 03dad6843c4e2b52b4a7fd9d5ddf28adc8143d53e99388a9733ee90f17ccf916
-  * float_negate: d7b8bd000db1218d512a527dadd53c0bcb25578a6b44e1e212366aec0629c62e
-  * float_one: 744a66f697a51b7a7dbeb7cbbd11ba6d28b42796a94e74aebf3cc515c1caedaf
-  * float_root: 3b6f59dfff8ffd3cfa21099d3d6444bbe6a57ac69bb6b709bf9ddf12f48eefa3
-  * float_set: 10f5b3487edf4730ef0922ed954fedbcf7b80f78ee8f337353f16a2c1733213d
-  * float_sign: e8f576e9816c3f63186cccea6bef85043299e061126cf32a27d6649f8c566218
-  * float_sto_iou: 22da686c05f373d354f8485f98b90eb50f3fc61c0e04787ecfbc84bd6c016364
-  * float_sto_set: b065377382f631de011c958a296d03693c9a767e93d952ed613795fb542af720
-  * float_sto_short: 42808b58a22724eb9c36e2d7bf12c3695040467e3f90f2f65f4cbae19e67a0dd
-  * float_sto_xrp: 8fdb216ef73823b78c9cc2a318cad1515131fcc5f84c5bbe53170845599f2320
-  * float_sum: bae331808cddfafbdfea7672c0d2c0d6d318af353152c63a56cf9891ff1e997b
-  * hook_account_api: 08be655c066cce061bb51b1fbb0749015f19f9b31013bc7c33c30a4aaf469299
-  * hook_again_once: 52f698839214fe49c58882e7f8979cbc757c18056514a58aee80a80a045002a6
-  * hook_hash_0: c7ce10dde88b2f96e56598e755afccb5c2a7f60d60bf0132eb880497f9dfafa5
-  * hook_hash_neg1: 29f8e4b0e059c6f4b9ef7fd24484efe207b8502e8105495a15de7dd48e2e0012
-  * hook_param_256: 57960e76f1e8e912891daf6569fed60a01e4af2f0e261eeb100c4fa0f842147c
-  * hook_param_32: d54fc38aaede5192b69071f3c3c1611664e1d9402e76eb27bb3dfcaae6a34a8b
-  * hook_param_set_k16: c5a2f43a6f32cb12ba6ae370d91af09ce6ff148684dc9b955509a8f9863ec225
-  * hook_pos: 86a9a96fcea686dd104b13ca52e38440d05b2c182ff005580ee6b36340bd87f5
-  * hook_pos_k16: 989c5f9731e54a20c8a62f50ab2ca50371a206e2872a523bb06a547b459c11a8
-  * hook_skip_alt: c8003b3350eb6a7dd50283325a5a60e4f10aa8c37afd5a14320582bf0f76da57
-  * ledger_keylet: 5799ce209625180b074cfe795d7d54ba4f051ce4dca1f8313a9e7f0722f84299
-  * ledger_last_hash: 229f008ea3c8eda168abd2018c577c8feff3acce010bd31362ba5e565e34e84b
-  * ledger_last_time: 6a9d5f461bbd91b7122db0aa8be308ee1fe7caf0e13866a8b6d32be6064c12ba
-  * ledger_nonce_k200: 8b7d5f6fb4467339807407d1c5c177ddd3e7679ff52b4aa40e19529a4763c0ac
-  * ledger_seq: 0c9789ea811479a7832aaae59be8ec0a7d85c4b730863a37ee6557067a7bf844
-  * meta_slot_k200: 79f195489127acde050ac91b4b6b27aaf9986d8ddfaaf221d969766e7abdf783
+  * base1: ed79806cbf4a45d7f89e0b687a69b9e04c355ee9fd688da9e48762eb073bb40d
+  * base16: 18b62720e2ba612a20f27bba931d5c56bc80e1cd9bd39c2426cf3a53ca6ee473
+  * base2: 6ed65c96351aa1f3b3f995ac11f2fb80caf297d2271614cefbca0f9ab2aafd57
+  * base4: f1ecbf9487ef94e7baf3d5813be3c0de070555871fc4fb45917c53015c37d390
+  * base64: 053aff2e1f608ff44934f7840c7ea9fc925542d0ee23c74e87f8a5cb1c5a1358
+  * base8: 756df872ec57f5213dc6f862eb45ca6eb653f9252b3c0c39eff5218e68383293
+  * basei64: 6243f92971fa163ba240b5efaa7671c9f576ceb29925c3bd1f7a626f2e5f0c4f
+  * basemem: c1172ff6e40b53411bcc9390992c31ec5ce5ced8250fb662bb68c5025c0b81d7
+  * emit_1k_k200: f8a69ea4a961bd6fc5558c3b48f2fb84056786357d3ce307692987fe24e2b9b6
+  * emit_min_k200: f5ed2f5bc7089226159a2897a7f7800eacbc0337424bbf58a49f5c32d23bf945
+  * etxn_burden: 89f81c8d3ec234bee70abbc5143fde3734b48c6856774117b4f9d47f5813fd61
+  * etxn_fee_base_1k: e256f3d736cca07556bae53b841246c61c8a28db4f28877d73307b06ae01edfe
+  * etxn_generation: 0b554dbe24b8d092c8845ed7c4a04db1b67fcd32a39037d3ad76fd45f8d7d264
+  * etxn_nonce_k200: c113ab10f084cb3675731b21095d3cacf5d3a935f136d0f1305cc19badf8bb8b
+  * etxn_reserve_once: 7da965de7e4ec900644d84ebe1db01bc956d4f2ec0737365480f6efb8ae4b3c0
+  * fee_base: 7a00e6d54bb2a4c4160b0ca45ba1984b98fd6786d81b8602217eecfaf3acd562
+  * float_compare: 791d4c5786200769aa8f55b532c4e3549280deb917e295f77da08224bac95e6d
+  * float_compare_le: e38bfe9cf7f7ac2651d9092cd686924e63c9d2b84d4855d1bf71db21127fe384
+  * float_divide: 4b08485a9e690572deaa00751464f4345247facade161c5d7a9672159c2ea403
+  * float_int: b74a00c316ac30d0a3621ae3a0b9d81321f5eb3c0055ce29720eceb5f03673b2
+  * float_invert: 286259b82bcfde5fa3b08be3fa441511b93706d6656fa4766949d11e54582705
+  * float_log: cacea7cecde30d89bc058cd3cffb7d6d27464983c3819b03768a6155d6f0be90
+  * float_mantissa: 6a7e3bf417b4571c3911c3c87afc401669a141eb38c615798e1f1ae4183f3cf2
+  * float_mulratio: d1e0d8757fdcc701cc10ba57961235844c74761a542146ad58b9de302d20c7cc
+  * float_multiply: 74ba7f8fe1c6e0339ea9077c5608c90230ead9379511026cf5961f380297ad23
+  * float_negate: 732fede51581a7b4c93e9d1431872f9a0f216f93a485d6e904f296dd1ab9defb
+  * float_one: 62341ceb6e1ef84b09f9e2be29def8492aaae0211e22fa50de9c41a53ef342ae
+  * float_root: 3f8e5116430dbd4f30854b5f438b5e0b3b558a94e2f6c49e6c35dadf760b3cb4
+  * float_set: 55c950336ecc3bc19a36ed948d59217eebb090b8f4d0f62783eeaf187d6276a3
+  * float_sign: 7ed88fe3f6b8271fefca2fd23ecdd93c475bb986acb294dfa06c469ab56a9f7c
+  * float_sto_iou: b6bd6902a74f8ed2da6428099d8effd07b8c453d7b610c3a379f823bd0679597
+  * float_sto_set: 191f9b817eaf4ef76d57683ca9c409a2d6d9b0910d335d1f38c666387ff63823
+  * float_sto_short: fb471c329f8dc03db0a96f74dc573908e45c463526783e76e41e5f319fb8c795
+  * float_sto_xrp: 829a0916a87823e6a22822ea239722fe83f8acf16f62964c3060342165290288
+  * float_sum: 9f6d6344bc75cc259a272cc9a36a56d54b4ef1fa65afd23e858e024ef3a0a2e3
+  * hook_account_api: 24801bc5f7cbb95fa294bd4e4761df2f7390d09ace0e391695dbce4df6090bee
+  * hook_again_once: 98a1de5e6dc1ba962dc4aac7ead66f04a2004f763203c8d7613c149871f24f3a
+  * hook_hash_0: 2e6c5384f638c928f10d33f1a6c3e6af1cfbecdc1d1976132c399908ebc507a3
+  * hook_hash_neg1: 2e1a4fb004851299b6385f06afbf19e4051abfa37570bd33055d956ce91786b7
+  * hook_param_256: 754949d858b108f51239e707ae32554311042b7798d0acb194765e73ff0db25a
+  * hook_param_32: 3e76f8304dc6b5442ba4d844a11da92ee2c4be94cf54f4f88460c5f2f330e127
+  * hook_param_set_k16: a3a175944dd6d758369b752ec7cc6e60b14e743186ee9fb6a946cf26ca140c9c
+  * hook_pos: 4812b2f59016a36e5d087404bce152beae4742689176e9044d646295785e342f
+  * hook_pos_k16: 6352bda9a21f076b9522601ce1acc1e1c4bd0db7b5068691bcf7073541cd0be7
+  * hook_skip_alt: f0e2da8e85ba8ad1bebaa306200ccafd070034c4bbdaf974801fe09f4b9a6d57
+  * ledger_keylet: a5953640a733de61feb792c60cb435da687978f9ae4dcfa8efc0404696b3a32e
+  * ledger_last_hash: c90d4b4dbb1275ebb59afcd82772bb7fbc685b3edbfef291ee3b6ed8ab4ee049
+  * ledger_last_time: a197cc5ca1ae4d6d4fd405d6f8673ab1de35dd58bfc7cfe161eecdc30bf58153
+  * ledger_nonce_k200: 66b04a296aa49177283cae6fa86e077db7734ce0376dafaedf473a5739bb8043
+  * ledger_seq: 18aae2457e6248ced17c00f2356ef6c152463801e8a0a3d1b7a7f55dcb9ec801
+  * meta_slot_k200: 42a32849abb16681d2022e12a874ff43e1a1589c664e34edd60ad010aaddfe70
   * noexit: 4d861762c484692e5686da23dc63c4a4444d66b14ba6250bd29f769236cf5cef
-  * otxn_burden: e1aab6cbd78e7095886eceaef2ed4d4f4b80dc4e6b116defc6314bc11ee61a23
-  * otxn_field_16k: 86feb45180a9746e17f42fecc9edacc230f320d70a3633fa4ccd4d667eb9f639
-  * otxn_field_1k: be3746581fc9d52a061d204d5910fdb79507e8db5397de51b7581b8ef05ebdf0
-  * otxn_field_acc: 4b711c95b6fccbf186b1e11abfe13b464b79cc208cedf921f5fd66e9be04c097
-  * otxn_generation: be31a048c2039efd87edce00f8511963bbf5e1323c81aa602dd64e63bce6086a
-  * otxn_id_0: 5cc4c23073dc275f125b333db8450ed6bb93a26c4ff62403fb8f4fb39db188ad
-  * otxn_id_1: b76d7c950aab363b783c8260240728e4f8d97eef73c4fcf40ec36985b01fdcc6
-  * otxn_param_256: e765dbb713478f311718acd53b29320a60c7ba39008e689c1a78cabc1434cd9d
-  * otxn_param_32: 6e1b2dee319832a94c20adeca4ff6beefefbd52bb8a16b5fd57fae1fd684cf1e
-  * otxn_slot_16k: 0ca1956bcda294d2e24ef80e95edcf977ded32ca72cd90697a436c1e44baf19f
-  * otxn_slot_1k: 8c1dfdb0be3f862dd75e4a98395d3d0c055008b6552cde1a9f85aae83f55f33c
-  * otxn_slot_small: c433ede4ca6db0106e9003175d714fd1cb6733e3748a943719efbdeafce1b5a4
-  * otxn_type: baeeb3b2d0e43ad314e0c156eb876431579c2023a510f938b736ea97afc18371
-  * prepare_1k: 00b8c05ae3c8f44ffd4511b1fe63600f2397e1fc541d4c152fa34969fb431d37
-  * prepare_min: 0668eeaafbc20dc326229ebe3d7248ef17acb9712fa2ad2bebb514876312396e
+  * otxn_burden: f726beae37bc1e694095271512c907dcd599f5373136a85362dcfd6b99312969
+  * otxn_field_16k: cd653649e2270e019ba637a9b92fad68dbaebc8a88c94af28cc11b8311cf43c2
+  * otxn_field_1k: 9b82a1cdfa9631322eb054e8f614463298c6c591f470a8cdc7b515a3a64021ce
+  * otxn_field_acc: b12faf93f234be5dd4a183a1e9f79e678836d07fc5486ad4953b60fbe1abb310
+  * otxn_generation: af3b04b4c676d18c2c29add3c05e6d24ee322eb6c09b4b12c06db02d061efa22
+  * otxn_id_0: 833045a6956e2feed142076020ae756f02eafb106f91f50e05c159274c166a26
+  * otxn_id_1: e4ab9afa42abb20f12dc2973cc84f053543cf3c2ab6fb325dfab63e391dcf101
+  * otxn_param_256: 22911c572ac8817817d4e733cd545de2fc1dee1349120576e6c6c74949b11dc0
+  * otxn_param_32: 188b2a1a3508adb452158ce30a83e628817520a49bd3c86a1ad66d74df6be6bb
+  * otxn_slot_16k: 6738e6401303ecbc14d54a8ef8797c2ad6afc77b5caaae7d6d2580007f40e958
+  * otxn_slot_1k: 970f29c6052a700e91fa3ba5e55d4c495f01bd8b5bf233210d4567d6a1992155
+  * otxn_slot_small: 3bbe585b53a4590a8d5709258fcd3956fc29ee0e0f8f955c29b6be3649c173a3
+  * otxn_type: 0f57480494ab61dadd5743de16cd5065a4b47c3e72ec497c8a1f7bf75249b4de
+  * prepare_1k: 6662c84304630a91ffae3bf26e3c9c8660c3eb802327067d5ed5a157cce62ffe
+  * prepare_min: f7572fdca3a2e8d8c066155d83fb798c048e944789f1e0b9925f2aa983d43f4f
   * rollback0: 2e999489f98a7cdb4306d0767a4a6727ee73ec025717a471aff06e41ba2b3965
-  * slot_16k: c162bfbf7a47f6f9e94416503dd96a672438d8cdb6caabe79b552dd99dc12007
-  * slot_1k: fd90230410b3ea7eeee30ca021b2980d41fb7e5246a8bc62be621afa040778ce
-  * slot_clear: 147ced74396d72a338f12f50691ebb579b737a350df055a5dcfe74a6c03b6b2a
-  * slot_count: eeb89f48de6cc961357a597168c467525b691f8096cbf4f924b921b05247a974
-  * slot_float: 2cd39f1bec4822b75533cc920e89d565da44125917dcf16a423e7d35ab78c538
-  * slot_set_34: 8cb07c748dcd74b40d30450d0f9486c0ece2d1197d5fe62d7a3c357e7d6adb7c
-  * slot_size: cb514b8ce1502ce180da8ff5e32fbfbce03f84a5ddb5820500825da9305fd29a
-  * slot_subarray: 1581dc845784774a39b32db1b75b62dfd49702bea0e0b55a729725e5e9ccc82d
-  * slot_subfield: fb31aed9d49d00c9c43cc19827c1559f93c4d558ba5d6afb128e3789782e0d1e
-  * slot_type_0: 545887f1e57a49b0f45a73e956184ee7663b177caedf399af26695399edb2248
-  * slot_type_1: a45453e8722d526774381a82aca7e8bbcf9b6200f2cbf81c95b04c9da5cdd509
-  * state_foreign_r_256: 39a8c993856c5d92f63129432f265b8a6619d44098d19504a8528f41b918d3a4
-  * state_foreign_r_32: 9ef25dfa071686def175928e25b29a03ddbef2b6c163977d96e477e21cf6950d
-  * state_foreign_w: ab909c102eb3c8d646a5a48625b8a1ee4f18978ecd21a446cf8733d27aca5170
-  * state_r_256: ec054a0751ea613cfbeca61788bc42dec3de7c0be64af0286cb290328dbad6f2
-  * state_r_32: c5a9ede70571070c307f05bbd8bad2874e7c726b41e8880cb5165db95d053787
-  * state_r_4k: e4ee00ce3672acb9d02ec096771e2c489ed591568ee9129ff278e76419342214
-  * state_w_256: e675d18f6d81c53cf1fda7c53a7dcfc2b694d2a7fe4be300813d9d40e68bdf19
-  * state_w_32: be83e06386bdc9d6fdcdd8f9ed96c85eafa6f53a75039d8eb12e2cd8ef5cd3b0
-  * state_w_4k: 6f171e306c3ac21655a4098b54078429b46af17bd946fcee5a420d978baeebad
-  * state_w_create_32: aead4e1f9c84a16ac34b0e087275ff9139ce438b291114f51bb4e6924b918bc2
-  * state_w_setup_256: 3997a9102fa0d6f963329378494545cef7d41f756b84a9f2c29065f599f2a1ac
-  * state_w_setup_32: a082e542c04a62b37a0850c8877da8e1f653362669216b023245f3094b048605
-  * state_w_setup_4k: 291e50a8c07b871f36b9933937271b29629798286284be2bc0cb250a1d6f5282
-  * sto_emplace_small: 2c147a509f4df033ce54de63165859360e8d30809d6b5285041403be50103cc2
-  * sto_emplace_tx: cb705603ade17742929f6d6d946c629455c22224144d7f0093e6b05f8acb3938
-  * sto_erase_small: 7e516be2359ec3bd44b4557ef6e0f81da3e78b593c0bacb226131d418aa1585f
-  * sto_erase_tx: 02545a987f92fd98c0b3a0002d10e9977b8c93530f36f80347108c17b06ef74a
-  * sto_subarray_tx: a1efe8d7298c41f96491a319131460938db5acbf806557fa9fedd9fba437e7c7
-  * sto_subfield_small: 586bf48c8fade55f8c2289a3323c59713878943542f8103baee59023d2483c6c
-  * sto_subfield_tx: ca78cfd5b30dd289e94554c3de8ce1eef6d77e08c80ec877d1e1a5c9772ca9e5
-  * sto_validate_small: 02abab06ecf9f524ee1c725af43a07141b1d1bf26fe167b6aa7d5f1476ff1c63
-  * sto_validate_tx: 31ba5f8bf1f14ac3a634f952fe946c2b9129713f0c93c4607d03e52b0a0c89de
-  * trace_1k_hex: d7019591f209c778eac3ea837a94c30790faaf998659dbe0d62aa22c800d99e4
-  * trace_32: c5bd8729cbbd783f5dd3851caff05b6343e9271c7d90da735c78ad104b6c7b43
-  * trace_float: dfe285b257fa12e0f18bb36b80ea7e1018dde155da2fbadda81c23f2e0591dfd
-  * trace_num: 9343491bd271d55a3924cdeb275ebdac32780f5f6d643a99759c40f9290de8d5
-  * util_accid: 7d67b454580f15afcd4bc4c854e69efc163412b7e5006a32110fbb086e38bf71
-  * util_keylet_account: 64d66281d9188a57f2856d9faeb4ba98df0344ff7c0796b696a9de8620df4ef1
-  * util_keylet_amendments: 8fec2840dd0735dadb10e0a97a28c01727dd5aeda2acb7eafc6ec6729908b015
-  * util_keylet_amm: 2a11e1b229355051ef91e49359d294a71b5b9f21f2f7594453d80f6bfe7c148b
-  * util_keylet_check: a2f246e1da42f02c549f8051db533e6f179f78f7917a5051ecb51196b9004bf5
-  * util_keylet_child: 8f816c7ea6b883b53fff4478fdbb5403e657d4142fd23a48fffe1c8661a13cb3
-  * util_keylet_cron: f2b0b6228e47101420e9d0c6e11a1d3db87770cc5e6753a42ba249f685747df9
-  * util_keylet_deposit_preauth: 0ab07e7f84c22d82c905200c9aa91aa2ffabd70740be7211b3389cac2bc27099
-  * util_keylet_did: 356d787e91590720b323a27b0d7357544bae0d828691fe6e174eb12ab89071b2
-  * util_keylet_emitted_txn: d162904e89d89762a603780adb6ba33829a3c2e2a51d1a85511417458c9e92a8
-  * util_keylet_escrow: c12f9cb9e7539cbff03acdb2283983bd32f71fd63201298e593a378d5c3df283
-  * util_keylet_hook: c6596eb2ac76d97c4fc69e6c2f2a1675684468b46bfbd2dc351b7ff03c744e2d
-  * util_keylet_hook_definition: 821d2fdeaa5d9c53401ea0bf47dd9554c7142de69728e04bee377d4ed5067cb3
-  * util_keylet_hook_state: f2f3423e6d0958bede317c51c27c492b9da3d91a95e86658dda4fbe8d1a93d1d
-  * util_keylet_hook_state_dir: 15243f07390f2f2e1b7888b90387bdc6530250ece603a09f8e84333bf23a2d7c
-  * util_keylet_line: bbdbbf4138398428efedb307d9c6b3e2b8664c23598ef0b236e4b06f8de3ae5a
-  * util_keylet_nft_offer: 6371ef86e168712a16311273bdc6d33aa203996eba5b99f0ce2eb68c18e0a63e
-  * util_keylet_offer: 0712fb09e219115bdc5d6d7e919792bf0f9a29b8d8ef45a8d24d8d4b603089b9
-  * util_keylet_oracle: 7fc5ee01f0e9c41dc138fa7bcdb7844d29d37e97ac21559cbad1a48e30866a34
-  * util_keylet_owner_dir: 07d0e729b2d0ce55020fd910b15449b21727bce77fe9f60eac4f74e4a9416a50
-  * util_keylet_page: 5dee35728ff4a5ff2c946ee25cd507a3e3b0043c6c68e6c238aa8b38a6d43fb1
-  * util_keylet_paychan: 0fa2d29b589e905b9a73b6f32f7274c73513cc2c9ef4cf6a39c0b7deba478518
-  * util_keylet_quality: a5640e70c06dc0f5f2ca8d0ed73d9b9cafab5b4dc907155b055027444745514b
-  * util_keylet_signers: 318c4ac941df2b19bf332ef831c073c7d1a366552535b6abbd35b5d4d9a3d2cf
-  * util_keylet_skip: a26841ce3a9374b8d0417d7a87e19b69ce653f05870775a59359a82c72a1071f
-  * util_keylet_unchecked: ad2131267847603d80b11593b2050c1ee4011a9c0b03fa0b433670983fcda11b
-  * util_raddr: 3413102e38ad1b1758bbd7e267764d20517aa46ca8d9693a5847212d07a64a93
-  * util_sha512h_16k: cfeb3e1b00816b26e357ed8aa1280c3c0013f2efdc25e5195711c53ccd164b62
-  * util_sha512h_1k: 59cf18c33312ce624914a4db253e40db32614bddccea4041ef5993bc8ab0195b
-  * util_sha512h_32: 6d464307725e1708e3deec123b573cc666e56eda01eaa1f4b59051f90f0da01f
-  * util_verify_ed25519: 434b8342f35fd7df48b7cf36276062e215c78a390444a4fb30e0a858ee06f044
-  * util_verify_secp256k1: 0719ea4ce1fd5aa6e9f9a6b8863e3005df068007007a6ba28f19d7b0386a9d18
-  * xpop_slot_k100: 0fd0cacef61a769990779006de5a2d85756821a52c6a643a60b78961ff489e7c
+  * slot_16k: 9b4f27df25418aa8993d8048be1195da6cf20b3a773eb0ff4c5847c3993d33fb
+  * slot_1k: e32c0ca3dc0eacc4e9a851540f053a250e952f13fc5ba37ea24e4569fb02cdc5
+  * slot_clear: 8a83a7e57dac20935d18cd92800010133b0279175d1d9cb0a264539be6d51cb3
+  * slot_count: d7d7faab581bd26ff6838f553fff10eeef96a619ea0bda455eed93950b47e8cc
+  * slot_float: d19bfd2ff9887704bbc429e2ef84d6d7bd11e322347cb2be7b693ca1ff983c0b
+  * slot_set_34: 9cbbd919a913ec4f9bb728bd9e18b87da453069ac0bed67236a4024b72299acd
+  * slot_size: 9f800177cc88a72c289f9c15c14ae2bd1b068c5010e93f8e5dffbdd3d260b0be
+  * slot_subarray: 7253e8880aee00b2b7c4636e7949cd8c1907e781d5683b4e22820f82d0e2a976
+  * slot_subfield: 09b247ddb67a48ddb9082094c525f00104d621ec7baff3e9ae83a6de56214e47
+  * slot_type_0: 219ab2c902e9b0849d41c0bcf930e327dda682b69f1c0abe384c1ca5142268ec
+  * slot_type_1: e1cd0827b52d83a9e4d8bf1fd815f8c84c6efdd98d3f092570f98d3ce1da3f34
+  * state_foreign_r_256: bc00bffbfd69733408d9f8860d861e6d68fcc68b984055d24f035e558a8cda31
+  * state_foreign_r_32: b08a259837e4ffbe6ff4ce4cdfc4a6524be153fb501916e0c38479eed6d4b52e
+  * state_foreign_w: f2763b3241d51d51e558503bdbd476a4e575d3120de888584e0040fb8eb2a0e9
+  * state_r_256: 71df9ff2bf907c97e7383b78cb2403d119323ee456bbf7b65d70dc10ad12bad4
+  * state_r_32: 4b869cb680585e3a675549282e8681d057aea35a34be2263750d458fdd3aeb8b
+  * state_r_4k: 17275cb727c3321a0b4a22ea8fe273798c62569c1507d07afd7e59d6bf0819a2
+  * state_w_256: de2450afee2c567d42f98e0abf6b0b5864a8ae1aa9d68e1825b5c759d47925a1
+  * state_w_32: 447607d5043f1af946660dafac24854cb4a35874232115c9679b162106735d3b
+  * state_w_4k: fd6068df4469446546d53f3e3fc2721b8b02822682da3ff3ee5502eaa2c8ed74
+  * state_w_create_32: b40ad464e7cc426958f10a599fe5956433f8f5639f5b1e22bdc57c67ac7a67c1
+  * state_w_setup_256: 24220a7ea84e6b5580c90c5630132311438fd138be0038741209b74c0af71f51
+  * state_w_setup_32: 55e9e7644da8d41a6b5d9aba2327f3a19376dfaac1f1637c5d90b315e76d7be5
+  * state_w_setup_4k: 4f22f380bd200d33b8cd21172fc00ce4779cbad015a522cdea890b7431f5c4b6
+  * sto_emplace_small: f8fc315d7cae955852cccaec1b8dc99acda9d604c082b277c5004bb4d847b4c8
+  * sto_emplace_tx: 09d939d239724980d21bca20e7e36c3daa3e0a968d6af247f089a407312424e5
+  * sto_erase_small: 64161686a68ab1a5b44cc0c8d79b9c1b049c18a8b16d93263d8f97e51edcfd2d
+  * sto_erase_tx: 72734f41cde76101026646350cef5e6bd922804e1be3aae99acc60a0cf337c4f
+  * sto_subarray_tx: 0a98000c0c8229d924f7675077a48ac37959f8438361ddf9cd1030d6c9e86356
+  * sto_subfield_small: 10ad60171505f6a561436e988305119f1fea40aef21a26b1b68ebafc0f678a8c
+  * sto_subfield_tx: fb24d142587803d15b85a5c9ae0031eb791c0d3ff41facdafe432484b52e0639
+  * sto_validate_small: 03295c9deaeafcc16e3599a7b3c4c12212873dd29d3477de116e61afb12d98d4
+  * sto_validate_tx: 68610087a379bfc4098c23af178a0d41f22783682e8774f54a9c9c6e81755cb5
+  * trace_1k_hex: 81b1328cbec896fe06ce2ed6b9fd42832ea7cceb9640abb963aaf0597b8ab941
+  * trace_32: 1fd02c25c30dbba7a64df15486c5207725e196be3fba64cc0eb2ad902d013b54
+  * trace_float: 1bf0f84ddba299172b18ca6760b469b484b5f6f4fc9c260247a2414c230657e3
+  * trace_num: 8ad86b6800322331124b99e81706a6661251ea34d349fb7f0ce1b4cec345a281
+  * util_accid: ac234ae81fb7fc89fd955e00b68d38f0439896fa323946f3360fd1ac005cd178
+  * util_keylet_account: 598b90e85e6eda7487a49c85a5678bedbddc7ba18086e24cb24347102aa959d9
+  * util_keylet_amendments: 68da912bb04eb1830ce4575dbd35840375e838eb812f01a665e2c3e58986cace
+  * util_keylet_amm: 06cf403a559f52745e5991edff63422741c4306d347c003005db4423c52c9616
+  * util_keylet_check: 33cbb06069540a531b8dcbeac99e21fe591dab9e7a3d47929cf7d91999e6c10e
+  * util_keylet_child: b94b6622995b1579f83a8a9182fd61d3d3771cd9c86e9015562e43351726a58c
+  * util_keylet_cron: 699bb0a6f7f362eb697c09f7b5488859d69f67ba49cb7f56724fc80a84e41996
+  * util_keylet_deposit_preauth: e497951d707d07c8e40c9578931cb1b1ba67b745944a2c5921e9ae3324406532
+  * util_keylet_did: 729a120d188ea5e0ed8ac96b5daf0bc6d9fe1566e00b0fbb121d53b61c51f529
+  * util_keylet_emitted_txn: 4f7a55422b3b3f3e0264790e378311ead05507491e385d03a2881909bb5ad5f1
+  * util_keylet_escrow: 4fccd2d3ce8a30c84fc1f3a88443aef9cbb8ba00569b311448652fc7102bfa92
+  * util_keylet_hook: 312220ce3dfaa13c80a076b7d514062d21428160c2730099d9a64927fcbc090e
+  * util_keylet_hook_definition: 316292f49291fbc965e20517fa84d075d0e344d258a5a15764d1254c7f8802ec
+  * util_keylet_hook_state: 086a21332c7bcef05fccd1bd64880d3a6dd216c8da4292faff0a17e01aee7c2f
+  * util_keylet_hook_state_dir: 8ab51852c71a786e469f745bba58cff811ccc0fbd16124d180e4832f4cf935fc
+  * util_keylet_line: 20a143ab8996da8cf925e8b5b1eee3eeb9ec337048190abd25c254540267e197
+  * util_keylet_nft_offer: b93f5d2619c7c83fbd0e5ef05c5a6acaef2284517c5b463de0ca8627727808f7
+  * util_keylet_offer: 0e24cfa1bd8d315afa3c49fcbdc75ec1652f02892e87584192d7b14e168d5458
+  * util_keylet_oracle: 9fb175756320a283562100e03598a41d7884d1af2951217cf84ff59b3a806b4e
+  * util_keylet_owner_dir: d3406d5dcedcc9b96e25f1174b31c89c4217547b500b8d05b457a7c293fb1102
+  * util_keylet_page: d38d540b1a3eeb42f61628dc8705cbcd4a4bf6f79c47431dc61fbef2587783e8
+  * util_keylet_paychan: d582fb857b0ef6c356ed3c6b9133fcfe0d46a4487628172048e29561cda4c2a9
+  * util_keylet_quality: f9b0c095a60e6cebe8603d67670c2d79970ad0b7aa502030a64cfdaf941d88a8
+  * util_keylet_signers: e2ac9dd207465b2e8c5a61540eed3f1ec69ea155481eecc8ad07adac3c23cdda
+  * util_keylet_skip: f77fe5df649d9dd5145e243e717d124470762b0f2a2e3284c1dc4f27e2845d18
+  * util_keylet_unchecked: 8cb74f1d0b75359a0f3a31ba5f5b0586fe707dd4d188f18578a8b7e6b4a2c63b
+  * util_raddr: 1a6302ab5f1d6af47e81d095ab6ef160ff0416b1f8051ede21cc542e98d148c5
+  * util_sha512h_16k: 3a78c488745364d112441b382595d0d8e92563fb235f03accdea9c2ba1de6071
+  * util_sha512h_1k: 1a2ec88f1d1b943efb0858cbf080f78f31be3b54d6f08d57cee94a4945021cbe
+  * util_sha512h_32: 133fcaaec67d290b5da355597b0ab0c430a01ca1c87fa12a0aeffffd3a428c2e
+  * util_verify_ed25519: 4d5d2a6a9ba98ce0a4846d4f857b6786276814301be68581b8add3876d39e260
+  * util_verify_secp256k1: f9ca8c63aa32aa23f07baceac0cb755dc5e3d732a941837ee29c14308268bac8
+  * xpop_slot_k100: 446195430687fc37dda861aee428ae52da45a0994e190429d5e9bc1b202e0d48
 
 ## Baseline fit
 
 | baseline | N1 | N2 | I(N1) | I(N2) | dI | dTw env.close (ns) | dTw exec.ns (ns) | static/iter | static/runtime ratio |
 |---|---|---|---|---|---|---|---|---|---|
-| base1 | 130 | 1300 | 5146 | 50776 | 39 | 347.898 | 385.256 | 41.0469 | 5.68304 |
-| base2 | 70 | 700 | 4066 | 39976 | 57 | 470.303 | 470.57 | 65.087 | 4.32224 |
-| base4 | 40 | 400 | 4277 | 42077 | 105 | 661.575 | 672.917 | 120.122 | 4.30946 |
-| base8 | 25 | 250 | 4902 | 48327 | 193 | 1029.82 | 996.48 | 208.195 | 2.81244 |
-| base16 | 5 | 50 | 1922 | 18527 | 369 | 1765.73 | 1663.89 | 384.961 | 2.0129 |
-| base64 | 3 | 38 | 4352 | 54227 | 1425 | 5688.11 | 5551.2 | 1441.26 | 1.28919 |
+| base1 | 130 | 1300 | 4625 | 45575 | 35 | 444.48 | 399.892 | 43.0377 | 5.52873 |
+| base2 | 70 | 700 | 3855 | 37875 | 54 | 486.641 | 487.83 | 62.0699 | 3.94696 |
+| base4 | 40 | 400 | 4075 | 40075 | 100 | 766.553 | 690.281 | 108.122 | 2.60354 |
+| base8 | 25 | 250 | 4775 | 47075 | 188 | 966.293 | 1048.33 | 196.195 | 1.86352 |
+| base16 | 5 | 50 | 1895 | 18275 | 364 | 1610.18 | 1826.84 | 372.961 | 1.50484 |
+| base64 | 3 | 38 | 4335 | 54035 | 1420 | 4919.03 | 6208.34 | 1429.26 | 1.1552 |
 
-Fitted (env.close() wall-clock, calibration channel): t_instr = 3.8204 ns, G (_g total per-iteration cost) = 267.401 ns, SE(G) = 30.1628 ns, R^2 = 0.999327
-Fitted (exec.ns, wasm-window only, comparison): t_instr = 3.71133 ns, G = 269.985 ns, SE(G) = 11.1752 ns, R^2 = 0.999902
+Fitted (env.close() wall-clock, calibration channel): t_instr = 3.21127 ns, G (_g total per-iteration cost) = 375.602 ns, SE(G) = 31.5344 ns, R^2 = 0.998948
+Fitted (exec.ns, wasm-window only, comparison): t_instr = 4.18809 ns, G = 268.509 ns, SE(G) = 9.97702 ns, R^2 = 0.999938
 
 ### Sensitivity baselines (t_instr alone, using G)
 
 | baseline | dI | dTw env.close (ns) | t_instr alone (ns) |
 |---|---|---|---|
-| basei64 | 196 | 915.073 | 3.30445 |
-| basemem | 118 | 766.943 | 4.23341 |
+| basei64 | 194 | 1008.78 | 3.26381 |
+| basemem | 118 | 742.513 | 3.10942 |
 
-* t_instr = 3.8204 ns
-* G (loop-head _g total per-iteration cost) = 267.401 ns
-* R^2 (baseline fit) = 0.999327
-* t_call (0-arg boundary, from E2E(hook_pos) - (M_pos - 2*t_clk)) = 208.536 ns
-* O_g (the `_g` 2-arg call's own G above) = 267.401 ns vs t_call (0-arg hook_pos) = 208.536 ns -- host-call boundary grows roughly 29.4325 ns per argument
+* t_instr = 3.21127 ns
+* G (loop-head _g total per-iteration cost) = 375.602 ns
+* R^2 (baseline fit) = 0.998948
+* t_call (0-arg boundary, from E2E(hook_pos) - (M_pos - 2*t_clk)) = 181.246 ns
+* O_g (the `_g` 2-arg call's own G above) = 375.602 ns vs t_call (0-arg hook_pos) = 181.246 ns -- host-call boundary grows roughly 97.1782 ns per argument
 
 ## Per-API results
 
 | api | variant | K | calls | ns/call (M) | E2E (ns) | HF (ns) | used | cost (proposed) | cost (current) | notes |
 |---|---|---|---|---|---|---|---|---|---|---|
-| hook_pos | K=4 | 4 | 7200 | 13.8474 | 194.382956 | 194.383 | E2E | 51 | 40 |  |
-| fee_base | K=4 | 4 | 7200 | 68.2451 | 269.723697 | 248.781 | E2E | 71 | 70 |  |
-| ledger_seq | K=4 | 4 | 7200 | 69.0601 | 266.469993 | 249.596 | E2E | 70 | 140 |  |
-| float_one | K=4 | 4 | 7200 | 14.6458 | 199.160425 | 195.181 | E2E | 53 | 20 |  |
-| otxn_type | K=4 | 4 | 7200 | 66.5524 | 268.270456 | 247.088 | E2E | 71 | 130 |  |
-| etxn_generation | K=4 | 4 | 7200 | 59.3099 | 244.897308 | 239.845 | E2E | 65 | 130 |  |
-| util_sha512h | 32B | 1 | 1400 | 152.858 | 358.027608 | 333.393 | HF | 88 | 340 | HF (E2E noisy) |
-| util_sha512h | 1KiB | 1 | 1400 | 735.544 | 952.505386 | 916.079 | HF | 240 | 340 | HF (E2E noisy) |
-| util_sha512h | 16KiB | 1 | 1400 | 9251.1 | 9565.601417 | 9431.64 | E2E | 2600 | 340 |  |
-| state | 32B | 1 | 200 | 1665.42 | 2298.523736 | 1845.96 | HF | 490 | 1700 | HF (E2E noisy) |
-| state | 256B | 1 | 200 | 1661.46 | 2311.490403 | 1842 | HF | 490 | 1700 | HF (E2E noisy) |
-| state_set | 32B, modify (fixed keys) | 1 | 200 | 631.005 | 8326.414446 | 3244.87 | HF | 850 | 900 | HF (ledger-write cost reported separately); E2E/HF ratio 2.566024; review #6: modify path |
-| state_set | 32B, create (fresh keys, salt=rep) | 1 | 200 | 564.8 | 22955.575372 | 2142.63 | HF | 570 | 900 | HF (ledger-write cost reported separately); E2E/HF ratio 10.713735; review #6: create path |
-| state_set | 256B | 1 | 200 | 566.875 | 7947.714446 | 3152.2 | HF | 830 | 900 | HF (ledger-write cost reported separately); E2E/HF ratio 2.521323 |
-| util_raddr | K=4 | 4 | 1200 | 274.998 | 490.546721 | 455.533 | HF | 120 | 980 | HF (E2E noisy) |
-| util_accid | K=4 | 4 | 1200 | 264.406 | 488.386536 | 444.941 | E2E | 130 | 690 |  |
-| util_keylet | ACCOUNT | 4 | 1200 | 168.472 | 458.057678 | 349.007 | HF | 92 | 230 | HF (E2E noisy); E2E/HF ratio 1.312459 |
-| util_keylet | CHILD | 4 | 1200 | 73.02 | 278.235455 | 253.556 | HF | 67 | 230 | HF (E2E noisy) |
-| util_keylet | ESCROW | 4 | 1200 | 190.159 | 465.966011 | 370.695 | HF | 98 | 230 | HF (E2E noisy) |
-| util_keylet | LINE | 4 | 1200 | 184.276 | 447.253974 | 364.811 | E2E | 120 | 230 |  |
-| util_keylet | AMENDMENTS | 4 | 1200 | 72.0517 | 345.634530 | 252.587 | HF | 67 | 230 | HF (E2E noisy); E2E/HF ratio 1.368377 |
-| util_keylet | QUALITY | 4 | 1200 | 75.4208 | 325.920641 | 255.956 | HF | 67 | 230 | HF (E2E noisy); AMENDMENTS's case also covers FEES/NEGATIVE_UNL/EMITTED_DIR (identical switch case); AMM/BRIDGE/XCHAIN_*/MPTOKEN_*/CREDENTIAL/PERMISSIONED_DOMAIN not built (complex multi-part operands -- asset pairs, bridge specs); every other keylet_type is covered below |
-| util_keylet | HOOK | 4 | 1200 | 161.2 | 424.416011 | 341.736 | E2E | 120 | 230 |  |
-| util_keylet | HOOK_STATE | 4 | 1200 | 173.209 | 423.027122 | 353.745 | HF | 93 | 230 | HF (E2E noisy) |
-| util_keylet | SKIP | 4 | 1200 | 69.5083 | 323.218789 | 250.044 | HF | 66 | 230 | HF (E2E noisy) |
-| util_keylet | OFFER | 4 | 1200 | 171.278 | 395.866937 | 351.813 | HF | 93 | 230 | HF (E2E noisy) |
-| util_keylet | SIGNERS | 4 | 1200 | 167.586 | 443.319715 | 348.121 | HF | 92 | 230 | HF (E2E noisy) |
-| util_keylet | CHECK | 4 | 1200 | 168.526 | 435.255826 | 349.061 | HF | 92 | 230 | HF (E2E noisy) |
-| util_keylet | DEPOSIT_PREAUTH | 4 | 1200 | 170.807 | 420.365085 | 351.342 | HF | 92 | 230 | HF (E2E noisy) |
-| util_keylet | UNCHECKED | 4 | 1200 | 71.3233 | 349.068789 | 251.859 | E2E | 92 | 230 | E2E/HF ratio 1.385969 |
-| util_keylet | OWNER_DIR | 4 | 1200 | 161.763 | 432.980826 | 342.299 | E2E | 120 | 230 |  |
-| util_keylet | PAGE | 4 | 1200 | 168.847 | 413.998418 | 349.383 | HF | 92 | 230 | HF (E2E noisy) |
-| util_keylet | PAYCHAN | 4 | 1200 | 179.35 | 419.863233 | 359.886 | E2E | 110 | 230 |  |
-| util_keylet | EMITTED_TXN | 4 | 1200 | 165.312 | 433.442863 | 345.848 | E2E | 120 | 230 |  |
-| util_keylet | NFT_OFFER | 4 | 1200 | 177.396 | 439.808604 | 357.931 | E2E | 120 | 230 |  |
-| util_keylet | HOOK_DEFINITION | 4 | 1200 | 167.454 | 443.319715 | 347.99 | HF | 92 | 230 | HF (E2E noisy) |
-| util_keylet | HOOK_STATE_DIR | 4 | 1200 | 224.581 | 497.255826 | 405.116 | HF | 110 | 230 | HF (E2E noisy) |
-| util_keylet | CRON | 4 | 1200 | 224.052 | 491.237307 | 404.587 | HF | 110 | 230 | HF (E2E noisy) |
-| util_keylet | ORACLE | 4 | 1200 | 210.209 | 420.441011 | 390.745 | HF | 110 | 230 | HF (E2E noisy) |
-| etxn_burden | K=4 | 4 | 1200 | 127.607 | 366.707956 | 308.142 | E2E | 96 | 260 |  |
-| otxn_burden | K=4 | 4 | 1200 | 111.693 | 302.626474 | 292.229 | HF | 77 | 260 | HF (E2E noisy) |
-| otxn_generation | K=4 | 4 | 1200 | 117.433 | 322.379252 | 297.969 | HF | 78 | 280 | HF (E2E noisy) |
-| ledger_last_time | K=4 | 4 | 1200 | 66.7742 | 225.388511 | 247.31 | HF | 65 | 110 | HF (E2E noisy) |
-| ledger_last_hash | K=4 | 4 | 1200 | 73.0242 | 354.013450 | 253.56 | HF | 67 | 210 | HF (E2E noisy); E2E/HF ratio 1.396174 |
-| hook_account | K=4 | 4 | 1200 | 77.35 | 293.327338 | 257.886 | HF | 68 | 140 | HF (E2E noisy) |
-| hook_hash | hook_no=0 | 4 | 1200 | 102.888 | 321.411567 | 283.424 | HF | 75 | 340 | HF (E2E noisy) |
-| hook_hash | hook_no=-1 | 4 | 1200 | 74.2658 | 294.019900 | 254.801 | HF | 67 | 340 | HF (E2E noisy) |
-| otxn_id | flags=0 | 4 | 1200 | 72.7033 | 270.062493 | 253.239 | HF | 67 | 450 | HF (E2E noisy) |
-| otxn_id | flags=1 | 4 | 1200 | 71.42 | 306.288419 | 251.956 | HF | 66 | 450 | HF (E2E noisy) |
-| float_multiply | K=4 | 4 | 1200 | 122.778 | 320.294005 | 303.313 | HF | 80 | 240 | HF (E2E noisy) |
-| float_mulratio | K=4 | 4 | 1200 | 105.076 | 371.719869 | 285.611 | HF | 75 | 390 | HF (E2E noisy); E2E/HF ratio 1.301488 |
-| float_negate | K=4 | 4 | 1200 | 66.2017 | 292.633851 | 246.737 | HF | 65 | 160 | HF (E2E noisy) |
-| float_compare | COMPARE_EQUAL | 4 | 1200 | 88.295 | 297.222678 | 268.831 | HF | 71 | 140 | HF (E2E noisy) |
-| float_compare | COMPARE_LESS|COMPARE_EQUAL | 4 | 1200 | 92.28 | 316.395826 | 272.816 | HF | 72 | 140 | HF (E2E noisy) |
-| float_sum | K=4 | 4 | 1200 | 103.998 | 339.120857 | 284.534 | E2E | 89 | 350 |  |
-| float_invert | K=4 | 4 | 1200 | 66.8758 | 278.010703 | 247.411 | HF | 65 | 230 | HF (E2E noisy) |
-| float_divide | K=4 | 4 | 1200 | 109.453 | 326.042153 | 289.988 | HF | 76 | 280 | HF (E2E noisy) |
-| float_mantissa | K=4 | 4 | 1200 | 67.355 | 329.284777 | 247.891 | E2E | 87 | 170 | E2E/HF ratio 1.328347 |
-| float_sign | K=4 | 4 | 1200 | 69.9242 | 296.336629 | 250.46 | HF | 66 | 80 | HF (E2E noisy) |
-| float_int | K=4 | 4 | 1200 | 69.445 | 297.106937 | 249.981 | HF | 66 | 100 | HF (E2E noisy) |
-| float_log | K=4 | 4 | 1200 | 77.3842 | 268.905147 | 257.92 | HF | 68 | 100 | HF (E2E noisy) |
-| float_root | K=4 | 4 | 1200 | 109.891 | 356.250487 | 290.426 | E2E | 94 | 190 |  |
-| float_set | K=4 | 4 | 1200 | 102.853 | 357.717153 | 283.388 | HF | 75 | 110 | HF (E2E noisy) |
-| float_sto | XRP | 4 | 1200 | 92.695 | 311.954931 | 273.231 | HF | 72 | 230 | HF (E2E noisy) |
-| float_sto | IOU | 4 | 1200 | 102.834 | 337.147523 | 283.37 | E2E | 89 | 230 |  |
-| float_sto | short | 4 | 1200 | 91.3192 | 310.720672 | 271.855 | HF | 72 | 230 | HF (E2E noisy) |
-| float_sto_set | K=4 | 4 | 1200 | 85.6317 | 340.741227 | 266.167 | E2E | 90 | 140 |  |
-| trace | 32B | 4 | 1200 | 425.06 | 711.109653 | 605.596 | HF | 160 | 100 | HF (E2E noisy); default journal level: early-returns on !j.trace() (design review B) |
-| trace | 1KiB hex | 4 | 1200 | 710.14 | 1019.403172 | 890.676 | E2E | 270 | 100 |  |
-| trace_num | K=4 | 4 | 1200 | 406.917 | 706.375911 | 587.452 | E2E | 190 | 100 |  |
-| trace_float | K=4 | 4 | 1200 | 526.327 | 770.215271 | 706.862 | E2E | 210 | 100 |  |
-| otxn_param | 32B | 4 | 1201 | 186.376 | 444.982832 | 366.912 | HF | 97 | 830 | HF (E2E noisy) |
-| otxn_param | 256B | 4 | 1201 | 192.11 | 421.141166 | 372.646 | HF | 98 | 830 | HF (E2E noisy) |
-| hook_param | 32B | 4 | 1200 | 110.071 | 329.243017 | 290.606 | E2E | 87 | 510 |  |
-| hook_param | 256B | 4 | 1200 | 120.104 | 322.337462 | 300.64 | HF | 79 | 510 | HF (E2E noisy) |
-| otxn_field | sfAccount(20B) | 1 | 300 | 118.05 | 204.063398 | 298.586 | HF | 79 | 460 | HF (E2E noisy); E2E/HF ratio 0.683433 |
-| otxn_field | 1KiB Blob | 1 | 300 | 139.857 | 491.874509 | 320.392 | HF | 84 | 460 | HF (E2E noisy); E2E/HF ratio 1.535226 |
-| otxn_field | 16KiB Blob | 1 | 300 | 512.65 | 410.241175 | 693.186 | HF | 190 | 460 | HF (E2E noisy); E2E/HF ratio 0.591820 |
-| otxn_slot | small tx | 1 | 300 | 333.48 | 628.526422 | 514.016 | E2E | 170 | 310 |  |
-| otxn_slot | 1KiB Blob | 1 | 300 | 375.15 | 639.944941 | 555.686 | HF | 150 | 310 | HF (E2E noisy) |
-| otxn_slot | 16KiB Blob | 1 | 300 | 545.653 | 526.826422 | 726.189 | HF | 200 | 310 | HF (E2E noisy); E2E/HF ratio 0.725467 |
-| slot | 1KiB Blob | 1 | 300 | 380.56 | 799.589323 | 561.096 | HF | 150 | 1400 | HF (E2E noisy); E2E/HF ratio 1.425050 |
-| slot | 16KiB Blob | 1 | 300 | 1170.26 | 1577.985620 | 1350.79 | E2E | 420 | 1400 |  |
-| slot_size | K=1 | 1 | 300 | 277.633 | 572.200496 | 458.169 | E2E | 150 | 330 |  |
-| slot_type | flags=0 | 1 | 300 | 73.3067 | 255.724540 | 253.842 | HF | 67 | 210 | HF (E2E noisy) |
-| slot_type | flags=1 | 1 | 300 | 87.1967 | 258.657873 | 267.732 | HF | 71 | 210 | HF (E2E noisy) |
-| slot_count | 3 Memos | 1 | 300 | 71.6767 | 280.993089 | 252.212 | HF | 67 | 230 | HF (E2E noisy) |
-| slot_subfield | sfAccount | 1 | 300 | 97.76 | 330.763398 | 278.296 | HF | 73 | 220 | HF (E2E noisy) |
-| slot_float | sfAmount (own tx, Payment) | 1 | 300 | 104.497 | 243.804200 | 285.032 | HF | 75 | 150 | HF (E2E noisy) |
-| slot_subarray | Memos[0] | 1 | 300 | 75.6967 | 254.837472 | 256.232 | HF | 68 | 330 | HF (E2E noisy) |
-| slot_set | 34B keylet | 1 | 300 | 1310.41 | 1602.830064 | 1490.95 | HF | 400 | 350 | HF (E2E noisy) |
-| slot_clear | K=1 | 1 | 300 | 187.903 | 404.894352 | 368.439 | HF | 97 | 230 | HF (E2E noisy) |
-| sto_validate | ~31B | 1 | 300 | 211.6 | 422.235651 | 392.136 | HF | 110 | 350 | HF (E2E noisy) |
-| sto_validate | ~tx (250B) | 1 | 300 | 567.503 | 795.426361 | 748.039 | HF | 200 | 350 | HF (E2E noisy) |
-| sto_validate | ~4KiB (Blob) | 1 | 300 | 642.907 | 947.737472 | 823.442 | HF | 220 | 350 | HF (E2E noisy) |
-| sto_subfield | ~31B | 1 | 300 | 129.3 | 341.715126 | 309.836 | HF | 82 | 340 | HF (E2E noisy) |
-| sto_subfield | ~tx (250B) | 1 | 300 | 370.843 | 657.342996 | 551.379 | HF | 150 | 340 | HF (E2E noisy) |
-| sto_subfield | ~4KiB (Blob) | 1 | 300 | 470.293 | 686.202256 | 650.829 | HF | 180 | 340 | HF (E2E noisy) |
-| sto_subarray | ~tx (250B) | 1 | 300 | 215.58 | 481.417070 | 396.116 | HF | 110 | 290 | HF (E2E noisy); no small-object point (deferred); single-point table value |
-| sto_subarray | 3 Memos, one ~1KiB | 1 | 300 | 247.35 | 447.465219 | 427.886 | HF | 120 | 290 | HF (E2E noisy) |
-| sto_emplace | ~31B | 1 | 300 | 300.55 | 509.922410 | 481.086 | HF | 130 | 980 | HF (E2E noisy) |
-| sto_emplace | ~tx (250B) | 1 | 300 | 437.207 | 657.957687 | 617.742 | HF | 170 | 980 | HF (E2E noisy) |
-| sto_emplace | ~4KiB (Blob) | 1 | 300 | 627.63 | 1035.424354 | 808.166 | HF | 220 | 980 | HF (E2E noisy) |
-| sto_erase | ~31B | 1 | 300 | 203.893 | 574.970620 | 384.429 | HF | 110 | 970 | HF (E2E noisy); E2E/HF ratio 1.495649 |
-| sto_erase | ~tx (250B) | 1 | 300 | 267.227 | 408.805897 | 447.762 | HF | 120 | 970 | HF (E2E noisy) |
-| sto_erase | ~4KiB (Blob) | 1 | 300 | 417.22 | 646.002194 | 597.756 | HF | 160 | 970 | HF (E2E noisy) |
-| ledger_nonce | K=200/exec | 1 | 200 | 188.325 | 389.287503 | 368.861 | HF | 97 | 170 | HF (E2E noisy) |
-| etxn_nonce | K=200/exec | 1 | 200 | 233.13 | 407.343058 | 413.666 | HF | 110 | 230 | HF (E2E noisy) |
-| util_verify | ed25519 (passing) | 1 | 301 | 25099.1 | 26263.131947 | 25279.7 | E2E | 6900 | 24000 |  |
-| util_verify | secp256k1 (passing) | 1 | 301 | 20241.4 | 21297.702317 | 20422 | E2E | 5600 | 24000 |  |
-| hook_param_set | K=16/exec (cap) | 1 | 16 | 174.375 | 877.865006 | 354.911 | HF | 93 | 370 | HF (E2E noisy); E2E/HF ratio 2.473482 |
-| meta_slot | K=200/exec, weak/AAW pass | 1 | 202 | 71.7822 | - | 252.318 | HF | 67 | 220 | HF (capped/one-shot) |
-| prepare | min Payment spec | 1 | 300 | 28522.9 | 28937.778735 | 28703.5 | E2E | 7600 | 36000 | reference size (minimal Payment) |
-| prepare | 1KiB ttINVOKE+sfBlob | 1 | 301 | 35331.7 | 36256.113490 | 35512.2 | E2E | 9500 | 36000 | 1KiB sfBlob variant (Phase 3 item 3) |
-| etxn_fee_base | 1KiB ttINVOKE+sfBlob | 1 | 302 | 3628.23 | 3995.080219 | 3808.76 | HF | 1000 | 4600 | HF (E2E noisy); 1KiB sfBlob variant, direct call (not via emit) -- reference (min Payment) value comes from emit_min_k200's loop, see below |
-| ledger_keylet | full range | 1 | 300 | 241.26 | 502.172564 | 421.796 | HF | 120 | 300 | HF (E2E noisy); lower bound: near-empty JTX ledger (design review F3) |
-| state | 4KiB (ExtendedHookState) | 1 | 200 | 2348.13 | 3284.175650 | 2528.67 | E2E | 860 | 1700 |  |
-| state_set | 4KiB (ExtendedHookState) | 1 | 200 | 725.205 | 12549.558890 | 4039.49 | HF | 1100 | 900 | HF (ledger-write cost reported separately); E2E/HF ratio 3.106718 |
-| state_foreign | read 32B (no grant needed) | 1 | 200 | 1699.4 | 2351.532933 | 1879.94 | HF | 500 | 1700 | HF (E2E noisy) |
-| state_foreign | read 256B (no grant needed) | 1 | 200 | 1703.7 | 2293.194045 | 1884.24 | HF | 500 | 1700 | HF (E2E noisy) |
-| state_foreign_set | write, K=1 (first call, grant scan) | 1 | 1 | 8791 | - | 15637.5 | HF | 4100 | 3400 | HF (capped/one-shot) |
-| state_foreign_set | write, K=200 (grant cached after 1st) | 1 | 200 | 631.7 | 7045.977378 | 3263.69 | HF | 860 | 3400 | HF (ledger-write cost reported separately); E2E/HF ratio 2.158899 |
-| emit | K=200/exec, min Payment, own nonce+details+fee_base | 1 | 200 | 7902.06 | - | 8082.59 | HF | 2200 | 8700 | HF (undecomposable body) |
-| etxn_details | inside emit_min_k200's loop | 1 | 200 | 398.77 | - | 579.306 | HF | 160 | 470 | HF (undecomposable body) |
-| etxn_fee_base | inside emit_min_k200's loop | 1 | 200 | 3909.82 | - | 4090.36 | HF | 1100 | 4600 | HF (undecomposable body) |
-| emit | K=200/exec, 1KiB ttINVOKE+sfBlob | 1 | 200 | 7501.44 | - | 7681.98 | HF | 2100 | 8700 | HF (undecomposable body) |
-| hook_skip | alternating scan/erase (2-hook chain) | 1 | 300 | 106.25 | 408.035527 | 286.786 | HF | 76 | 170 | HF (E2E noisy); E2E/HF ratio 1.422789 |
+| hook_pos | K=4 | 4 | 3400 | 14.4794 | 165.724920 | 165.725 | HF | 52 | 40 | HF (E2E noisy) |
+| fee_base | K=4 | 4 | 1800 | 69.7339 | 293.853174 | 220.979 | HF | 69 | 70 | HF (E2E noisy); E2E/HF ratio 1.329776 |
+| ledger_seq | K=4 | 4 | 1800 | 72.2556 | 241.332186 | 223.501 | HF | 70 | 140 | HF (E2E noisy) |
+| float_one | K=4 | 4 | 1800 | 15.0417 | 186.830856 | 166.287 | HF | 52 | 20 | HF (E2E noisy) |
+| otxn_type | K=4 | 4 | 1800 | 71.2494 | 215.277865 | 222.495 | HF | 70 | 130 | HF (E2E noisy) |
+| etxn_generation | K=4 | 4 | 1800 | 59.9817 | 214.351227 | 211.227 | HF | 66 | 130 | HF (E2E noisy) |
+| util_sha512h | 32B | 1 | 1000 | 159.79 | 232.067478 | 311.036 | HF | 97 | 340 | HF (E2E noisy); E2E/HF ratio 0.746112 |
+| util_sha512h | 1KiB | 1 | 1000 | 715.249 | 947.991922 | 866.495 | HF | 270 | 340 | HF (E2E noisy) |
+| util_sha512h | 16KiB | 1 | 1000 | 9579.49 | 10009.057478 | 9730.73 | E2E | 3200 | 340 |  |
+| state | 32B | 1 | 200 | 1777.72 | 2179.838532 | 1928.97 | HF | 610 | 1700 | HF (E2E noisy) |
+| state | 256B | 1 | 200 | 1815.83 | 2634.699643 | 1967.07 | E2E | 830 | 1700 | E2E/HF ratio 1.339403 |
+| state_set | 32B, modify (fixed keys) | 1 | 200 | 623.335 | 7486.810592 | 3157.29 | HF | 990 | 900 | HF (ledger-write cost reported separately); E2E/HF ratio 2.371281; review #6: modify path |
+| state_set | 32B, create (fresh keys, salt=rep) | 1 | 200 | 614.62 | 23885.604059 | 2235.24 | HF | 700 | 900 | HF (ledger-write cost reported separately); E2E/HF ratio 10.685921; review #6: create path |
+| state_set | 256B | 1 | 200 | 625.62 | 7679.171703 | 3173.95 | HF | 990 | 900 | HF (ledger-write cost reported separately); E2E/HF ratio 2.419436 |
+| util_raddr | K=4 | 4 | 1200 | 293.755 | 556.689868 | 445.001 | E2E | 180 | 980 |  |
+| util_accid | K=4 | 4 | 1200 | 283.503 | 466.758387 | 434.749 | HF | 140 | 690 | HF (E2E noisy) |
+| util_keylet | ACCOUNT | 4 | 1200 | 170.118 | 465.787202 | 321.363 | HF | 110 | 230 | HF (E2E noisy); E2E/HF ratio 1.449411 |
+| util_keylet | CHILD | 4 | 1200 | 80 | 363.741832 | 231.246 | HF | 73 | 230 | HF (E2E noisy); E2E/HF ratio 1.572968 |
+| util_keylet | ESCROW | 4 | 1200 | 190.936 | 517.137202 | 342.181 | E2E | 170 | 230 | E2E/HF ratio 1.511296 |
+| util_keylet | LINE | 4 | 1200 | 193.157 | 430.602017 | 344.402 | HF | 110 | 230 | HF (E2E noisy) |
+| util_keylet | AMENDMENTS | 4 | 1200 | 80.1175 | 367.060351 | 231.363 | HF | 73 | 230 | HF (E2E noisy); E2E/HF ratio 1.586513 |
+| util_keylet | QUALITY | 4 | 1200 | 80.7675 | 406.990906 | 232.013 | HF | 73 | 230 | HF (E2E noisy); E2E/HF ratio 1.754173; AMENDMENTS's case also covers FEES/NEGATIVE_UNL/EMITTED_DIR (identical switch case); AMM/BRIDGE/XCHAIN_*/MPTOKEN_*/CREDENTIAL/PERMISSIONED_DOMAIN not built (complex multi-part operands -- asset pairs, bridge specs); every other keylet_type is covered below |
+| util_keylet | HOOK | 4 | 1200 | 174.769 | 394.529795 | 326.015 | HF | 110 | 230 | HF (E2E noisy) |
+| util_keylet | HOOK_STATE | 4 | 1200 | 174.063 | 450.277017 | 325.309 | HF | 110 | 230 | HF (E2E noisy); E2E/HF ratio 1.384152 |
+| util_keylet | SKIP | 4 | 1200 | 77.4983 | 345.339980 | 228.744 | HF | 72 | 230 | HF (E2E noisy); E2E/HF ratio 1.509724 |
+| util_keylet | OFFER | 4 | 1200 | 182.775 | 390.054795 | 334.021 | HF | 110 | 230 | HF (E2E noisy) |
+| util_keylet | SIGNERS | 4 | 1200 | 185.647 | 444.104795 | 336.892 | HF | 110 | 230 | HF (E2E noisy); E2E/HF ratio 1.318240 |
+| util_keylet | CHECK | 4 | 1200 | 184.107 | 414.476091 | 335.353 | E2E | 130 | 230 |  |
+| util_keylet | DEPOSIT_PREAUTH | 4 | 1200 | 179.739 | 411.928869 | 330.985 | HF | 110 | 230 | HF (E2E noisy) |
+| util_keylet | UNCHECKED | 4 | 1200 | 81.3492 | 339.205721 | 232.595 | HF | 73 | 230 | HF (E2E noisy); E2E/HF ratio 1.458355 |
+| util_keylet | OWNER_DIR | 4 | 1200 | 178.632 | 445.146462 | 329.878 | HF | 110 | 230 | HF (E2E noisy); E2E/HF ratio 1.349428 |
+| util_keylet | PAGE | 4 | 1200 | 169.088 | 521.651091 | 320.333 | E2E | 170 | 230 | E2E/HF ratio 1.628465 |
+| util_keylet | PAYCHAN | 4 | 1200 | 192.546 | 447.076091 | 343.791 | E2E | 140 | 230 | E2E/HF ratio 1.300429 |
+| util_keylet | EMITTED_TXN | 4 | 1200 | 176.961 | 507.763128 | 328.206 | HF | 110 | 230 | HF (E2E noisy); E2E/HF ratio 1.547085 |
+| util_keylet | NFT_OFFER | 4 | 1200 | 184.537 | 397.614980 | 335.783 | HF | 110 | 230 | HF (E2E noisy) |
+| util_keylet | HOOK_DEFINITION | 4 | 1200 | 180.171 | 473.039980 | 331.416 | HF | 110 | 230 | HF (E2E noisy); E2E/HF ratio 1.427328 |
+| util_keylet | HOOK_STATE_DIR | 4 | 1200 | 215.553 | 386.543684 | 366.798 | HF | 120 | 230 | HF (E2E noisy) |
+| util_keylet | CRON | 4 | 1200 | 218.366 | 468.526091 | 369.611 | HF | 120 | 230 | HF (E2E noisy) |
+| util_keylet | ORACLE | 4 | 1200 | 230.316 | 521.150165 | 381.561 | HF | 120 | 230 | HF (E2E noisy); E2E/HF ratio 1.365836 |
+| etxn_burden | K=4 | 4 | 1200 | 123.44 | 329.448853 | 274.686 | HF | 86 | 260 | HF (E2E noisy) |
+| otxn_burden | K=4 | 4 | 1200 | 124.859 | 278.818511 | 276.105 | HF | 86 | 260 | HF (E2E noisy) |
+| otxn_generation | K=4 | 4 | 1200 | 126.288 | 302.121288 | 277.534 | HF | 87 | 280 | HF (E2E noisy) |
+| ledger_last_time | K=4 | 4 | 1200 | 71.8767 | 315.484038 | 223.122 | HF | 70 | 110 | HF (E2E noisy); E2E/HF ratio 1.413952 |
+| ledger_last_hash | K=4 | 4 | 1200 | 76.3558 | 251.884638 | 227.601 | HF | 71 | 210 | HF (E2E noisy) |
+| hook_account | K=4 | 4 | 1200 | 78.5458 | 262.687416 | 229.791 | HF | 72 | 140 | HF (E2E noisy) |
+| hook_hash | hook_no=0 | 4 | 1200 | 105.294 | 284.398364 | 256.54 | HF | 80 | 340 | HF (E2E noisy) |
+| hook_hash | hook_no=-1 | 4 | 1200 | 78.8883 | 310.941883 | 230.134 | HF | 72 | 340 | HF (E2E noisy); E2E/HF ratio 1.351135 |
+| otxn_id | flags=0 | 4 | 1200 | 78.6733 | 309.899290 | 229.919 | HF | 72 | 450 | HF (E2E noisy); E2E/HF ratio 1.347864 |
+| otxn_id | flags=1 | 4 | 1200 | 73.2625 | 313.951142 | 224.508 | HF | 70 | 450 | HF (E2E noisy); E2E/HF ratio 1.398396 |
+| float_multiply | K=4 | 4 | 1200 | 131.887 | 247.242259 | 283.132 | HF | 89 | 240 | HF (E2E noisy) |
+| float_mulratio | K=4 | 4 | 1200 | 101.043 | 344.099341 | 252.288 | HF | 79 | 390 | HF (E2E noisy); E2E/HF ratio 1.363915 |
+| float_negate | K=4 | 4 | 1200 | 72.6383 | 243.085015 | 223.884 | HF | 70 | 160 | HF (E2E noisy) |
+| float_compare | COMPARE_EQUAL | 4 | 1200 | 96.0675 | 291.189105 | 247.313 | HF | 78 | 140 | HF (E2E noisy) |
+| float_compare | COMPARE_LESS|COMPARE_EQUAL | 4 | 1200 | 97.74 | 309.398364 | 248.986 | HF | 78 | 140 | HF (E2E noisy) |
+| float_sum | K=4 | 4 | 1200 | 101.832 | 332.658926 | 253.078 | HF | 79 | 350 | HF (E2E noisy); E2E/HF ratio 1.314452 |
+| float_invert | K=4 | 4 | 1200 | 68.0133 | 281.201681 | 219.259 | HF | 69 | 230 | HF (E2E noisy) |
+| float_divide | K=4 | 4 | 1200 | 121.426 | 360.745963 | 272.671 | HF | 85 | 280 | HF (E2E noisy); E2E/HF ratio 1.323007 |
+| float_mantissa | K=4 | 4 | 1200 | 71.5342 | 332.860941 | 222.78 | E2E | 110 | 170 | E2E/HF ratio 1.494126 |
+| float_sign | K=4 | 4 | 1200 | 69.1667 | 274.642422 | 220.412 | HF | 69 | 80 | HF (E2E noisy) |
+| float_int | K=4 | 4 | 1200 | 72.1175 | 229.447652 | 223.363 | HF | 70 | 100 | HF (E2E noisy) |
+| float_log | K=4 | 4 | 1200 | 81.5083 | 280.815570 | 232.754 | HF | 73 | 100 | HF (E2E noisy) |
+| float_root | K=4 | 4 | 1200 | 106.814 | 255.497815 | 258.06 | HF | 81 | 190 | HF (E2E noisy) |
+| float_set | K=4 | 4 | 1200 | 97.25 | 291.839481 | 248.496 | HF | 78 | 110 | HF (E2E noisy) |
+| float_sto | XRP | 4 | 1200 | 99.7258 | 345.966069 | 250.971 | HF | 79 | 230 | HF (E2E noisy); E2E/HF ratio 1.378508 |
+| float_sto | IOU | 4 | 1200 | 108.755 | 322.431810 | 260.001 | HF | 81 | 230 | HF (E2E noisy) |
+| float_sto | short | 4 | 1200 | 98.3292 | 269.152180 | 249.575 | HF | 78 | 230 | HF (E2E noisy) |
+| float_sto_set | K=4 | 4 | 1200 | 88.1125 | 351.909852 | 239.358 | HF | 75 | 140 | HF (E2E noisy); E2E/HF ratio 1.470224 |
+| trace | 32B | 4 | 1200 | 455.758 | 676.172276 | 607.004 | HF | 190 | 100 | HF (E2E noisy); default journal level: early-returns on !j.trace() (design review B) |
+| trace | 1KiB hex | 4 | 1200 | 713.495 | 1000.978757 | 864.741 | HF | 270 | 100 | HF (E2E noisy) |
+| trace_num | K=4 | 4 | 1200 | 414.767 | 694.870709 | 566.012 | E2E | 220 | 100 |  |
+| trace_float | K=4 | 4 | 1200 | 575.228 | 840.272601 | 726.474 | E2E | 270 | 100 |  |
+| otxn_param | 32B | 4 | 1201 | 209.113 | 426.325979 | 360.359 | HF | 120 | 830 | HF (E2E noisy) |
+| otxn_param | 256B | 4 | 1201 | 204.693 | 390.408387 | 355.938 | HF | 120 | 830 | HF (E2E noisy) |
+| hook_param | 32B | 4 | 1200 | 108.335 | 358.116720 | 259.581 | HF | 81 | 510 | HF (E2E noisy); E2E/HF ratio 1.379598 |
+| hook_param | 256B | 4 | 1200 | 121.001 | 395.115794 | 272.246 | HF | 85 | 510 | HF (E2E noisy); E2E/HF ratio 1.451317 |
+| otxn_field | sfAccount(20B) | 1 | 300 | 116.393 | 414.903713 | 267.639 | HF | 84 | 460 | HF (E2E noisy); E2E/HF ratio 1.550237 |
+| otxn_field | 1KiB Blob | 1 | 300 | 153.04 | 292.529639 | 304.286 | HF | 95 | 460 | HF (E2E noisy) |
+| otxn_field | 16KiB Blob | 1 | 300 | 576.383 | 781.107417 | 727.629 | HF | 230 | 460 | HF (E2E noisy) |
+| otxn_slot | small tx | 1 | 300 | 366.257 | 780.896631 | 517.502 | HF | 170 | 310 | HF (E2E noisy); E2E/HF ratio 1.508973 |
+| otxn_slot | 1KiB Blob | 1 | 300 | 417.357 | 458.211446 | 568.602 | HF | 180 | 310 | HF (E2E noisy) |
+| otxn_slot | 16KiB Blob | 1 | 300 | 588.46 | 839.537372 | 739.706 | HF | 240 | 310 | HF (E2E noisy) |
+| slot | 1KiB Blob | 1 | 300 | 420.403 | 526.325935 | 571.649 | HF | 180 | 1400 | HF (E2E noisy) |
+| slot | 16KiB Blob | 1 | 300 | 1227.92 | 1433.425935 | 1379.17 | HF | 430 | 1400 | HF (E2E noisy) |
+| slot_size | K=1 | 1 | 300 | 297.36 | 519.789224 | 448.606 | HF | 140 | 330 | HF (E2E noisy) |
+| slot_type | flags=0 | 1 | 300 | 78.47 | 148.160571 | 229.716 | HF | 72 | 210 | HF (E2E noisy); E2E/HF ratio 0.644974 |
+| slot_type | flags=1 | 1 | 300 | 92.6533 | 345.274246 | 243.899 | HF | 76 | 210 | HF (E2E noisy); E2E/HF ratio 1.415645 |
+| slot_count | 3 Memos | 1 | 300 | 78.07 | 212.841075 | 229.316 | HF | 72 | 230 | HF (E2E noisy) |
+| slot_subfield | sfAccount | 1 | 300 | 107.63 | 111.355565 | 258.876 | HF | 81 | 220 | HF (E2E noisy); E2E/HF ratio 0.430151 |
+| slot_float | sfAmount (own tx, Payment) | 1 | 300 | 107.78 | 230.896631 | 259.026 | HF | 81 | 150 | HF (E2E noisy) |
+| slot_subarray | Memos[0] | 1 | 300 | 81.94 | 138.670380 | 233.186 | HF | 73 | 330 | HF (E2E noisy); E2E/HF ratio 0.594678 |
+| slot_set | 34B keylet | 1 | 300 | 1426.68 | 1670.155565 | 1577.92 | HF | 500 | 350 | HF (E2E noisy) |
+| slot_clear | K=1 | 1 | 300 | 201.127 | 340.825438 | 352.372 | HF | 110 | 230 | HF (E2E noisy) |
+| sto_validate | ~31B | 1 | 300 | 187.497 | 357.899521 | 338.742 | HF | 110 | 350 | HF (E2E noisy) |
+| sto_validate | ~tx (250B) | 1 | 300 | 546.033 | 797.466676 | 697.279 | HF | 220 | 350 | HF (E2E noisy) |
+| sto_validate | ~4KiB (Blob) | 1 | 300 | 668.317 | 1177.096305 | 819.562 | E2E | 370 | 350 | E2E/HF ratio 1.436250 |
+| sto_subfield | ~31B | 1 | 300 | 144.16 | 180.303062 | 295.406 | HF | 92 | 340 | HF (E2E noisy); E2E/HF ratio 0.610358 |
+| sto_subfield | ~tx (250B) | 1 | 300 | 421.66 | 509.073920 | 572.906 | HF | 180 | 340 | HF (E2E noisy) |
+| sto_subfield | ~4KiB (Blob) | 1 | 300 | 511.097 | 781.292439 | 662.342 | HF | 210 | 340 | HF (E2E noisy) |
+| sto_subarray | ~tx (250B) | 1 | 300 | 235.43 | 523.114661 | 386.676 | HF | 130 | 290 | HF (E2E noisy); E2E/HF ratio 1.352852; no small-object point (deferred); single-point table value |
+| sto_subarray | 3 Memos, one ~1KiB | 1 | 300 | 259.03 | 340.555402 | 410.276 | HF | 130 | 290 | HF (E2E noisy) |
+| sto_emplace | ~31B | 1 | 300 | 332.24 | 703.876485 | 483.486 | HF | 160 | 980 | HF (E2E noisy); E2E/HF ratio 1.455838 |
+| sto_emplace | ~tx (250B) | 1 | 300 | 450.283 | 673.695492 | 601.529 | HF | 190 | 980 | HF (E2E noisy) |
+| sto_emplace | ~4KiB (Blob) | 1 | 300 | 657.8 | 924.002899 | 809.046 | HF | 260 | 980 | HF (E2E noisy) |
+| sto_erase | ~31B | 1 | 300 | 209.72 | 446.873107 | 360.966 | HF | 120 | 970 | HF (E2E noisy) |
+| sto_erase | ~tx (250B) | 1 | 300 | 290.013 | 338.295817 | 441.259 | HF | 140 | 970 | HF (E2E noisy); E2E/HF ratio 0.766661 |
+| sto_erase | ~4KiB (Blob) | 1 | 300 | 442.237 | 585.518039 | 593.482 | HF | 190 | 970 | HF (E2E noisy) |
+| ledger_nonce | K=200/exec | 1 | 200 | 198.955 | 168.887209 | 350.201 | HF | 110 | 170 | HF (E2E noisy); E2E/HF ratio 0.482259 |
+| etxn_nonce | K=200/exec | 1 | 200 | 251.45 | 374.448320 | 402.696 | HF | 130 | 230 | HF (E2E noisy) |
+| util_verify | ed25519 (passing) | 1 | 301 | 25476.3 | 26614.225447 | 25627.6 | E2E | 8300 | 24000 |  |
+| util_verify | secp256k1 (passing) | 1 | 301 | 20547.7 | 21040.303225 | 20699 | E2E | 6600 | 24000 |  |
+| hook_param_set | K=16/exec (cap) | 1 | 16 | 192.875 | 247.361548 | 344.121 | HF | 110 | 370 | HF (E2E noisy); E2E/HF ratio 0.718822 |
+| meta_slot | K=200/exec, weak/AAW pass | 1 | 202 | 79.8267 | - | 231.072 | HF | 72 | 220 | HF (capped/one-shot) |
+| prepare | min Payment spec | 1 | 250 | 34771.3 | 35554.170046 | 34922.6 | E2E | 12000 | 36000 | reference size (minimal Payment) |
+| prepare | 1KiB ttINVOKE+sfBlob | 1 | 301 | 36126.8 | 36309.225772 | 36278.1 | E2E | 12000 | 36000 | 1KiB sfBlob variant (Phase 3 item 3) |
+| etxn_fee_base | 1KiB ttINVOKE+sfBlob | 1 | 302 | 3832.22 | 4322.903876 | 3983.46 | HF | 1300 | 4600 | HF (E2E noisy); 1KiB sfBlob variant, direct call (not via emit) -- reference (min Payment) value comes from emit_min_k200's loop, see below |
+| ledger_keylet | full range | 1 | 300 | 270.137 | 537.062484 | 421.382 | HF | 140 | 300 | HF (E2E noisy); lower bound: near-empty JTX ledger (design review F3) |
+| state | 4KiB (ExtendedHookState) | 1 | 200 | 2493.53 | 2988.344413 | 2644.78 | HF | 830 | 1700 | HF (E2E noisy) |
+| state_set | 4KiB (ExtendedHookState) | 1 | 200 | 813.14 | 12739.366147 | 5000.01 | HF | 1600 | 900 | HF (ledger-write cost reported separately); E2E/HF ratio 2.547870 |
+| state_foreign | read 32B (no grant needed) | 1 | 200 | 1806.91 | 2425.960429 | 1958.16 | HF | 610 | 1700 | HF (E2E noisy) |
+| state_foreign | read 256B (no grant needed) | 1 | 200 | 1823.54 | 2442.860429 | 1974.79 | HF | 620 | 1700 | HF (E2E noisy) |
+| state_foreign_set | write, K=1 (first call, grant scan) | 1 | 1 | 10375 | - | 18151.2 | HF | 5700 | 3400 | HF (capped/one-shot) |
+| state_foreign_set | write, K=200 (grant cached after 1st) | 1 | 200 | 703.13 | 7453.971540 | 3580.21 | HF | 1200 | 3400 | HF (ledger-write cost reported separately); E2E/HF ratio 2.081993 |
+| emit | K=200/exec, min Payment, own nonce+details+fee_base | 1 | 200 | 7961.66 | - | 8112.91 | HF | 2600 | 8700 | HF (undecomposable body) |
+| etxn_details | inside emit_min_k200's loop | 1 | 200 | 367.71 | - | 518.956 | HF | 170 | 470 | HF (undecomposable body) |
+| etxn_fee_base | inside emit_min_k200's loop | 1 | 200 | 4101.68 | - | 4252.92 | HF | 1400 | 4600 | HF (undecomposable body) |
+| emit | K=200/exec, 1KiB ttINVOKE+sfBlob | 1 | 200 | 7870.43 | - | 8021.67 | HF | 2500 | 8700 | HF (undecomposable body) |
+| hook_skip | alternating scan/erase (2-hook chain) | 1 | 300 | 115.547 | 485.055076 | 266.792 | HF | 84 | 170 | HF (E2E noisy); E2E/HF ratio 1.818101 |
 
 (`xpop_slot` not observed as a call on fixture `w_regular_key` -- Import tx likely did not reach the hook as ttIMPORT; skipped)
 
@@ -316,11 +316,11 @@ Fitted (exec.ns, wasm-window only, comparison): t_instr = 3.71133 ns, G = 269.98
 
 | api | variant | calls | ns/call | t_api (ns) | cost (proposed) | cost (current) | notes |
 |---|---|---|---|---|---|---|---|
-| xpop_slot | K=100/exec, min over 2 rep(s) (ttIMPORT, one fixture per fresh Env) | 100 | 34859.6 | 35040.1 | 9200 | 37000 | HF (capped/one-shot): anti-replay caps reps to the number of distinct fixtures, no N1/N2 E2E |
-| util_keylet | AMM (own Env, featureAMM added) | 4 | 1201 | 236.283 | 521.483604 | 416.819 | HF | 110 | 230 | HF (E2E noisy) |
-| util_keylet | DID (own Env, featureDID added) | 4 | 1200 | 210.693 | 527.732678 | 391.229 | HF | 110 | 230 | HF (E2E noisy); E2E/HF ratio 1.348910 |
-| etxn_reserve | direct (1st call) | 1 | 1 | 41 | - | 221.536 | HF | 58 | 150 | HF (capped/one-shot): error path after 1st call is trivial (design review B) |
-| hook_again | direct (1st call, strong pass) | 1 | 1 | 62 | - | 242.536 | HF | 64 | 260 | HF (capped/one-shot): error path after 1st call is trivial (design review B) |
+| xpop_slot | K=100/exec, min over 2 rep(s) (ttIMPORT, one fixture per fresh Env) | 100 | 30649.6 | 30800.8 | 9600 | 37000 | HF (capped/one-shot): anti-replay caps reps to the number of distinct fixtures, no N1/N2 E2E |
+| util_keylet | AMM (own Env, featureAMM added) | 4 | 1201 | 248.58 | 530.988128 | 399.826 | HF | 130 | 230 | HF (E2E noisy); E2E/HF ratio 1.328048 |
+| util_keylet | DID (own Env, featureDID added) | 4 | 1200 | 222.119 | 522.306647 | 373.365 | HF | 120 | 230 | HF (E2E noisy); E2E/HF ratio 1.398918 |
+| etxn_reserve | direct (1st call) | 1 | 1 | 83 | - | 234.246 | HF | 73 | 150 | HF (capped/one-shot): error path after 1st call is trivial (design review B) |
+| hook_again | direct (1st call, strong pass) | 1 | 1 | 62 | - | 213.246 | HF | 67 | 260 | HF (capped/one-shot): error path after 1st call is trivial (design review B) |
 
 ## Apply-time ledger cost (not charged by HOOK_API_COST)
 
@@ -328,101 +328,101 @@ Per created / modified hook-state entry on this platform; per ledger entry, node
 
 | variant | E2E (ns/call) | HF (ns/call) | (E2E - HF) ns/entry | path |
 |---|---|---|---|---|
-| state_set: 32B, modify (fixed keys) | 8326.414446 | 3244.87 | 5081.543851 | modify |
-| state_set: 32B, create (fresh keys, salt=rep) | 22955.575372 | 2142.63 | 20812.944777 | create |
-| state_set: 256B | 7947.714446 | 3152.2 | 4795.513851 | modify |
-| state_set: 4KiB (ExtendedHookState) | 12549.558890 | 4039.49 | 8510.068296 | modify |
-| state_foreign_set: write, K=1 (first call, grant scan) | - | 15637.5 | - | modify |
-| state_foreign_set: write, K=200 (grant cached after 1st) | 7045.977378 | 3263.69 | 3782.286783 | modify |
+| state_set: 32B, modify (fixed keys) | 7486.810592 | 3157.29 | 4329.525084 | modify |
+| state_set: 32B, create (fresh keys, salt=rep) | 23885.604059 | 2235.24 | 21650.363551 | create |
+| state_set: 256B | 7679.171703 | 3173.95 | 4505.221195 | modify |
+| state_set: 4KiB (ExtendedHookState) | 12739.366147 | 5000.01 | 7739.360639 | modify |
+| state_foreign_set: write, K=1 (first call, grant scan) | - | 18151.2 | - | modify |
+| state_foreign_set: write, K=200 (grant cached after 1st) | 7453.971540 | 3580.21 | 3873.761032 | modify |
 
 ## Terminal APIs (accept / rollback)
 
 | api | calls | ns/call (min) | ns/call (mean) | t_api (ns, from mean) | cost (proposed) | cost (current) | exec.ns diff vs noexit |
 |---|---|---|---|---|---|---|---|
 
-`noexit` (hook returns 0 without calling accept/rollback/exit): mean exec.ns = 24242.7 over 200/200 reps
+`noexit` (hook returns 0 without calling accept/rollback/exit): mean exec.ns = 26498.8 over 200/200 reps
 
-| accept | 1 | 41 | 82.345 | 262.881 | 69 | 150 | -11178.9 |
-| rollback | 1 | 41.5 | 80.07 | 260.606 | 69 | 180 | 1089.17 |
+| accept | 1 | 41 | 100.76 | 252.006 | 79 | 150 | -9436.92 |
+| rollback | 1 | 62 | 92.495 | 243.741 | 76 | 180 | 5314.74 |
 
 ## Table value per API (DESIGN §2.4 rule)
 
 | api | rule | rows | table cost |
 |---|---|---|---|
-| accept | max (single size, multiple paths) | 1 | 69 |
-| emit | max (single size, multiple paths) | 2 | 2100 |
-| etxn_burden | max (single size, multiple paths) | 1 | 96 |
-| etxn_details | max (single size, multiple paths) | 1 | 160 |
-| etxn_fee_base | max (single size, multiple paths) | 2 | 1000 |
-| etxn_generation | max (single size, multiple paths) | 1 | 65 |
-| etxn_nonce | max (single size, multiple paths) | 1 | 110 |
-| etxn_reserve | max (single size, multiple paths) | 1 | 58 |
-| fee_base | max (single size, multiple paths) | 1 | 71 |
-| float_compare | mode: max | 2 | 72 |
-| float_divide | max (single size, multiple paths) | 1 | 76 |
-| float_int | max (single size, multiple paths) | 1 | 66 |
-| float_invert | max (single size, multiple paths) | 1 | 65 |
-| float_log | max (single size, multiple paths) | 1 | 68 |
-| float_mantissa | max (single size, multiple paths) | 1 | 87 |
-| float_mulratio | max (single size, multiple paths) | 1 | 75 |
-| float_multiply | max (single size, multiple paths) | 1 | 80 |
-| float_negate | max (single size, multiple paths) | 1 | 65 |
-| float_one | max (single size, multiple paths) | 1 | 53 |
-| float_root | max (single size, multiple paths) | 1 | 94 |
-| float_set | max (single size, multiple paths) | 1 | 75 |
-| float_sign | max (single size, multiple paths) | 1 | 66 |
-| float_sto | mode: max | 3 | 89 |
-| float_sto_set | max (single size, multiple paths) | 1 | 90 |
-| float_sum | max (single size, multiple paths) | 1 | 89 |
-| hook_account | max (single size, multiple paths) | 1 | 68 |
-| hook_again | max (single size, multiple paths) | 1 | 64 |
-| hook_hash | mode: max | 2 | 75 |
-| hook_param | max (single size, multiple paths) | 2 | 79 |
-| hook_param_set | max (single size, multiple paths) | 1 | 93 |
-| hook_pos | max (single size, multiple paths) | 1 | 51 |
-| hook_skip | max (single size, multiple paths) | 1 | 76 |
-| ledger_keylet | max (single size, multiple paths) | 1 | 120 |
-| ledger_last_hash | max (single size, multiple paths) | 1 | 67 |
-| ledger_last_time | max (single size, multiple paths) | 1 | 65 |
-| ledger_nonce | max (single size, multiple paths) | 1 | 97 |
+| accept | max (single size, multiple paths) | 1 | 79 |
+| emit | max (single size, multiple paths) | 2 | 2500 |
+| etxn_burden | max (single size, multiple paths) | 1 | 86 |
+| etxn_details | max (single size, multiple paths) | 1 | 170 |
+| etxn_fee_base | max (single size, multiple paths) | 2 | 1300 |
+| etxn_generation | max (single size, multiple paths) | 1 | 66 |
+| etxn_nonce | max (single size, multiple paths) | 1 | 130 |
+| etxn_reserve | max (single size, multiple paths) | 1 | 73 |
+| fee_base | max (single size, multiple paths) | 1 | 69 |
+| float_compare | mode: max | 2 | 78 |
+| float_divide | max (single size, multiple paths) | 1 | 85 |
+| float_int | max (single size, multiple paths) | 1 | 70 |
+| float_invert | max (single size, multiple paths) | 1 | 69 |
+| float_log | max (single size, multiple paths) | 1 | 73 |
+| float_mantissa | max (single size, multiple paths) | 1 | 110 |
+| float_mulratio | max (single size, multiple paths) | 1 | 79 |
+| float_multiply | max (single size, multiple paths) | 1 | 89 |
+| float_negate | max (single size, multiple paths) | 1 | 70 |
+| float_one | max (single size, multiple paths) | 1 | 52 |
+| float_root | max (single size, multiple paths) | 1 | 81 |
+| float_set | max (single size, multiple paths) | 1 | 78 |
+| float_sign | max (single size, multiple paths) | 1 | 69 |
+| float_sto | mode: max | 3 | 81 |
+| float_sto_set | max (single size, multiple paths) | 1 | 75 |
+| float_sum | max (single size, multiple paths) | 1 | 79 |
+| hook_account | max (single size, multiple paths) | 1 | 72 |
+| hook_again | max (single size, multiple paths) | 1 | 67 |
+| hook_hash | mode: max | 2 | 80 |
+| hook_param | max (single size, multiple paths) | 2 | 85 |
+| hook_param_set | max (single size, multiple paths) | 1 | 110 |
+| hook_pos | max (single size, multiple paths) | 1 | 52 |
+| hook_skip | max (single size, multiple paths) | 1 | 84 |
+| ledger_keylet | max (single size, multiple paths) | 1 | 140 |
+| ledger_last_hash | max (single size, multiple paths) | 1 | 71 |
+| ledger_last_time | max (single size, multiple paths) | 1 | 70 |
+| ledger_nonce | max (single size, multiple paths) | 1 | 110 |
 | ledger_seq | max (single size, multiple paths) | 1 | 70 |
-| meta_slot | max (single size, multiple paths) | 1 | 67 |
-| otxn_burden | max (single size, multiple paths) | 1 | 77 |
-| otxn_field | size: reference (DESIGN §2.4) | 3 | 84 |
-| otxn_generation | max (single size, multiple paths) | 1 | 78 |
-| otxn_id | mode: max | 2 | 67 |
-| otxn_param | mode: max | 2 | 98 |
-| otxn_slot | size: reference (DESIGN §2.4) | 3 | 150 |
-| otxn_type | max (single size, multiple paths) | 1 | 71 |
-| prepare | max (single size, multiple paths) | 2 | 9500 |
-| rollback | max (single size, multiple paths) | 1 | 69 |
-| slot | size: reference (DESIGN §2.4) | 2 | 150 |
-| slot_clear | max (single size, multiple paths) | 1 | 97 |
-| slot_count | max (single size, multiple paths) | 1 | 67 |
-| slot_float | max (single size, multiple paths) | 1 | 75 |
-| slot_set | max (single size, multiple paths) | 1 | 400 |
-| slot_size | max (single size, multiple paths) | 1 | 150 |
-| slot_subarray | max (single size, multiple paths) | 1 | 68 |
-| slot_subfield | max (single size, multiple paths) | 1 | 73 |
-| slot_type | mode: max | 2 | 71 |
-| state | size: reference (DESIGN §2.4) | 3 | 490 |
-| state_foreign | mode: max | 2 | 500 |
-| state_foreign_set | mode: max | 2 | 4100 |
-| state_set | size: reference (DESIGN §2.4) | 4 | 830 |
-| sto_emplace | size: reference (DESIGN §2.4) | 3 | 170 |
-| sto_erase | size: reference (DESIGN §2.4) | 3 | 120 |
-| sto_subarray | size: reference (DESIGN §2.4) | 2 | 110 |
-| sto_subfield | size: reference (DESIGN §2.4) | 3 | 150 |
-| sto_validate | size: reference (DESIGN §2.4) | 3 | 200 |
+| meta_slot | max (single size, multiple paths) | 1 | 72 |
+| otxn_burden | max (single size, multiple paths) | 1 | 86 |
+| otxn_field | size: reference (DESIGN §2.4) | 3 | 95 |
+| otxn_generation | max (single size, multiple paths) | 1 | 87 |
+| otxn_id | mode: max | 2 | 72 |
+| otxn_param | mode: max | 2 | 120 |
+| otxn_slot | size: reference (DESIGN §2.4) | 3 | 180 |
+| otxn_type | max (single size, multiple paths) | 1 | 70 |
+| prepare | max (single size, multiple paths) | 2 | 12000 |
+| rollback | max (single size, multiple paths) | 1 | 76 |
+| slot | size: reference (DESIGN §2.4) | 2 | 180 |
+| slot_clear | max (single size, multiple paths) | 1 | 110 |
+| slot_count | max (single size, multiple paths) | 1 | 72 |
+| slot_float | max (single size, multiple paths) | 1 | 81 |
+| slot_set | max (single size, multiple paths) | 1 | 500 |
+| slot_size | max (single size, multiple paths) | 1 | 140 |
+| slot_subarray | max (single size, multiple paths) | 1 | 73 |
+| slot_subfield | max (single size, multiple paths) | 1 | 81 |
+| slot_type | mode: max | 2 | 76 |
+| state | size: reference (DESIGN §2.4) | 3 | 830 |
+| state_foreign | mode: max | 2 | 620 |
+| state_foreign_set | mode: max | 2 | 5700 |
+| state_set | size: reference (DESIGN §2.4) | 4 | 990 |
+| sto_emplace | size: reference (DESIGN §2.4) | 3 | 190 |
+| sto_erase | size: reference (DESIGN §2.4) | 3 | 140 |
+| sto_subarray | size: reference (DESIGN §2.4) | 2 | 130 |
+| sto_subfield | size: reference (DESIGN §2.4) | 3 | 180 |
+| sto_validate | size: reference (DESIGN §2.4) | 3 | 220 |
 | trace | mode: max | 2 | 270 |
-| trace_float | max (single size, multiple paths) | 1 | 210 |
-| trace_num | max (single size, multiple paths) | 1 | 190 |
-| util_accid | max (single size, multiple paths) | 1 | 130 |
-| util_keylet | mode: max | 25 | 120 |
-| util_raddr | max (single size, multiple paths) | 1 | 120 |
-| util_sha512h | size: geomean(ref, largest) [>10x] | 3 | 790 |
-| util_verify | mode: max | 2 | 6900 |
-| xpop_slot | max (single size, multiple paths) | 1 | 9200 |
+| trace_float | max (single size, multiple paths) | 1 | 270 |
+| trace_num | max (single size, multiple paths) | 1 | 220 |
+| util_accid | max (single size, multiple paths) | 1 | 140 |
+| util_keylet | mode: max | 25 | 170 |
+| util_raddr | max (single size, multiple paths) | 1 | 180 |
+| util_sha512h | size: geomean(ref, largest) [>10x] | 3 | 930 |
+| util_verify | mode: max | 2 | 8300 |
+| xpop_slot | max (single size, multiple paths) | 1 | 9600 |
 
 ## Proposed HOOK_API_COST block
 
@@ -430,80 +430,80 @@ In include/xrpl/hook/hook_api.macro declaration order; amendment column preserve
 
 ```
 HOOK_API_COST(_g, 220, uint256{})  // unmeasured
-HOOK_API_COST(accept, 69, uint256{})
-HOOK_API_COST(rollback, 69, uint256{})
-HOOK_API_COST(util_raddr, 120, uint256{})
-HOOK_API_COST(util_accid, 130, uint256{})
-HOOK_API_COST(util_verify, 6900, uint256{})  // ARM SHA-512 hardware acceleration; x86-64 run required before adoption (DESIGN §5)
-HOOK_API_COST(util_sha512h, 790, uint256{})  // ARM SHA-512 hardware acceleration; x86-64 run required before adoption (DESIGN §5)
-HOOK_API_COST(util_keylet, 120, uint256{})
-HOOK_API_COST(sto_validate, 200, uint256{})
-HOOK_API_COST(sto_subfield, 150, uint256{})
-HOOK_API_COST(sto_subarray, 110, uint256{})
-HOOK_API_COST(sto_emplace, 170, uint256{})
-HOOK_API_COST(sto_erase, 120, uint256{})
-HOOK_API_COST(etxn_burden, 96, uint256{})
-HOOK_API_COST(etxn_details, 160, uint256{})
-HOOK_API_COST(etxn_fee_base, 1000, uint256{})
-HOOK_API_COST(etxn_reserve, 58, uint256{})
-HOOK_API_COST(etxn_generation, 65, uint256{})
-HOOK_API_COST(etxn_nonce, 110, uint256{})
-HOOK_API_COST(emit, 2100, uint256{})
-HOOK_API_COST(float_set, 75, uint256{})
-HOOK_API_COST(float_multiply, 80, uint256{})
-HOOK_API_COST(float_mulratio, 75, uint256{})
-HOOK_API_COST(float_negate, 65, uint256{})
-HOOK_API_COST(float_compare, 72, uint256{})
-HOOK_API_COST(float_sum, 89, uint256{})
-HOOK_API_COST(float_sto, 89, uint256{})
-HOOK_API_COST(float_sto_set, 90, uint256{})
-HOOK_API_COST(float_invert, 65, uint256{})
-HOOK_API_COST(float_divide, 76, uint256{})
-HOOK_API_COST(float_one, 53, uint256{})
-HOOK_API_COST(float_mantissa, 87, uint256{})
-HOOK_API_COST(float_sign, 66, uint256{})
-HOOK_API_COST(float_int, 66, uint256{})
-HOOK_API_COST(float_log, 68, uint256{})
-HOOK_API_COST(float_root, 94, uint256{})
-HOOK_API_COST(fee_base, 71, uint256{})
+HOOK_API_COST(accept, 79, uint256{})
+HOOK_API_COST(rollback, 76, uint256{})
+HOOK_API_COST(util_raddr, 180, uint256{})
+HOOK_API_COST(util_accid, 140, uint256{})
+HOOK_API_COST(util_verify, 8300, uint256{})  // ARM SHA-512 hardware acceleration; x86-64 run required before adoption (DESIGN §5)
+HOOK_API_COST(util_sha512h, 930, uint256{})  // ARM SHA-512 hardware acceleration; x86-64 run required before adoption (DESIGN §5)
+HOOK_API_COST(util_keylet, 170, uint256{})
+HOOK_API_COST(sto_validate, 220, uint256{})
+HOOK_API_COST(sto_subfield, 180, uint256{})
+HOOK_API_COST(sto_subarray, 130, uint256{})
+HOOK_API_COST(sto_emplace, 190, uint256{})
+HOOK_API_COST(sto_erase, 140, uint256{})
+HOOK_API_COST(etxn_burden, 86, uint256{})
+HOOK_API_COST(etxn_details, 170, uint256{})
+HOOK_API_COST(etxn_fee_base, 1300, uint256{})
+HOOK_API_COST(etxn_reserve, 73, uint256{})
+HOOK_API_COST(etxn_generation, 66, uint256{})
+HOOK_API_COST(etxn_nonce, 130, uint256{})
+HOOK_API_COST(emit, 2500, uint256{})
+HOOK_API_COST(float_set, 78, uint256{})
+HOOK_API_COST(float_multiply, 89, uint256{})
+HOOK_API_COST(float_mulratio, 79, uint256{})
+HOOK_API_COST(float_negate, 70, uint256{})
+HOOK_API_COST(float_compare, 78, uint256{})
+HOOK_API_COST(float_sum, 79, uint256{})
+HOOK_API_COST(float_sto, 81, uint256{})
+HOOK_API_COST(float_sto_set, 75, uint256{})
+HOOK_API_COST(float_invert, 69, uint256{})
+HOOK_API_COST(float_divide, 85, uint256{})
+HOOK_API_COST(float_one, 52, uint256{})
+HOOK_API_COST(float_mantissa, 110, uint256{})
+HOOK_API_COST(float_sign, 69, uint256{})
+HOOK_API_COST(float_int, 70, uint256{})
+HOOK_API_COST(float_log, 73, uint256{})
+HOOK_API_COST(float_root, 81, uint256{})
+HOOK_API_COST(fee_base, 69, uint256{})
 HOOK_API_COST(ledger_seq, 70, uint256{})
-HOOK_API_COST(ledger_last_time, 65, uint256{})
-HOOK_API_COST(ledger_last_hash, 67, uint256{})
-HOOK_API_COST(ledger_nonce, 97, uint256{})
-HOOK_API_COST(ledger_keylet, 120, uint256{})
-HOOK_API_COST(hook_account, 68, uint256{})
-HOOK_API_COST(hook_hash, 75, uint256{})
-HOOK_API_COST(hook_param_set, 93, uint256{})
-HOOK_API_COST(hook_param, 79, uint256{})
-HOOK_API_COST(hook_again, 64, uint256{})
-HOOK_API_COST(hook_skip, 76, uint256{})
-HOOK_API_COST(hook_pos, 51, uint256{})
-HOOK_API_COST(slot, 150, uint256{})
-HOOK_API_COST(slot_clear, 97, uint256{})
-HOOK_API_COST(slot_count, 67, uint256{})
-HOOK_API_COST(slot_set, 400, uint256{})
-HOOK_API_COST(slot_size, 150, uint256{})
-HOOK_API_COST(slot_subarray, 68, uint256{})
-HOOK_API_COST(slot_subfield, 73, uint256{})
-HOOK_API_COST(slot_type, 71, uint256{})
-HOOK_API_COST(slot_float, 75, uint256{})
-HOOK_API_COST(state_set, 830, uint256{})
-HOOK_API_COST(state_foreign_set, 4100, uint256{})
-HOOK_API_COST(state, 490, uint256{})
-HOOK_API_COST(state_foreign, 500, uint256{})
+HOOK_API_COST(ledger_last_time, 70, uint256{})
+HOOK_API_COST(ledger_last_hash, 71, uint256{})
+HOOK_API_COST(ledger_nonce, 110, uint256{})
+HOOK_API_COST(ledger_keylet, 140, uint256{})
+HOOK_API_COST(hook_account, 72, uint256{})
+HOOK_API_COST(hook_hash, 80, uint256{})
+HOOK_API_COST(hook_param_set, 110, uint256{})
+HOOK_API_COST(hook_param, 85, uint256{})
+HOOK_API_COST(hook_again, 67, uint256{})
+HOOK_API_COST(hook_skip, 84, uint256{})
+HOOK_API_COST(hook_pos, 52, uint256{})
+HOOK_API_COST(slot, 180, uint256{})
+HOOK_API_COST(slot_clear, 110, uint256{})
+HOOK_API_COST(slot_count, 72, uint256{})
+HOOK_API_COST(slot_set, 500, uint256{})
+HOOK_API_COST(slot_size, 140, uint256{})
+HOOK_API_COST(slot_subarray, 73, uint256{})
+HOOK_API_COST(slot_subfield, 81, uint256{})
+HOOK_API_COST(slot_type, 76, uint256{})
+HOOK_API_COST(slot_float, 81, uint256{})
+HOOK_API_COST(state_set, 990, uint256{})
+HOOK_API_COST(state_foreign_set, 5700, uint256{})
+HOOK_API_COST(state, 830, uint256{})
+HOOK_API_COST(state_foreign, 620, uint256{})
 HOOK_API_COST(trace, 270, uint256{})
-HOOK_API_COST(trace_num, 190, uint256{})
-HOOK_API_COST(trace_float, 210, uint256{})
-HOOK_API_COST(otxn_burden, 77, uint256{})
-HOOK_API_COST(otxn_field, 84, uint256{})
-HOOK_API_COST(otxn_generation, 78, uint256{})
-HOOK_API_COST(otxn_id, 67, uint256{})
-HOOK_API_COST(otxn_type, 71, uint256{})
-HOOK_API_COST(otxn_slot, 150, uint256{})
-HOOK_API_COST(otxn_param, 98, uint256{})
-HOOK_API_COST(meta_slot, 67, uint256{})
-HOOK_API_COST(xpop_slot, 9200, uint256{})
-HOOK_API_COST(prepare, 9500, uint256{})
+HOOK_API_COST(trace_num, 220, uint256{})
+HOOK_API_COST(trace_float, 270, uint256{})
+HOOK_API_COST(otxn_burden, 86, uint256{})
+HOOK_API_COST(otxn_field, 95, uint256{})
+HOOK_API_COST(otxn_generation, 87, uint256{})
+HOOK_API_COST(otxn_id, 72, uint256{})
+HOOK_API_COST(otxn_type, 70, uint256{})
+HOOK_API_COST(otxn_slot, 180, uint256{})
+HOOK_API_COST(otxn_param, 120, uint256{})
+HOOK_API_COST(meta_slot, 72, uint256{})
+HOOK_API_COST(xpop_slot, 9600, uint256{})
+HOOK_API_COST(prepare, 12000, uint256{})
 ```
 
 ## Deferred (not measured this run)

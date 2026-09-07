@@ -355,24 +355,38 @@ private:
             m["base64"] = 38;
             m["basei64"] = 290;
             m["basemem"] = 470;
+            // Per-call CHECK/CHECKV in hookcost.c (team-lead review) roughly
+            // quadruples instructions-per-call, so these -- previously
+            // tuned right up against the 65535 guard-checker ceiling with
+            // no per-call checking -- no longer fit at 1800. Reduced to 450
+            // (hookcost.c's B_fee_base/B_ledger_seq/B_float_one/B_otxn_type/
+            // B_etxn_generation MAXITER kept in sync); verified under
+            // budget with the standalone guard_checker build.
             for (auto const* n :
                  {"fee_base",
                   "ledger_seq",
-                  "hook_pos",
                   "float_one",
                   "otxn_type",
                   "etxn_generation"})
-                m[n] = 1800;
+                m[n] = 450;
+            // hook_pos alone feeds the t_call calibration's E2E noise gate
+            // below (run()), which needs a wider N1/N2 gap than its five
+            // siblings above to clear the 15% threshold; its cheaper
+            // generic-CHECK body (vs. their CHECKV) leaves enough budget
+            // headroom for 800 instead of 450 (verified).
+            m["hook_pos"] = 1800;
             // 16 unrolled hook_pos() calls/iteration is ~16x the static
             // cost of a K=4 row's body -- 1800 would blow the 65535
             // guard-checker budget (SetHook silently rejects it, which
             // looks like "hook never ran" downstream). Unused by t_call
             // derivation now (see run()) but kept for anyone re-deriving
-            // t_call via K-differencing later.
-            m["hook_pos_k16"] = 300;
+            // t_call via K-differencing later. Further reduced 300->200 for
+            // the same per-call-CHECK budget reason as the group above.
+            m["hook_pos_k16"] = 200;
+            // 1400->1000 for the same per-call-CHECK budget reason.
             for (auto const* n :
                  {"util_sha512h_32", "util_sha512h_1k", "util_sha512h_16k"})
-                m[n] = 1400;
+                m[n] = 1000;
             for (auto const* n :
                  {"state_w_setup_32",
                   "state_w_setup_256",
@@ -384,7 +398,6 @@ private:
                   "state_foreign_r_256",
                   "state_foreign_w",
                   "ledger_nonce_k200",
-                  "emit_min_k200",
                   "emit_1k_k200",
                   "state_w_setup_4k",
                   "state_r_4k",
@@ -392,6 +405,15 @@ private:
                   "state_w_setup_create_32",
                   "state_w_create_32"})
                 m[n] = 256;
+            // emit_min_k200 alone in the 256 group was pushed just over
+            // budget by its CHECKV(emit(...) == 32) -- split out and
+            // reduced 256->230 (hookcost.c's B_emit_min_k200 MAXITER kept
+            // in sync); the others above still fit at 256 unchanged.
+            m["emit_min_k200"] = 230;
+            // prepare_min's own etxn_details() call consumes an emit nonce
+            // every call (max_nonce = 255, hook/Enum.h) -- kept under that
+            // budget (hookcost.c's B_prepare_min MAXITER kept in sync).
+            m["prepare_min"] = 250;
             m["hook_param_set_k16"] = 16;
             m["meta_slot_k200"] = 256;
             return m;
@@ -866,6 +888,17 @@ private:
         int skippedN2 = 0;
         std::set<std::int64_t> skippedCodes;
         double sumOpenExecNs = 0;
+        // Per-rep side-effect count check (team-lead review): emit's
+        // finalizeResult.items (emitted txn objects actually created at
+        // close) should equal the number of emit calls that rep, and
+        // state_set's finalizeState.items (distinct modified state
+        // entries) should equal the number of state_set calls that rep --
+        // both fixtures use one distinct key/emit per iteration, so calls
+        // and items should track 1:1. A mismatch means some calls silently
+        // no-opped (e.g. state_set overwriting the same key twice, or an
+        // emit that didn't actually queue a txn) without erroring.
+        bool finalizeMismatch = false;
+        std::string finalizeMismatchDetail;
         for (int r = 0; r < reps; ++r)
         {
             auto const res = invokeOnce(env, acc, n2, tesSUCCESS, augment);
@@ -882,6 +915,31 @@ private:
                     " (expected " + std::to_string(expectedExecCount) +
                     ") -- the hook ran more or fewer times than expected in "
                     "the timed window");
+            if (apiName == "emit" || apiName == "state_set")
+            {
+                auto const callIt = res.snap.api.find(apiName);
+                std::uint64_t const callsThisRep =
+                    callIt != res.snap.api.end() ? callIt->second.first : 0;
+                std::uint64_t const items = apiName == "emit"
+                    ? res.snap.finalizeResult.items
+                    : res.snap.finalizeState.items;
+                char const* const itemsField = apiName == "emit"
+                    ? "finalizeResult.items"
+                    : "finalizeState.items";
+                BEAST_EXPECTS(
+                    items == callsThisRep,
+                    apiName + ": " + itemsField + "=" + std::to_string(items) +
+                        " (expected " + std::to_string(callsThisRep) +
+                        " -- emitted txn objects / distinct modified state "
+                        "entries should equal this rep's API call count)");
+                if (items != callsThisRep && !finalizeMismatch)
+                {
+                    finalizeMismatch = true;
+                    finalizeMismatchDetail = std::string(itemsField) + "=" +
+                        std::to_string(items) +
+                        " vs calls=" + std::to_string(callsThisRep);
+                }
+            }
             envNsSamples.push_back(double(res.envNs));
             execNsSamples.push_back(double(res.snap.exec.ns));
             sumOpenExecNs += double(res.openExecNs);
@@ -1115,6 +1173,10 @@ private:
                 std::string("suspect: error path (ns/call within 3x the "
                             "trivial-API floor)");
 
+        if (finalizeMismatch)
+            row.notes +=
+                (row.notes.empty() ? "" : "; ") + finalizeMismatchDetail;
+
         return row;
     }
 
@@ -1183,52 +1245,52 @@ private:
             {.wasmName = "fee_base",
              .apiName = "fee_base",
              .variant = "K=4",
-             .n2 = 1800,
-             .n1 = 180,
+             .n2 = 450,
+             .n1 = 45,
              .k = 4},
             {.wasmName = "ledger_seq",
              .apiName = "ledger_seq",
              .variant = "K=4",
-             .n2 = 1800,
-             .n1 = 180,
+             .n2 = 450,
+             .n1 = 45,
              .k = 4},
             // hook_pos itself is measured separately, before this loop, to
             // derive t_call (see run()) -- not re-measured here.
             {.wasmName = "float_one",
              .apiName = "float_one",
              .variant = "K=4",
-             .n2 = 1800,
-             .n1 = 180,
+             .n2 = 450,
+             .n1 = 45,
              .k = 4},
             {.wasmName = "otxn_type",
              .apiName = "otxn_type",
              .variant = "K=4",
-             .n2 = 1800,
-             .n1 = 180,
+             .n2 = 450,
+             .n1 = 45,
              .k = 4},
             {.wasmName = "etxn_generation",
              .apiName = "etxn_generation",
              .variant = "K=4",
-             .n2 = 1800,
-             .n1 = 180,
+             .n2 = 450,
+             .n1 = 45,
              .k = 4},
             {.wasmName = "util_sha512h_32",
              .apiName = "util_sha512h",
              .variant = "32B",
-             .n2 = 1400,
-             .n1 = 140,
+             .n2 = 1000,
+             .n1 = 100,
              .sizeBytes = 32},
             {.wasmName = "util_sha512h_1k",
              .apiName = "util_sha512h",
              .variant = "1KiB",
-             .n2 = 1400,
-             .n1 = 140,
+             .n2 = 1000,
+             .n1 = 100,
              .sizeBytes = 1024},
             {.wasmName = "util_sha512h_16k",
              .apiName = "util_sha512h",
              .variant = "16KiB",
-             .n2 = 1400,
-             .n1 = 140,
+             .n2 = 1000,
+             .n1 = 100,
              .sizeBytes = 16384},
             {.wasmName = "state_r_32",
              .apiName = "state",
@@ -1911,8 +1973,13 @@ private:
             {.wasmName = "prepare_min",
              .apiName = "prepare",
              .variant = "min Payment spec",
-             .n2 = 300,
-             .n1 = 30,
+             // n2 kept under hook/Enum.h's max_nonce (255): prepare() on a
+             // tx with no EmitDetails synthesizes one via its own internal
+             // etxn_details() call every time, which consumes an emit
+             // nonce -- 300 exhausted the budget partway through every rep
+             // (see hookcost.c's B_prepare_min for the full story).
+             .n2 = 250,
+             .n1 = 25,
              .augment =
                  [](Json::Value& jv) {
                      Json::Value p;
@@ -3067,8 +3134,8 @@ public:
             env,
             hookPosAcc,
             "hook_pos",
-            1800,
-            180,
+            850,
+            20,
             maxiterFor("hook_pos"),
             4,
             false,
@@ -3081,7 +3148,7 @@ public:
             double const noise =
                 (hookPosRow.e2eNs > 0 && hookPosRow.envNsMin > 0)
                 ? (hookPosRow.envNsMedian - hookPosRow.envNsMin) /
-                    (double(1800 - 180) * 4.0 * hookPosRow.e2eNs)
+                    (double(850 - 20) * 4.0 * hookPosRow.e2eNs)
                 : 1.0;
             BEAST_EXPECTS(
                 hookPosRow.e2eNs > 0 && noise < 0.15,

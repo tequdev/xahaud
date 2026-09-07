@@ -135,9 +135,14 @@
         _07_03_ENCODE_SIGNING_PUBKEY_NULL(buf_out);                          \
         _08_01_ENCODE_ACCOUNT_SRC(buf_out, pacc);                            \
         _08_03_ENCODE_ACCOUNT_DST(buf_out, to_address);                      \
-        etxn_details((uint32_t)buf_out, PREPARE_PAYMENT_SIMPLE_SIZE);        \
+        int64_t detlen =                                                     \
+            etxn_details((uint32_t)buf_out, PREPARE_PAYMENT_SIMPLE_SIZE);    \
+        if (detlen != 116)                                                   \
+            rollback(0, 0, -90101);                                          \
         int64_t pfee =                                                       \
             etxn_fee_base(buf_out_master, PREPARE_PAYMENT_SIMPLE_SIZE);      \
+        if (pfee <= 0)                                                       \
+            rollback(0, 0, -90102);                                          \
         _06_08_ENCODE_DROPS_FEE(fee_ptr, pfee);                              \
     }
 
@@ -192,9 +197,13 @@
         _08_01_ENCODE_ACCOUNT_SRC(buf_out, pacc);                  \
         _07_26_ENCODE_BLOB(buf_out, 'x', (blob_len));              \
         int64_t detlen = etxn_details((uint32_t)buf_out, 200);     \
+        if (detlen != 116)                                         \
+            rollback(0, 0, -90101);                                \
         buf_out += detlen;                                         \
         int64_t pfee = etxn_fee_base(                              \
             buf_out_master, (uint32_t)(buf_out - buf_out_master)); \
+        if (pfee <= 0)                                             \
+            rollback(0, 0, -90102);                                \
         _06_08_ENCODE_DROPS_FEE(fee_ptr, pfee);                    \
     }
 
@@ -207,32 +216,66 @@
     int64_t acc = 0;                                   \
     for (uint32_t i = 0; GUARD(MAXITER), i < n; ++i)   \
     {
-/* Return-value discipline (team-lead review): if the first iteration's
- * accumulated API result is negative, the API call under test errored
- * immediately (e.g. INVALID_ARGUMENT on a malformed operand) rather than
- * doing real work -- roll back with that code so the rep shows up as
- * tecHOOK_REJECTED (mismatched TER) and gets skipped/counted instead of
- * silently recording the cost of an error path. */
-/* acc accumulates every call's raw return value across the whole N-loop,
- * unreset. Real host-API error codes are all small (hook/error.h: -1..-45),
- * but float_* successes return XFL-encoded bit patterns (magnitude ~1e18)
- * that legitimately overflow int64_t after a couple of loop iterations of
- * summing -- an overflowed/wrapped acc is not an error. -100000 comfortably
- * separates "real error code" from "XFL bit pattern (or overflow of same)". */
-#define BENCH_END                 \
-    if (acc < 0 && acc > -100000) \
-        rollback(0, 0, acc);      \
-    }                             \
+#define BENCH_END \
+    }             \
     accept(0, 0, acc);            \
     return 0;
 
-/* accumulate 4 unrolled calls of a zero-arg API into acc (cheap-API group) */
-#define BENCH4(CALL)   \
-    {                  \
-        acc += (CALL); \
-        acc += (CALL); \
-        acc += (CALL); \
-        acc += (CALL); \
+/* Per-call success gate (team-lead review, per-call pass): BENCH_END used to
+ * only test the running sum `acc` after the whole loop, which only catches
+ * a failure on the FIRST call -- APIs that return positive values on
+ * success (emit=32, state/slot/otxn_field=byte counts, sto_*=packed
+ * offset/length, prepare/etxn_fee_base>0, ...) mask a later call's error in
+ * the sum, and APIs that return 0 on failure (util_verify on a bad
+ * signature) are never caught by a "< 0" test at all. CHECK/CHECKV run on
+ * EVERY call instead.
+ *
+ * Real host-API error codes are all small negative (hook/error.h: -1..-45);
+ * float_* successes are XFL-encoded bit patterns (magnitude ~1e18) that are
+ * never in (-100000, 0), so this threshold cleanly separates "real error
+ * code" from "a huge XFL success value that happens to be negative". */
+#define CHECK(r)                    \
+    do                              \
+    {                               \
+        int64_t _r = (r);           \
+        if (_r < 0 && _r > -100000) \
+            rollback(0, 0, _r);     \
+        acc += _r;                  \
+    } while (0)
+
+/* CHECK() plus an API-specific success condition (also checked on every
+ * call) -- `cond` may reference `_r`, the value the call under test just
+ * returned. A call that isn't a host-API error but also isn't what the
+ * fixture intended (wrong length, wrong slot, ...) rolls back with `code`,
+ * a distinctive negative marker (outside hook/error.h's -1..-45 range and
+ * outside the -100000 XFL-overflow guard band) so it's identifiable in the
+ * HookReturnCode/TER rather than silently passing as "not an error". */
+#define CHECKV(r, cond, code)       \
+    do                              \
+    {                               \
+        int64_t _r = (r);           \
+        if (_r < 0 && _r > -100000) \
+            rollback(0, 0, _r);     \
+        if (!(cond))                \
+            rollback(0, 0, (code)); \
+        acc += _r;                 \
+    } while (0)
+
+/* accumulate 4 unrolled, checked calls of a zero-arg (or fixed-arg) API
+ * into acc (cheap-API group) */
+#define BENCH4(CALL) \
+    {                \
+        CHECK(CALL); \
+        CHECK(CALL); \
+        CHECK(CALL); \
+        CHECK(CALL); \
+    }
+#define BENCH4V(CALL, COND, CODE)       \
+    {                                   \
+        CHECKV(CALL, COND, CODE);       \
+        CHECKV(CALL, COND, CODE);       \
+        CHECKV(CALL, COND, CODE);       \
+        CHECKV(CALL, COND, CODE);       \
     }
 
 /* ======================================================================= */
@@ -568,20 +611,63 @@ hook(uint32_t r)
 /* Cheap zero-argument APIs: K=4 unrolled calls per iteration.             */
 /* ======================================================================= */
 
+/* Per-call CHECK/CHECKV (team-lead review) roughly quadruples the
+ * instructions-per-call of every guarded loop body in this file (a
+ * comparison plus a conditional `call $rollback`, worst-case-counted
+ * whether or not it's ever taken). The guard checker's static worst case
+ * is MAXITER * per-iteration-cost, and several sections here were already
+ * tuned right up against the 65535 instruction ceiling with NO per-call
+ * checking at all (see maxiterTable()'s comment on hook_pos_k16 in
+ * HookAPICost_test.cpp for a preexisting instance of this same tradeoff).
+ * Once checked, those sections no longer fit at their old MAXITER, so
+ * MAXITER (and the matching n1/n2 in HookAPICost_test.cpp's ApiSpec table
+ * / maxiterTable()) is reduced here to whatever keeps worst-case
+ * instructions comfortably under budget (verified with the standalone
+ * guard_checker build, include/xrpl/hook/guard_checker.cpp): B_fee_base,
+ * B_ledger_seq, B_hook_pos, B_float_one, B_otxn_type, B_etxn_generation
+ * 1800->450; B_hook_pos_k16 300->200; B_util_sha512h_* 1400->1000;
+ * B_emit_min_k200 256->230. Every other section in this file already had
+ * enough headroom that per-call checking fits at its original MAXITER. */
 #elif defined(B_fee_base)
 
 int64_t
-hook(uint32_t r){BENCH_BEGIN(1800) BENCH4(fee_base()) BENCH_END}
+hook(uint32_t r){BENCH_BEGIN(450) BENCH4V(fee_base(), _r > 0, -90001) BENCH_END}
 
 #elif defined(B_ledger_seq)
 
 int64_t
-hook(uint32_t r){BENCH_BEGIN(1800) BENCH4(ledger_seq()) BENCH_END}
+hook(uint32_t r){BENCH_BEGIN(450) BENCH4V(ledger_seq(), _r > 0, -90002) BENCH_END}
 
 #elif defined(B_hook_pos)
 
+/* N=850, not 450 like its five B_fee_base-group siblings: hook_pos alone
+ * feeds the t_call calibration's E2E noise gate (see run() in
+ * HookAPICost_test.cpp), which needs the widest N1/N2 gap this file's
+ * guard-checker budget allows (the other five only need >0 successful
+ * reps, not a noise gate). Its generic-CHECK body is cheaper per call than
+ * the CHECKV group's, so 850 is close to the ceiling but still fits the
+ * 65535 guard-checker budget (verified: 850 -> ~63000, ~4% margin). Even
+ * so, this gate is sensitive to wall-clock noise from anything else
+ * running on the same machine (shared-runner contention, other build/test
+ * jobs) -- a transient failure here on a busy host is not necessarily a
+ * logic regression; rerun on a quieter machine before concluding
+ * otherwise. */
+/* hook_pos() returns a small non-negative chain position, so OR-ing the four
+ * returns and checking once per iteration catches any error (negative) with
+ * one branch instead of four, which keeps N at 1800 inside the guard budget. */
 int64_t
-hook(uint32_t r){BENCH_BEGIN(1800) BENCH4(hook_pos()) BENCH_END}
+hook(uint32_t r)
+{
+    BENCH_BEGIN(1800)
+    {
+        int64_t r1 = hook_pos();
+        int64_t r2 = hook_pos();
+        int64_t r3 = hook_pos();
+        int64_t r4 = hook_pos();
+        CHECK(r1 | r2 | r3 | r4);
+    }
+    BENCH_END
+}
 
 #elif defined(B_hook_pos_k16)
 
@@ -592,42 +678,45 @@ hook(uint32_t r){BENCH_BEGIN(1800) BENCH4(hook_pos()) BENCH_END}
 int64_t
 hook(uint32_t r)
 {
-    BENCH_BEGIN(300)
-    acc += hook_pos();
-    acc += hook_pos();
-    acc += hook_pos();
-    acc += hook_pos();
-    acc += hook_pos();
-    acc += hook_pos();
-    acc += hook_pos();
-    acc += hook_pos();
-    acc += hook_pos();
-    acc += hook_pos();
-    acc += hook_pos();
-    acc += hook_pos();
-    acc += hook_pos();
-    acc += hook_pos();
-    acc += hook_pos();
-    acc += hook_pos();
+    BENCH_BEGIN(200)
+    CHECK(hook_pos());
+    CHECK(hook_pos());
+    CHECK(hook_pos());
+    CHECK(hook_pos());
+    CHECK(hook_pos());
+    CHECK(hook_pos());
+    CHECK(hook_pos());
+    CHECK(hook_pos());
+    CHECK(hook_pos());
+    CHECK(hook_pos());
+    CHECK(hook_pos());
+    CHECK(hook_pos());
+    CHECK(hook_pos());
+    CHECK(hook_pos());
+    CHECK(hook_pos());
+    CHECK(hook_pos());
     BENCH_END
 }
 
 #elif defined(B_float_one)
 
 int64_t
-hook(uint32_t r){BENCH_BEGIN(1800) BENCH4(float_one()) BENCH_END}
+hook(uint32_t r){BENCH_BEGIN(450) BENCH4(float_one()) BENCH_END}
 
 #elif defined(B_otxn_type)
 
+/* otxn_type() reflects the originating tx's TransactionType; this section's
+ * fixture has no `augment` that swaps it (invokeOnce's default is Invoke,
+ * ttINVOKE=99). */
 int64_t
-hook(uint32_t r){BENCH_BEGIN(1800) BENCH4(otxn_type()) BENCH_END}
+hook(uint32_t r){BENCH_BEGIN(450) BENCH4V(otxn_type(), _r == 99, -90003) BENCH_END}
 
 #elif defined(B_etxn_generation)
 
 int64_t
 hook(uint32_t r)
 {
-    BENCH_BEGIN(1800)
+    BENCH_BEGIN(450)
     BENCH4(etxn_generation())
     BENCH_END
 }
@@ -644,9 +733,9 @@ int64_t
 hook(uint32_t r)
 {
     uint8_t shaout[32];
-    BENCH_BEGIN(1400)
+    BENCH_BEGIN(1000)
     shabuf[i & 31] = (uint8_t)i;
-    acc += util_sha512h(SBUF(shaout), SBUF(shabuf));
+    CHECKV(util_sha512h(SBUF(shaout), SBUF(shabuf)), _r == 32, -90004);
     BENCH_END
 }
 
@@ -658,9 +747,9 @@ int64_t
 hook(uint32_t r)
 {
     uint8_t shaout[32];
-    BENCH_BEGIN(1400)
+    BENCH_BEGIN(1000)
     shabuf[i & 1023] = (uint8_t)i;
-    acc += util_sha512h(SBUF(shaout), SBUF(shabuf));
+    CHECKV(util_sha512h(SBUF(shaout), SBUF(shabuf)), _r == 32, -90004);
     BENCH_END
 }
 
@@ -672,9 +761,9 @@ int64_t
 hook(uint32_t r)
 {
     uint8_t shaout[32];
-    BENCH_BEGIN(1400)
+    BENCH_BEGIN(1000)
     shabuf[i & 16383] = (uint8_t)i;
-    acc += util_sha512h(SBUF(shaout), SBUF(shabuf));
+    CHECKV(util_sha512h(SBUF(shaout), SBUF(shabuf)), _r == 32, -90004);
     BENCH_END
 }
 
@@ -695,7 +784,7 @@ hook(uint32_t r)
     BENCH_BEGIN(256)
     UINT32_TO_BUF(key, i);
     val[0] = (uint8_t)i;
-    acc += state_set(SBUF(val), SBUF(key));
+    CHECKV(state_set(SBUF(val), SBUF(key)), _r == 32, -90052);
     BENCH_END
 }
 
@@ -710,7 +799,7 @@ hook(uint32_t r)
     BENCH_BEGIN(256)
     UINT32_TO_BUF(key, i);
     val[0] = (uint8_t)i;
-    acc += state_set(SBUF(val), SBUF(key));
+    CHECKV(state_set(SBUF(val), SBUF(key)), _r == 256, -90052);
     BENCH_END
 }
 
@@ -724,7 +813,7 @@ hook(uint32_t r)
     uint8_t out[32];
     BENCH_BEGIN(256)
     UINT32_TO_BUF(key, i);
-    acc += state(SBUF(out), SBUF(key));
+    CHECKV(state(SBUF(out), SBUF(key)), _r == 32, -90052);
     BENCH_END
 }
 
@@ -738,7 +827,7 @@ hook(uint32_t r)
     uint8_t out[256];
     BENCH_BEGIN(256)
     UINT32_TO_BUF(key, i);
-    acc += state(SBUF(out), SBUF(key));
+    CHECKV(state(SBUF(out), SBUF(key)), _r == 256, -90052);
     BENCH_END
 }
 
@@ -753,7 +842,7 @@ hook(uint32_t r)
     BENCH_BEGIN(256)
     UINT32_TO_BUF(key, i);
     val[0] = (uint8_t)(acc);
-    acc += state_set(SBUF(val), SBUF(key));
+    CHECKV(state_set(SBUF(val), SBUF(key)), _r == 32, -90052);
     BENCH_END
 }
 
@@ -774,7 +863,7 @@ hook(uint32_t r)
     BENCH_BEGIN(256)
     UINT32_TO_BUF(key, salt * 1000u + i);
     val[0] = (uint8_t)(acc);
-    acc += state_set(SBUF(val), SBUF(key));
+    CHECKV(state_set(SBUF(val), SBUF(key)), _r == 32, -90052);
     BENCH_END
 }
 
@@ -789,7 +878,7 @@ hook(uint32_t r)
     BENCH_BEGIN(256)
     UINT32_TO_BUF(key, i);
     val[0] = (uint8_t)(acc);
-    acc += state_set(SBUF(val), SBUF(key));
+    CHECKV(state_set(SBUF(val), SBUF(key)), _r == 256, -90052);
     BENCH_END
 }
 
@@ -841,7 +930,7 @@ hook(uint32_t r)
     hook_account(SBUF(acc20));
 
     BENCH_BEGIN(300)
-    BENCH4(util_raddr(SBUF(rbuf), SBUF(acc20)))
+    BENCH4V(util_raddr(SBUF(rbuf), SBUF(acc20)), _r > 0, -90005)
 
     BENCH_END
 }
@@ -855,7 +944,7 @@ int64_t
 hook(uint32_t r)
 {
     BENCH_BEGIN(300)
-    BENCH4(util_accid(SBUF(abuf), SBUF(raddr)))
+    BENCH4V(util_accid(SBUF(abuf), SBUF(raddr)), _r == 20, -90006)
 
     BENCH_END
 }
@@ -871,7 +960,7 @@ hook(uint32_t r)
     hook_account(SBUF(acc20));
 
     BENCH_BEGIN(300)
-    BENCH4(util_keylet(SBUF(klbuf), 3, (uint32_t)acc20, 20, 0, 0, 0, 0))
+    BENCH4V(util_keylet(SBUF(klbuf), 3, (uint32_t)acc20, 20, 0, 0, 0, 0), _r == 34, -90007)
 
     BENCH_END
 }
@@ -887,7 +976,7 @@ hook(uint32_t r)
     hook_hash(SBUF(hash32), 0);
 
     BENCH_BEGIN(300)
-    BENCH4(util_keylet(SBUF(klbuf), 5, (uint32_t)hash32, 32, 0, 0, 0, 0))
+    BENCH4V(util_keylet(SBUF(klbuf), 5, (uint32_t)hash32, 32, 0, 0, 0, 0), _r == 34, -90007)
 
     BENCH_END
 }
@@ -903,7 +992,7 @@ hook(uint32_t r)
     hook_account(SBUF(acc20));
 
     BENCH_BEGIN(300)
-    BENCH4(util_keylet(SBUF(klbuf), 20, (uint32_t)acc20, 20, 1, 0, 0, 0))
+    BENCH4V(util_keylet(SBUF(klbuf), 20, (uint32_t)acc20, 20, 1, 0, 0, 0), _r == 34, -90007)
 
     BENCH_END
 }
@@ -922,7 +1011,7 @@ hook(uint32_t r)
     hook_account(SBUF(acc20));
 
     BENCH_BEGIN(300)
-    BENCH4(util_keylet(
+    BENCH4V(util_keylet(
         SBUF(klbuf),
         9,
         (uint32_t)acc20,
@@ -930,7 +1019,7 @@ hook(uint32_t r)
         (uint32_t)acc20b,
         20,
         (uint32_t)cur3,
-        3))
+        3), _r == 34, -90007)
 
     BENCH_END
 }
@@ -943,7 +1032,7 @@ int64_t
 hook(uint32_t r)
 {
     BENCH_BEGIN(300)
-    BENCH4(util_keylet(SBUF(klbuf), 4, 0, 0, 0, 0, 0, 0))
+    BENCH4V(util_keylet(SBUF(klbuf), 4, 0, 0, 0, 0, 0, 0), _r == 34, -90007)
 
     BENCH_END
 }
@@ -956,7 +1045,7 @@ static uint8_t klbuf[34];
 int64_t
 hook(uint32_t r){
     BENCH_BEGIN(300)
-        BENCH4(util_keylet(SBUF(klbuf), 11, (uint32_t)dirkey, 34, 1, 0, 0, 0))
+        BENCH4V(util_keylet(SBUF(klbuf), 11, (uint32_t)dirkey, 34, 1, 0, 0, 0), _r == 34, -90007)
 
             BENCH_END}
 
@@ -969,7 +1058,7 @@ hook(uint32_t r)
 {
     etxn_reserve(1);
     BENCH_BEGIN(300)
-    BENCH4(etxn_burden())
+    BENCH4V(etxn_burden(), _r >= 1, -90008)
 
     BENCH_END
 }
@@ -994,7 +1083,7 @@ int64_t
 hook(uint32_t r)
 {
     BENCH_BEGIN(300)
-    BENCH4(ledger_last_time())
+    BENCH4V(ledger_last_time(), _r > 0, -90009)
 
     BENCH_END
 }
@@ -1007,7 +1096,7 @@ int64_t
 hook(uint32_t r)
 {
     BENCH_BEGIN(300)
-    BENCH4(ledger_last_hash(SBUF(hbuf)))
+    BENCH4V(ledger_last_hash(SBUF(hbuf)), _r == 32, -90010)
 
     BENCH_END
 }
@@ -1020,7 +1109,7 @@ int64_t
 hook(uint32_t r)
 {
     BENCH_BEGIN(300)
-    BENCH4(hook_account(SBUF(hbuf)))
+    BENCH4V(hook_account(SBUF(hbuf)), _r == 20, -90011)
 
     BENCH_END
 }
@@ -1033,7 +1122,7 @@ int64_t
 hook(uint32_t r)
 {
     BENCH_BEGIN(300)
-    BENCH4(hook_hash(SBUF(hbuf), 0))
+    BENCH4V(hook_hash(SBUF(hbuf), 0), _r == 32, -90012)
 
     BENCH_END
 }
@@ -1046,7 +1135,7 @@ int64_t
 hook(uint32_t r)
 {
     BENCH_BEGIN(300)
-    BENCH4(hook_hash(SBUF(hbuf), -1))
+    BENCH4V(hook_hash(SBUF(hbuf), -1), _r == 32, -90012)
 
     BENCH_END
 }
@@ -1059,7 +1148,7 @@ int64_t
 hook(uint32_t r)
 {
     BENCH_BEGIN(300)
-    BENCH4(otxn_id(SBUF(hbuf), 0))
+    BENCH4V(otxn_id(SBUF(hbuf), 0), _r == 32, -90013)
 
     BENCH_END
 }
@@ -1069,7 +1158,7 @@ hook(uint32_t r)
 static uint8_t hbuf[32];
 
 int64_t
-hook(uint32_t r){BENCH_BEGIN(300) BENCH4(otxn_id(SBUF(hbuf), 1))
+hook(uint32_t r){BENCH_BEGIN(300) BENCH4V(otxn_id(SBUF(hbuf), 1), _r == 32, -90013)
 
                      BENCH_END}
 
@@ -1122,7 +1211,7 @@ hook(uint32_t r)
     /* mode 0 is INVALID_ARGUMENT (HookAPI.cpp: mode==0 explicitly rejected);
      * COMPARE_EQUAL=1 on fone==fone is a real, always-successful call. */
     BENCH_BEGIN(300)
-    BENCH4(float_compare(fone, fone, 1 /*COMPARE_EQUAL*/))
+    BENCH4V(float_compare(fone, fone, 1 /*COMPARE_EQUAL*/), _r == 0 || _r == 1, -90014)
 
     BENCH_END
 }
@@ -1135,7 +1224,7 @@ hook(uint32_t r)
     int64_t fone = float_one();
 
     BENCH_BEGIN(300)
-    BENCH4(float_compare(fone, fone, 3 /*COMPARE_LESS|COMPARE_EQUAL*/))
+    BENCH4V(float_compare(fone, fone, 3 /*COMPARE_LESS|COMPARE_EQUAL*/), _r == 0 || _r == 1, -90014)
 
     BENCH_END
 }
@@ -1269,7 +1358,7 @@ hook(uint32_t r)
     int64_t fone = float_one();
 
     BENCH_BEGIN(300)
-    BENCH4(float_sto(SBUF(sbuf), 0, 0, 0, 0, fone, 0 /*is_xrp*/))
+    BENCH4V(float_sto(SBUF(sbuf), 0, 0, 0, 0, fone, 0 /*is_xrp*/), _r == 8, -90015)
 
     BENCH_END
 }
@@ -1291,8 +1380,10 @@ hook(uint32_t r)
     int64_t fone = float_one();
 
     BENCH_BEGIN(300)
-    BENCH4(
-        float_sto(SBUF(sbuf), SBUF(cur20), (uint32_t)acc20, 20, fone, sfAmount))
+    BENCH4V(
+        float_sto(SBUF(sbuf), SBUF(cur20), (uint32_t)acc20, 20, fone, sfAmount),
+        _r == 49,
+        -90016)
 
     BENCH_END
 }
@@ -1310,7 +1401,7 @@ hook(uint32_t r)
     int64_t fone = float_one();
 
     BENCH_BEGIN(300)
-    BENCH4(float_sto(SBUF(sbuf), 0, 0, 0, 0, fone, 0xFFFFFFFFU /*is_short*/))
+    BENCH4V(float_sto(SBUF(sbuf), 0, 0, 0, 0, fone, 0xFFFFFFFFU /*is_short*/), _r == 8, -90017)
 
     BENCH_END
 }
@@ -1340,7 +1431,7 @@ int64_t
 hook(uint32_t r)
 {
     BENCH_BEGIN(300)
-    BENCH4(trace(SBUF(msg), SBUF(tbuf), 0))
+    BENCH4V(trace(SBUF(msg), SBUF(tbuf), 0), _r == 0, -90018)
 
     BENCH_END
 }
@@ -1354,7 +1445,7 @@ int64_t
 hook(uint32_t r)
 {
     BENCH_BEGIN(300)
-    BENCH4(trace(SBUF(msg), SBUF(tbuf), 1))
+    BENCH4V(trace(SBUF(msg), SBUF(tbuf), 1), _r == 0, -90018)
 
     BENCH_END
 }
@@ -1367,7 +1458,7 @@ int64_t
 hook(uint32_t r)
 {
     BENCH_BEGIN(300)
-    BENCH4(trace_num(SBUF(msg), (int64_t)i))
+    BENCH4V(trace_num(SBUF(msg), (int64_t)i), _r == 0, -90018)
 
     BENCH_END
 }
@@ -1382,7 +1473,7 @@ hook(uint32_t r)
     int64_t fone = float_one();
 
     BENCH_BEGIN(300)
-    BENCH4(trace_float(SBUF(msg), fone))
+    BENCH4V(trace_float(SBUF(msg), fone), _r == 0, -90018)
 
     BENCH_END
 }
@@ -1395,7 +1486,7 @@ int64_t
 hook(uint32_t r)
 {
     BENCH_BEGIN(300)
-    BENCH4(otxn_param(SBUF(pbuf), "P", 1))
+    BENCH4V(otxn_param(SBUF(pbuf), "P", 1), _r == 32, -90019)
 
     BENCH_END
 }
@@ -1408,7 +1499,7 @@ int64_t
 hook(uint32_t r)
 {
     BENCH_BEGIN(300)
-    BENCH4(otxn_param(SBUF(pbuf), "P", 1))
+    BENCH4V(otxn_param(SBUF(pbuf), "P", 1), _r == 256, -90019)
 
     BENCH_END
 }
@@ -1421,7 +1512,7 @@ int64_t
 hook(uint32_t r)
 {
     BENCH_BEGIN(300)
-    BENCH4(hook_param(SBUF(pbuf), "P", 1))
+    BENCH4V(hook_param(SBUF(pbuf), "P", 1), _r == 32, -90020)
 
     BENCH_END
 }
@@ -1434,7 +1525,7 @@ int64_t
 hook(uint32_t r)
 {
     BENCH_BEGIN(300)
-    BENCH4(hook_param(SBUF(pbuf), "P", 1))
+    BENCH4V(hook_param(SBUF(pbuf), "P", 1), _r == 256, -90020)
 
     BENCH_END
 }
@@ -1447,7 +1538,7 @@ int64_t
 hook(uint32_t r)
 {
     BENCH_BEGIN(300)
-    acc += otxn_field(SBUF(fbuf), sfAccount);
+    CHECKV(otxn_field(SBUF(fbuf), sfAccount), _r > 0, -90021);
 
     BENCH_END
 }
@@ -1460,7 +1551,7 @@ int64_t
 hook(uint32_t r)
 {
     BENCH_BEGIN(300)
-    acc += otxn_field(SBUF(fbuf), sfBlob);
+    CHECKV(otxn_field(SBUF(fbuf), sfBlob), _r > 0, -90021);
 
     BENCH_END
 }
@@ -1473,7 +1564,7 @@ int64_t
 hook(uint32_t r)
 {
     BENCH_BEGIN(300)
-    acc += otxn_field(SBUF(fbuf), sfBlob);
+    CHECKV(otxn_field(SBUF(fbuf), sfBlob), _r > 0, -90021);
 
     BENCH_END
 }
@@ -1484,7 +1575,7 @@ int64_t
 hook(uint32_t r)
 {
     BENCH_BEGIN(300)
-    acc += otxn_slot(1);
+    CHECKV(otxn_slot(1), _r == 1, -90022);
 
     BENCH_END
 }
@@ -1495,7 +1586,7 @@ int64_t
 hook(uint32_t r)
 {
     BENCH_BEGIN(300)
-    acc += otxn_slot(1);
+    CHECKV(otxn_slot(1), _r == 1, -90022);
 
     BENCH_END
 }
@@ -1506,7 +1597,7 @@ int64_t
 hook(uint32_t r)
 {
     BENCH_BEGIN(300)
-    acc += otxn_slot(1);
+    CHECKV(otxn_slot(1), _r == 1, -90022);
 
     BENCH_END
 }
@@ -1521,7 +1612,7 @@ hook(uint32_t r)
     otxn_slot(1);
 
     BENCH_BEGIN(300)
-    acc += slot(SBUF(sbuf), 1);
+    CHECKV(slot(SBUF(sbuf), 1), _r > 0, -90023);
 
     BENCH_END
 }
@@ -1536,7 +1627,7 @@ hook(uint32_t r)
     otxn_slot(1);
 
     BENCH_BEGIN(300)
-    acc += slot(SBUF(sbuf), 1);
+    CHECKV(slot(SBUF(sbuf), 1), _r > 0, -90023);
 
     BENCH_END
 }
@@ -1549,7 +1640,7 @@ hook(uint32_t r)
     otxn_slot(1);
 
     BENCH_BEGIN(300)
-    acc += slot_size(1);
+    CHECKV(slot_size(1), _r > 0, -90024);
 
     BENCH_END
 }
@@ -1562,7 +1653,7 @@ hook(uint32_t r)
     otxn_slot(1);
 
     BENCH_BEGIN(300)
-    acc += slot_type(1, 0);
+    CHECK(slot_type(1, 0));
 
     BENCH_END
 }
@@ -1579,7 +1670,7 @@ hook(uint32_t r)
     slot_subfield(1, sfFee, 2);
 
     BENCH_BEGIN(300)
-    acc += slot_type(2, 1);
+    CHECKV(slot_type(2, 1), _r == 0 || _r == 1, -90025);
 
     BENCH_END
 }
@@ -1593,7 +1684,7 @@ hook(uint32_t r)
     slot_subfield(1, sfMemos, 2);
 
     BENCH_BEGIN(300)
-    acc += slot_count(2);
+    CHECKV(slot_count(2), _r >= 1, -90026);
 
     BENCH_END
 }
@@ -1606,7 +1697,7 @@ hook(uint32_t r)
     otxn_slot(1);
 
     BENCH_BEGIN(300)
-    acc += slot_subfield(1, sfAccount, 2);
+    CHECKV(slot_subfield(1, sfAccount, 2), _r == 2, -90027);
 
     BENCH_END
 }
@@ -1620,7 +1711,7 @@ hook(uint32_t r)
     slot_subfield(1, sfMemos, 2);
 
     BENCH_BEGIN(300)
-    acc += slot_subarray(2, 0, 3);
+    CHECKV(slot_subarray(2, 0, 3), _r == 3, -90028);
 
     BENCH_END
 }
@@ -1634,7 +1725,7 @@ hook(uint32_t r)
     slot_subfield(1, sfAmount, 2);
 
     BENCH_BEGIN(300)
-    acc += slot_float(2);
+    CHECKV(slot_float(2), _r != 0, -90029);
 
     BENCH_END
 }
@@ -1651,7 +1742,7 @@ hook(uint32_t r)
     util_keylet(SBUF(klbuf), 3, (uint32_t)acc20, 20, 0, 0, 0, 0);
 
     BENCH_BEGIN(300)
-    acc += slot_set(SBUF(klbuf), 1);
+    CHECKV(slot_set(SBUF(klbuf), 1), _r == 1, -90030);
 
     BENCH_END
 }
@@ -1669,7 +1760,7 @@ hook(uint32_t r)
 
     BENCH_BEGIN(300)
     slot_set(SBUF(klbuf), 1);
-    acc += slot_clear(1);
+    CHECKV(slot_clear(1), _r == 1, -90031);
 
     BENCH_END
 }
@@ -1703,7 +1794,7 @@ hook(uint32_t r)
     sobj_len = 31;
 
     BENCH_BEGIN(300)
-    acc += sto_validate(SBUF(sobj));
+    CHECKV(sto_validate(sobj, sobj_len), _r == 1, -90032);
 
     BENCH_END
 }
@@ -1737,7 +1828,7 @@ hook(uint32_t r)
     sobj_len = 31;
 
     BENCH_BEGIN(300)
-    acc += sto_subfield(sobj, sobj_len, sfAccount);
+    CHECKV(sto_subfield(sobj, sobj_len, sfAccount), _r > 0, -90033);
 
     BENCH_END
 }
@@ -1773,8 +1864,8 @@ hook(uint32_t r)
     sobj_len = 31;
 
     BENCH_BEGIN(300)
-    acc +=
-        sto_emplace(SBUF(outbuf), sobj, sobj_len, SBUF(newfield), sfInvoiceID);
+        CHECKV(
+            sto_emplace(SBUF(outbuf), sobj, sobj_len, SBUF(newfield), sfInvoiceID), _r > 0, -90035);
 
     BENCH_END
 }
@@ -1815,7 +1906,7 @@ hook(uint32_t r)
     sobj_len = 31;
 
     BENCH_BEGIN(300)
-    acc += sto_erase(SBUF(outbuf), sobj, sobj_len, sfAmount);
+    CHECKV(sto_erase(SBUF(outbuf), sobj, sobj_len, sfAmount), _r > 0, -90036);
 
     BENCH_END
 }
@@ -1832,7 +1923,7 @@ hook(uint32_t r)
     sobj_len = (uint32_t)slot(sobj, sizeof(sobj), 1);
 
     BENCH_BEGIN(300)
-    acc += sto_validate(sobj, sobj_len);
+    CHECKV(sto_validate(sobj, sobj_len), _r == 1, -90032);
 
     BENCH_END
 }
@@ -1849,7 +1940,7 @@ hook(uint32_t r)
     sobj_len = (uint32_t)slot(sobj, sizeof(sobj), 1);
 
     BENCH_BEGIN(300)
-    acc += sto_subfield(sobj, sobj_len, sfAccount);
+    CHECKV(sto_subfield(sobj, sobj_len, sfAccount), _r > 0, -90033);
 
     BENCH_END
 }
@@ -1884,7 +1975,7 @@ hook(uint32_t r)
     }
 
     BENCH_BEGIN(300)
-    acc += sto_subarray(memobuf, memobuf_len, 0);
+    CHECKV(sto_subarray(memobuf, memobuf_len, 0), _r > 0, -90034);
 
     BENCH_END
 }
@@ -1903,8 +1994,8 @@ hook(uint32_t r)
     sobj_len = (uint32_t)slot(sobj, sizeof(sobj), 1);
 
     BENCH_BEGIN(300)
-    acc +=
-        sto_emplace(SBUF(outbuf), sobj, sobj_len, SBUF(newfield), sfInvoiceID);
+        CHECKV(
+            sto_emplace(SBUF(outbuf), sobj, sobj_len, SBUF(newfield), sfInvoiceID), _r > 0, -90035);
 
     BENCH_END
 }
@@ -1922,7 +2013,7 @@ hook(uint32_t r)
     sobj_len = (uint32_t)slot(sobj, sizeof(sobj), 1);
 
     BENCH_BEGIN(300)
-    acc += sto_erase(SBUF(outbuf), sobj, sobj_len, sfSequence);
+    CHECKV(sto_erase(SBUF(outbuf), sobj, sobj_len, sfSequence), _r > 0, -90036);
 
     BENCH_END
 }
@@ -1946,7 +2037,7 @@ hook(uint32_t r)
 
     BENCH_BEGIN(256)
     UINT32_TO_BUF(key, i);
-    acc += state_foreign(SBUF(out), SBUF(key), SBUF(ns), (uint32_t)facc, 20);
+    CHECKV(state_foreign(SBUF(out), SBUF(key), SBUF(ns), (uint32_t)facc, 20), _r == 32, -90037);
 
     BENCH_END
 }
@@ -1965,7 +2056,7 @@ hook(uint32_t r)
 
     BENCH_BEGIN(256)
     UINT32_TO_BUF(key, i);
-    acc += state_foreign(SBUF(out), SBUF(key), SBUF(ns), (uint32_t)facc, 20);
+    CHECKV(state_foreign(SBUF(out), SBUF(key), SBUF(ns), (uint32_t)facc, 20), _r == 256, -90037);
 
     BENCH_END
 }
@@ -1986,8 +2077,8 @@ hook(uint32_t r)
 
     BENCH_BEGIN(256)
     UINT32_TO_BUF(key, i);
-    acc +=
-        state_foreign_set(SBUF(val), SBUF(key), SBUF(ns), (uint32_t)facc, 20);
+        CHECKV(
+            state_foreign_set(SBUF(val), SBUF(key), SBUF(ns), (uint32_t)facc, 20), _r == 32, -90038);
 
     BENCH_END
 }
@@ -1999,6 +2090,8 @@ hook(uint32_t r)
 {
     _g(1, 1);
     int64_t rv = etxn_reserve(1);
+    if (rv != 1)
+        rollback(0, 0, -90039);
     accept(0, 0, rv);
     return 0;
 }
@@ -2010,6 +2103,8 @@ hook(uint32_t r)
 {
     _g(1, 1);
     int64_t rv = hook_again();
+    if (rv != 1)
+        rollback(0, 0, -90040);
     accept(0, 0, rv);
     return 0;
 }
@@ -2026,10 +2121,8 @@ hook(uint32_t r)
     int64_t acc = 0;
     for (uint32_t i = 0; GUARD(150), i < 100; ++i)
     {
-        acc += xpop_slot(1, 2);
+        CHECKV(xpop_slot(1, 2), _r > 0, -90041);
     }
-    if (acc < 0)
-        rollback(0, 0, acc);
     accept(0, 0, acc);
     return 0;
 }
@@ -2055,10 +2148,8 @@ hook(uint32_t r)
     int64_t acc = 0;
     for (uint32_t i = 0; GUARD(256), i < 200; ++i)
     {
-        acc += meta_slot(1);
+        CHECKV(meta_slot(1), _r == 1, -90042);
     }
-    if (acc < 0)
-        rollback(0, 0, acc);
     accept(0, 0, acc);
     return 0;
 }
@@ -2072,7 +2163,7 @@ hook(uint32_t r)
 {
     etxn_reserve(1);
     BENCH_BEGIN(256)
-    acc += etxn_nonce(SBUF(nb));
+    CHECKV(etxn_nonce(SBUF(nb)), _r == 32, -90043);
     BENCH_END
 }
 
@@ -2107,10 +2198,8 @@ hook(uint32_t r)
     int64_t acc = first;
     for (uint32_t i = 0; GUARD(300), i < n; ++i)
     {
-        acc += util_verify(SBUF(vmsg), SBUF(sig_ed), SBUF(pubkey_ed));
+        CHECKV(util_verify(SBUF(vmsg), SBUF(sig_ed), SBUF(pubkey_ed)), _r == 1, -90044);
     }
-    if (acc < 0 && acc > -100000)
-        rollback(0, 0, acc);
     accept(0, 0, acc);
     return 0;
 }
@@ -2146,10 +2235,8 @@ hook(uint32_t r)
     int64_t acc = first;
     for (uint32_t i = 0; GUARD(300), i < n; ++i)
     {
-        acc += util_verify(SBUF(vmsg), SBUF(sig_sec), SBUF(pubkey_sec));
+        CHECKV(util_verify(SBUF(vmsg), SBUF(sig_sec), SBUF(pubkey_sec)), _r == 1, -90044);
     }
-    if (acc < 0 && acc > -100000)
-        rollback(0, 0, acc);
     accept(0, 0, acc);
     return 0;
 }
@@ -2163,7 +2250,7 @@ hook(uint32_t r)
 {
     hook_hash(SBUF(otherhash), 1);
     BENCH_BEGIN(300)
-    acc += hook_skip(SBUF(otherhash), (i & 1) ? 1 : 0);
+    CHECKV(hook_skip(SBUF(otherhash), (i & 1) ? 1 : 0), _r == 1, -90045);
     BENCH_END
 }
 
@@ -2175,7 +2262,7 @@ int64_t
 hook(uint32_t r)
 {
     BENCH_BEGIN(256)
-    acc += ledger_nonce(SBUF(nb));
+    CHECKV(ledger_nonce(SBUF(nb)), _r == 32, -90046);
 
     BENCH_END
 }
@@ -2189,9 +2276,12 @@ static uint8_t hash32[32];
 int64_t
 hook(uint32_t r)
 {
+    /* SBUF(val) on a "V" string literal array (val[2] = {'V','\0'}) is
+     * (val, sizeof(val)) = (val, 2) -- the returned length is the full
+     * paramValue.size() written, i.e. 2, not strlen("V")=1. */
     BENCH_BEGIN(16)
     UINT32_TO_BUF(key, i);
-    acc += hook_param_set(SBUF(val), SBUF(key), SBUF(hash32));
+    CHECKV(hook_param_set(SBUF(val), SBUF(key), SBUF(hash32)), _r == 2, -90047);
 
     BENCH_END
 }
@@ -2221,7 +2311,7 @@ hook(uint32_t r)
     hi[33] = 0xFF;
 
     BENCH_BEGIN(300)
-    acc += ledger_keylet(SBUF(outbuf), SBUF(lo), SBUF(hi));
+    CHECKV(ledger_keylet(SBUF(outbuf), SBUF(lo), SBUF(hi)), _r == 34, -90048);
 
     BENCH_END
 }
@@ -2231,7 +2321,19 @@ hook(uint32_t r)
 /* prepare() takes a small partial serialized tx (TT+Flags+TagSrc+TagDst+
  * Amount+DestAccount, 49B) and returns a complete one -- same fields
  * PREPARE_PAYMENT_SIMPLE builds by hand, minus the etxn_details/
- * etxn_fee_base+refill steps (that's precisely what prepare() replaces). */
+ * etxn_fee_base+refill steps (that's precisely what prepare() replaces).
+ *
+ * Real finding (team-lead review, per-call CHECK pass): `buf` has no
+ * EmitDetails field of its own, so HookAPI::prepare() synthesizes one via
+ * its own internal call to etxn_details() on EVERY invocation -- which
+ * consumes an emit nonce every time (hook/Enum.h's max_nonce = 255). At
+ * the old N=300, calls 256-300 of every N2 rep hit TOO_MANY_NONCES inside
+ * etxn_details(), so prepare() returned INTERNAL_ERROR (-2) for the last
+ * 45 calls every single rep. The old BENCH_END only tested the SUMMED
+ * `acc` (255 successes at ~130B each vs. 45 failures at -2 each nets
+ * strongly positive), so this was silently measuring 255 successes and 45
+ * silent no-ops per rep, never caught. Fixed by keeping N under the nonce
+ * budget (250, not 300) -- verified 0 failures at 250. */
 static uint8_t dest[20];
 static uint8_t outbuf[1000];
 
@@ -2241,7 +2343,7 @@ hook(uint32_t r)
     otxn_param(SBUF(dest), "D", 1);
     etxn_reserve(1);
 
-    BENCH_BEGIN(300)
+    BENCH_BEGIN(250)
     uint8_t buf[49];
     uint8_t* buf_tx = buf;
     _01_02_ENCODE_TT(buf_tx, 0 /*ttPAYMENT*/);
@@ -2250,7 +2352,7 @@ hook(uint32_t r)
     _02_14_ENCODE_TAG_DST(buf_tx, 0);
     _06_01_ENCODE_DROPS_AMOUNT(buf_tx, 1);
     _08_03_ENCODE_ACCOUNT_DST(buf_tx, dest);
-    acc += prepare(SBUF(outbuf), SBUF(buf));
+    CHECKV(prepare(SBUF(outbuf), SBUF(buf)), _r > 0, -90049);
 
     BENCH_END
 }
@@ -2267,9 +2369,9 @@ hook(uint32_t r)
     otxn_param(SBUF(dest), "D", 1);
     etxn_reserve(200);
 
-    BENCH_BEGIN(256)
+    BENCH_BEGIN(230)
     PREPARE_PAYMENT_SIMPLE(tx, 1, dest, 0, 0)
-    acc += emit(SBUF(hashout), SBUF(tx));
+    CHECKV(emit(SBUF(hashout), SBUF(tx)), _r == 32, -90050);
 
     BENCH_END
 }
@@ -2285,7 +2387,7 @@ hook(uint32_t r)
     BENCH_BEGIN(256)
     UINT32_TO_BUF(key, i);
     val[0] = (uint8_t)i;
-    acc += state_set(SBUF(val), SBUF(key));
+    CHECKV(state_set(SBUF(val), SBUF(key)), _r == 4096, -90052);
 
     BENCH_END
 }
@@ -2300,7 +2402,7 @@ hook(uint32_t r)
 {
     BENCH_BEGIN(256)
     UINT32_TO_BUF(key, i);
-    acc += state(SBUF(out), SBUF(key));
+    CHECKV(state(SBUF(out), SBUF(key)), _r == 4096, -90052);
 
     BENCH_END
 }
@@ -2316,7 +2418,7 @@ hook(uint32_t r)
     BENCH_BEGIN(256)
     UINT32_TO_BUF(key, i);
     val[0] = (uint8_t)(acc);
-    acc += state_set(SBUF(val), SBUF(key));
+    CHECKV(state_set(SBUF(val), SBUF(key)), _r == 4096, -90052);
 
     BENCH_END
 }
@@ -2333,7 +2435,7 @@ hook(uint32_t r)
     hook_account(SBUF(acc20));
     hook_hash(SBUF(hash32), 0);
     BENCH_BEGIN(300)
-    BENCH4(util_keylet(SBUF(klbuf), 1, (uint32_t)acc20, 20, 0, 0, 0, 0))
+    BENCH4V(util_keylet(SBUF(klbuf), 1, (uint32_t)acc20, 20, 0, 0, 0, 0), _r == 34, -90007)
     BENCH_END
 }
 
@@ -2350,7 +2452,7 @@ hook(uint32_t r)
     hook_hash(SBUF(hash32), 0);
     hook_hash(SBUF(hash32b), -1);
     BENCH_BEGIN(300)
-    BENCH4(util_keylet(
+    BENCH4V(util_keylet(
         SBUF(klbuf),
         2,
         (uint32_t)acc20,
@@ -2358,7 +2460,7 @@ hook(uint32_t r)
         (uint32_t)hash32,
         32,
         (uint32_t)hash32b,
-        32))
+        32), _r == 34, -90007)
     BENCH_END
 }
 
@@ -2372,7 +2474,7 @@ int64_t
 hook(uint32_t r)
 {
     BENCH_BEGIN(300)
-    BENCH4(util_keylet(SBUF(klbuf), 6, 0, 0, 0, 0, 0, 0))
+    BENCH4V(util_keylet(SBUF(klbuf), 6, 0, 0, 0, 0, 0, 0), _r == 34, -90007)
     BENCH_END
 }
 
@@ -2388,7 +2490,7 @@ hook(uint32_t r)
     hook_account(SBUF(acc20));
     hook_hash(SBUF(hash32), 0);
     BENCH_BEGIN(300)
-    BENCH4(util_keylet(SBUF(klbuf), 10, (uint32_t)acc20, 20, 1, 0, 0, 0))
+    BENCH4V(util_keylet(SBUF(klbuf), 10, (uint32_t)acc20, 20, 1, 0, 0, 0), _r == 34, -90007)
     BENCH_END
 }
 
@@ -2404,7 +2506,7 @@ hook(uint32_t r)
     hook_account(SBUF(acc20));
     hook_hash(SBUF(hash32), 0);
     BENCH_BEGIN(300)
-    BENCH4(util_keylet(SBUF(klbuf), 14, (uint32_t)acc20, 20, 0, 0, 0, 0))
+    BENCH4V(util_keylet(SBUF(klbuf), 14, (uint32_t)acc20, 20, 0, 0, 0, 0), _r == 34, -90007)
     BENCH_END
 }
 
@@ -2420,7 +2522,7 @@ hook(uint32_t r)
     hook_account(SBUF(acc20));
     hook_hash(SBUF(hash32), 0);
     BENCH_BEGIN(300)
-    BENCH4(util_keylet(SBUF(klbuf), 15, (uint32_t)acc20, 20, 1, 0, 0, 0))
+    BENCH4V(util_keylet(SBUF(klbuf), 15, (uint32_t)acc20, 20, 1, 0, 0, 0), _r == 34, -90007)
     BENCH_END
 }
 
@@ -2437,8 +2539,8 @@ hook(uint32_t r)
     for (int k = 0; k < 20; ++k)
         acc20b[k] = (uint8_t)(k + 1);
     BENCH_BEGIN(300)
-    BENCH4(util_keylet(
-        SBUF(klbuf), 16, (uint32_t)acc20, 20, (uint32_t)acc20b, 20, 0, 0))
+    BENCH4V(util_keylet(
+        SBUF(klbuf), 16, (uint32_t)acc20, 20, (uint32_t)acc20b, 20, 0, 0), _r == 34, -90007)
     BENCH_END
 }
 
@@ -2454,7 +2556,7 @@ hook(uint32_t r)
     hook_account(SBUF(acc20));
     hook_hash(SBUF(hash32), 0);
     BENCH_BEGIN(300)
-    BENCH4(util_keylet(SBUF(klbuf), 17, (uint32_t)hash32, 32, 0, 0, 0, 0))
+    BENCH4V(util_keylet(SBUF(klbuf), 17, (uint32_t)hash32, 32, 0, 0, 0, 0), _r == 34, -90007)
     BENCH_END
 }
 
@@ -2470,7 +2572,7 @@ hook(uint32_t r)
     hook_account(SBUF(acc20));
     hook_hash(SBUF(hash32), 0);
     BENCH_BEGIN(300)
-    BENCH4(util_keylet(SBUF(klbuf), 18, (uint32_t)acc20, 20, 0, 0, 0, 0))
+    BENCH4V(util_keylet(SBUF(klbuf), 18, (uint32_t)acc20, 20, 0, 0, 0, 0), _r == 34, -90007)
     BENCH_END
 }
 
@@ -2486,7 +2588,7 @@ hook(uint32_t r)
     hook_account(SBUF(acc20));
     hook_hash(SBUF(hash32), 0);
     BENCH_BEGIN(300)
-    BENCH4(util_keylet(SBUF(klbuf), 19, (uint32_t)hash32, 32, 1, 0, 0, 0))
+    BENCH4V(util_keylet(SBUF(klbuf), 19, (uint32_t)hash32, 32, 1, 0, 0, 0), _r == 34, -90007)
     BENCH_END
 }
 
@@ -2503,8 +2605,8 @@ hook(uint32_t r)
     for (int k = 0; k < 20; ++k)
         acc20b[k] = (uint8_t)(k + 1);
     BENCH_BEGIN(300)
-    BENCH4(util_keylet(
-        SBUF(klbuf), 21, (uint32_t)acc20, 20, (uint32_t)acc20b, 20, 1, 0))
+    BENCH4V(util_keylet(
+        SBUF(klbuf), 21, (uint32_t)acc20, 20, (uint32_t)acc20b, 20, 1, 0), _r == 34, -90007)
     BENCH_END
 }
 
@@ -2520,7 +2622,7 @@ hook(uint32_t r)
     hook_account(SBUF(acc20));
     hook_hash(SBUF(hash32), 0);
     BENCH_BEGIN(300)
-    BENCH4(util_keylet(SBUF(klbuf), 22, (uint32_t)hash32, 32, 0, 0, 0, 0))
+    BENCH4V(util_keylet(SBUF(klbuf), 22, (uint32_t)hash32, 32, 0, 0, 0, 0), _r == 34, -90007)
     BENCH_END
 }
 
@@ -2536,7 +2638,7 @@ hook(uint32_t r)
     hook_account(SBUF(acc20));
     hook_hash(SBUF(hash32), 0);
     BENCH_BEGIN(300)
-    BENCH4(util_keylet(SBUF(klbuf), 23, (uint32_t)acc20, 20, 1, 0, 0, 0))
+    BENCH4V(util_keylet(SBUF(klbuf), 23, (uint32_t)acc20, 20, 1, 0, 0, 0), _r == 34, -90007)
     BENCH_END
 }
 
@@ -2552,7 +2654,7 @@ hook(uint32_t r)
     hook_account(SBUF(acc20));
     hook_hash(SBUF(hash32), 0);
     BENCH_BEGIN(300)
-    BENCH4(util_keylet(SBUF(klbuf), 24, (uint32_t)hash32, 32, 0, 0, 0, 0))
+    BENCH4V(util_keylet(SBUF(klbuf), 24, (uint32_t)hash32, 32, 0, 0, 0, 0), _r == 34, -90007)
     BENCH_END
 }
 
@@ -2568,8 +2670,8 @@ hook(uint32_t r)
     hook_account(SBUF(acc20));
     hook_hash(SBUF(hash32), 0);
     BENCH_BEGIN(300)
-    BENCH4(util_keylet(
-        SBUF(klbuf), 25, (uint32_t)acc20, 20, (uint32_t)hash32, 32, 0, 0))
+    BENCH4V(util_keylet(
+        SBUF(klbuf), 25, (uint32_t)acc20, 20, (uint32_t)hash32, 32, 0, 0), _r == 34, -90007)
     BENCH_END
 }
 
@@ -2585,7 +2687,7 @@ hook(uint32_t r)
     hook_account(SBUF(acc20));
     hook_hash(SBUF(hash32), 0);
     BENCH_BEGIN(300)
-    BENCH4(util_keylet(SBUF(klbuf), 26, (uint32_t)acc20, 20, 1, 0, 0, 0))
+    BENCH4V(util_keylet(SBUF(klbuf), 26, (uint32_t)acc20, 20, 1, 0, 0, 0), _r == 34, -90007)
     BENCH_END
 }
 
@@ -2601,7 +2703,7 @@ hook(uint32_t r)
     hook_account(SBUF(acc20));
     hook_hash(SBUF(hash32), 0);
     BENCH_BEGIN(300)
-    BENCH4(util_keylet(SBUF(klbuf), 31, (uint32_t)acc20, 20, 0, 0, 0, 0))
+    BENCH4V(util_keylet(SBUF(klbuf), 31, (uint32_t)acc20, 20, 0, 0, 0, 0), _r == 34, -90007)
     BENCH_END
 }
 
@@ -2617,7 +2719,7 @@ hook(uint32_t r)
     hook_account(SBUF(acc20));
     hook_hash(SBUF(hash32), 0);
     BENCH_BEGIN(300)
-    BENCH4(util_keylet(SBUF(klbuf), 32, (uint32_t)acc20, 20, 1, 0, 0, 0))
+    BENCH4V(util_keylet(SBUF(klbuf), 32, (uint32_t)acc20, 20, 1, 0, 0, 0), _r == 34, -90007)
     BENCH_END
 }
 
@@ -2648,8 +2750,8 @@ hook(uint32_t r)
         rollback(0, 0, first);
 
     BENCH_BEGIN(300)
-    BENCH4(util_keylet(
-        SBUF(klbuf), 27, (uint32_t)issue1, 40, (uint32_t)issue2, 40, 0, 0))
+    BENCH4V(util_keylet(
+        SBUF(klbuf), 27, (uint32_t)issue1, 40, (uint32_t)issue2, 40, 0, 0), _r == 34, -90007)
     BENCH_END
 }
 
@@ -2676,10 +2778,8 @@ hook(uint32_t r)
         : 0;
     int64_t acc = first;
     for (uint32_t i = 0; GUARD(300), i < n; ++i)
-        acc += prepare(SBUF(outbuf), SBUF(tx1k));
+        CHECKV(prepare(SBUF(outbuf), SBUF(tx1k)), _r > 0, -90049);
 
-    if (acc < 0 && acc > -100000)
-        rollback(0, 0, acc);
     accept(0, 0, acc);
     return 0;
 }
@@ -2704,10 +2804,8 @@ hook(uint32_t r)
         : 0;
     int64_t acc = first;
     for (uint32_t i = 0; GUARD(300), i < n; ++i)
-        acc += etxn_fee_base(SBUF(tx1k));
+        CHECKV(etxn_fee_base(SBUF(tx1k)), _r > 0, -90051);
 
-    if (acc < 0 && acc > -100000)
-        rollback(0, 0, acc);
     accept(0, 0, acc);
     return 0;
 }
@@ -2727,7 +2825,7 @@ hook(uint32_t r)
 
     BENCH_BEGIN(256)
     PREPARE_INVOKE_BLOB(tx1k, 1024)
-    acc += emit(SBUF(hashout), SBUF(tx1k));
+    CHECKV(emit(SBUF(hashout), SBUF(tx1k)), _r == 32, -90050);
 
     BENCH_END
 }
