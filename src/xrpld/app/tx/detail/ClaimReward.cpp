@@ -163,7 +163,7 @@ ClaimReward::preclaim(PreclaimContext const& ctx)
                     return tefINTERNAL;  // LCOV_EXCL_LINE
 
                 auto const& hookOn =
-                    hook::getHookOn(hook, sleDef, sfHookOnIncoming);
+                    hook::getHookOn(hook, *sleDef, sfHookOnIncoming);
                 if (hook::canHook(ttCLAIM_REWARD, hookOn))
                 {
                     hasClaimRewardHook = true;

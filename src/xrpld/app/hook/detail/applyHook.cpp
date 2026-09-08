@@ -853,37 +853,20 @@ hook::canEmit(ripple::TxType txType, ripple::uint256 hookCanEmit)
 }
 
 ripple::uint256
-hook::getHookCanEmit(
-    ripple::STObject const& hookObj,
-    SLE::pointer const& hookDef)
+hook::getHookCanEmit(STObject const& hookObj, STObject const& hookDef)
 {
     // default allows all transaction types
-    uint256 defaultHookCanEmit = UINT256_BIT[ttHOOK_SET];
-
-    uint256 hookCanEmit =
-        (hookObj.isFieldPresent(sfHookCanEmit)
-             ? hookObj.getFieldH256(sfHookCanEmit)
-             : hookDef->isFieldPresent(sfHookCanEmit)
-             ? hookDef->getFieldH256(sfHookCanEmit)
-             : defaultHookCanEmit);
-    return hookCanEmit;
+    return hookField(hookObj, hookDef, sfHookCanEmit)
+        .value_or(UINT256_BIT[ttHOOK_SET]);
 }
 
 ripple::uint256
 hook::getHookOn(
-    STObject const& obj,
-    std::shared_ptr<SLE const> const& def,
-    SField const& field)
+    STObject const& hookObj,
+    STObject const& hookDef,
+    SF_UINT256 const& direction)
 {
-    if (obj.isFieldPresent(field))
-        return obj.getFieldH256(field);
-    if (obj.isFieldPresent(sfHookOn))
-        return obj.getFieldH256(sfHookOn);
-    if (def->isFieldPresent(field))
-        return def->getFieldH256(field);
-    if (def->isFieldPresent(sfHookOn))
-        return def->getFieldH256(sfHookOn);
-    return uint256{0};
+    return hookField(hookObj, hookDef, direction, sfHookOn).value_or(uint256{});
 }
 
 // Update HookState ledger objects for the hook... only called after accept()

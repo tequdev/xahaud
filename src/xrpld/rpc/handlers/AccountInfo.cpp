@@ -17,6 +17,7 @@
 */
 //==============================================================================
 
+#include <xrpld/app/hook/applyHook.h>
 #include <xrpld/app/main/Application.h>
 #include <xrpld/app/misc/TxQ.h>
 #include <xrpld/ledger/ReadView.h>
@@ -94,27 +95,6 @@ setEffectiveParameters(
     result.setFieldArray(sfHookParameters, std::move(parameters));
 }
 
-uint256
-effectiveHookOn(
-    STObject const& entry,
-    std::shared_ptr<SLE const> const& definition,
-    SField const& direction)
-{
-    if (entry.isFieldPresent(direction))
-        return entry.getFieldH256(direction);
-    if (entry.isFieldPresent(sfHookOn))
-        return entry.getFieldH256(sfHookOn);
-
-    if (!definition)
-        return uint256{0};  // LCOV_EXCL_LINE
-
-    if (definition->isFieldPresent(direction))
-        return definition->getFieldH256(direction);
-    if (definition->isFieldPresent(sfHookOn))
-        return definition->getFieldH256(sfHookOn);
-    return uint256{0};  // LCOV_EXCL_LINE
-}
-
 STObject
 effectiveHook(
     STObject const& entry,
@@ -142,34 +122,23 @@ effectiveHook(
     if (entry.isFieldPresent(sfHookGrants))
         result.setFieldArray(sfHookGrants, entry.getFieldArray(sfHookGrants));
 
-    if (entry.isFieldPresent(sfHookNamespace))
-        result.setFieldH256(
-            sfHookNamespace, entry.getFieldH256(sfHookNamespace));
-    else if (definition->isFieldPresent(sfHookNamespace))
-        result.setFieldH256(
-            sfHookNamespace, definition->getFieldH256(sfHookNamespace));
+    if (auto const ns = hook::hookField(entry, *definition, sfHookNamespace))
+        result.setFieldH256(sfHookNamespace, *ns);
 
     if (definition->isFieldPresent(sfHookApiVersion))
         result.setFieldU16(
             sfHookApiVersion, definition->getFieldU16(sfHookApiVersion));
 
-    if (entry.isFieldPresent(sfHookCanEmit))
-        result.setFieldH256(sfHookCanEmit, entry.getFieldH256(sfHookCanEmit));
-    else if (definition->isFieldPresent(sfHookCanEmit))
-        result.setFieldH256(
-            sfHookCanEmit, definition->getFieldH256(sfHookCanEmit));
-    else
-        result.setFieldH256(sfHookCanEmit, UINT256_BIT[ttHOOK_SET]);
+    result.setFieldH256(
+        sfHookCanEmit, hook::getHookCanEmit(entry, *definition));
 
     if (entry.isFieldPresent(sfHookName))
         result.setFieldVL(sfHookName, entry.getFieldVL(sfHookName));
-    if (entry.isFieldPresent(sfFlags))
-        result.setFieldU32(sfFlags, entry.getFieldU32(sfFlags));
-    else if (definition->isFieldPresent(sfFlags))
-        result.setFieldU32(sfFlags, definition->getFieldU32(sfFlags));
+    if (auto const flags = hook::hookField(entry, *definition, sfFlags))
+        result.setFieldU32(sfFlags, *flags);
 
-    auto const incoming = effectiveHookOn(entry, definition, sfHookOnIncoming);
-    auto const outgoing = effectiveHookOn(entry, definition, sfHookOnOutgoing);
+    auto const incoming = hook::getHookOn(entry, *definition, sfHookOnIncoming);
+    auto const outgoing = hook::getHookOn(entry, *definition, sfHookOnOutgoing);
     if (incoming == outgoing)
         result.setFieldH256(sfHookOn, incoming);
     else

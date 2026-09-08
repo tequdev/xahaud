@@ -297,15 +297,14 @@ Transactor::calculateHookChainFee(
                 continue;
         }
 
-        uint32_t flags = 0;
-        if (hookObj.isFieldPresent(sfFlags))
-            flags = hookObj.getFieldU32(sfFlags);
-        else
-            flags = hookDef->getFieldU32(sfFlags);
+        uint32_t const flags =
+            hook::hookField(hookObj, *hookDef, sfFlags).value_or(0);
 
         // check if the hook can fire
         uint256 hookOn = hook::getHookOn(
-            hookObj, hookDef, isOutgoing ? sfHookOnOutgoing : sfHookOnIncoming);
+            hookObj,
+            *hookDef,
+            isOutgoing ? sfHookOnOutgoing : sfHookOnIncoming);
 
         if (hook::canHook(tx.getTxnType(), hookOn) &&
             (!collectCallsOnly || (flags & hook::hsfCOLLECT)))
@@ -1394,16 +1393,17 @@ Transactor::executeHookChain(
 
         // check if the hook can fire
         uint256 hookOn = hook::getHookOn(
-            hookObj, hookDef, isOutgoing ? sfHookOnOutgoing : sfHookOnIncoming);
+            hookObj,
+            *hookDef,
+            isOutgoing ? sfHookOnOutgoing : sfHookOnIncoming);
 
         if (!hook::canHook(ctx_.tx.getTxnType(), hookOn))
             continue;  // skip if it can't
 
-        uint256 hookCanEmit = hook::getHookCanEmit(hookObj, hookDef);
+        uint256 hookCanEmit = hook::getHookCanEmit(hookObj, *hookDef);
 
-        uint32_t flags =
-            (hookObj.isFieldPresent(sfFlags) ? hookObj.getFieldU32(sfFlags)
-                                             : hookDef->getFieldU32(sfFlags));
+        uint32_t const flags =
+            hook::hookField(hookObj, *hookDef, sfFlags).value_or(0);
 
         JLOG(j_.trace()) << "HookChainExecution: " << hookHash
                          << " strong:" << strong
@@ -1413,12 +1413,9 @@ Transactor::executeHookChain(
         if (!strong && !(flags & hsfCOLLECT))
             continue;
 
-        // fetch the namespace either from the hook object of, if absent,
-        // the hook def
-        uint256 const& ns =
-            (hookObj.isFieldPresent(sfHookNamespace)
-                 ? hookObj.getFieldH256(sfHookNamespace)
-                 : hookDef->getFieldH256(sfHookNamespace));
+        // fetch the namespace either from the hook object of, if absent, the
+        // hook def
+        uint256 const ns = *hook::hookField(hookObj, *hookDef, sfHookNamespace);
 
         // gather parameters
         std::map<std::vector<uint8_t>, std::vector<uint8_t>> parameters;
@@ -1567,14 +1564,11 @@ Transactor::doHookCallback(
         if (hookObj.getFieldH256(sfHookHash) != callbackHookHash)
             continue;
 
-        uint256 hookCanEmit = hook::getHookCanEmit(hookObj, hookDef);
+        uint256 hookCanEmit = hook::getHookCanEmit(hookObj, *hookDef);
 
         // fetch the namespace either from the hook object of, if absent, the
         // hook def
-        uint256 const& ns =
-            (hookObj.isFieldPresent(sfHookNamespace)
-                 ? hookObj.getFieldH256(sfHookNamespace)
-                 : hookDef->getFieldH256(sfHookNamespace));
+        uint256 const ns = *hook::hookField(hookObj, *hookDef, sfHookNamespace);
 
         std::map<std::vector<uint8_t>, std::vector<uint8_t>> parameters;
         if (hook::gatherHookParameters(hookDef, hookObj, parameters, j_))
@@ -1879,14 +1873,11 @@ Transactor::doAgainAsWeak(
             continue;
         }
 
-        uint256 hookCanEmit = hook::getHookCanEmit(hookObj, hookDef);
+        uint256 hookCanEmit = hook::getHookCanEmit(hookObj, *hookDef);
 
         // fetch the namespace either from the hook object of, if absent, the
         // hook def
-        uint256 const& ns =
-            (hookObj.isFieldPresent(sfHookNamespace)
-                 ? hookObj.getFieldH256(sfHookNamespace)
-                 : hookDef->getFieldH256(sfHookNamespace));
+        uint256 const ns = *hook::hookField(hookObj, *hookDef, sfHookNamespace);
 
         std::map<std::vector<uint8_t>, std::vector<uint8_t>> parameters;
         if (hook::gatherHookParameters(hookDef, hookObj, parameters, j_))

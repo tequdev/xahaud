@@ -87,14 +87,42 @@ canHook(ripple::TxType txType, ripple::uint256 hookOn);
 bool
 canEmit(ripple::TxType txType, ripple::uint256 hookCanEmit);
 
+/** Effective value of a hook field.
+
+    A hook installed on an account (an entry of the ltHOOK sfHooks array) may
+    override fields of the ltHOOK_DEFINITION it references. The installed
+    entry wins; the definition is the fallback. When several fields are given
+    each object is searched for all of them, in order, before moving on to
+    the next object, e.g. hookField(obj, def, sfHookOnIncoming, sfHookOn)
+    checks obj.HookOnIncoming, obj.HookOn, def.HookOnIncoming, def.HookOn.
+
+    Returns std::nullopt when none of the fields is present on either object.
+*/
+template <class T, class... Ts>
+std::optional<std::decay_t<typename T::value_type>>
+hookField(
+    STObject const& hookObj,
+    STObject const& hookDef,
+    TypedField<T> const& field,
+    TypedField<Ts> const&... fields)
+{
+    static_assert(
+        (std::is_same_v<T, Ts> && ...), "hook fields must share one type");
+    for (STObject const* obj : {&hookObj, &hookDef})
+        for (TypedField<T> const* f : {&field, &fields...})
+            if (obj->isFieldPresent(*f))
+                return obj->at(*f);
+    return std::nullopt;
+}
+
 ripple::uint256
-getHookCanEmit(ripple::STObject const& hookObj, SLE::pointer const& hookDef);
+getHookCanEmit(STObject const& hookObj, STObject const& hookDef);
 
 ripple::uint256
 getHookOn(
-    STObject const& obj,
-    std::shared_ptr<SLE const> const& def,
-    SField const& field);
+    STObject const& hookObj,
+    STObject const& hookDef,
+    SF_UINT256 const& direction);
 
 struct HookResult;
 
