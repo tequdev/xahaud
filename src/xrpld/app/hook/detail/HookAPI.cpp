@@ -982,11 +982,55 @@ HookAPI::etxn_nonce() const
 
 using namespace hook_float;
 
+namespace {
+// fixHookUniversalNumber: route XFL arithmetic through ripple::Number
+// (round-to-nearest-even), matching the STAmount/IOUAmount arithmetic that
+// fixUniversalNumber introduced, instead of the legacy truncating math.
+inline ripple::Number
+xfl_to_number(uint64_t f)
+{
+    int64_t const man = get_mantissa(f).value();
+    return ripple::Number{is_negative(f) ? -man : man, get_exponent(f).value()};
+}
+
+// Clamp a Number into XFL range: overflow -> XFL_OVERFLOW, underflow -> 0
+inline Expected<uint64_t, HookReturnCode>
+number_to_xfl(ripple::Number const& n)
+{
+    try
+    {
+        ripple::IOUAmount const amt{n};
+        int64_t const man = amt.mantissa();
+        bool const neg = man < 0;
+        return make_float((uint64_t)(neg ? -man : man), amt.exponent(), neg);
+    }
+    catch (std::overflow_error const&)
+    {
+        return Unexpected(XFL_OVERFLOW);
+    }
+}
+}  // namespace
+
 Expected<uint64_t, HookReturnCode>
 HookAPI::float_set(int32_t exponent, int64_t mantissa) const
 {
     if (mantissa == 0)
         return 0;
+
+    if (hookCtx.applyCtx.view().rules().enabled(fixHookUniversalNumber))
+    {
+        try
+        {
+            auto const r = number_to_xfl(ripple::Number{mantissa, exponent});
+            if (!r || r.value() == 0)
+                return Unexpected(INVALID_FLOAT);
+            return r;
+        }
+        catch (std::overflow_error const&)
+        {
+            return Unexpected(INVALID_FLOAT);
+        }
+    }
 
     auto normalized = hook_float::normalize_xfl(mantissa, exponent);
 
@@ -1009,6 +1053,9 @@ HookAPI::float_multiply(uint64_t float1, uint64_t float2) const
 {
     if (float1 == 0 || float2 == 0)
         return 0;
+
+    if (hookCtx.applyCtx.view().rules().enabled(fixHookUniversalNumber))
+        return number_to_xfl(xfl_to_number(float1) * xfl_to_number(float2));
 
     uint64_t man1 = get_mantissa(float1).value();
     int32_t exp1 = get_exponent(float1).value();
@@ -1108,6 +1155,9 @@ HookAPI::float_sum(uint64_t float1, uint64_t float2) const
         return float2;
     if (float2 == 0)
         return float1;
+
+    if (hookCtx.applyCtx.view().rules().enabled(fixHookUniversalNumber))
+        return number_to_xfl(xfl_to_number(float1) + xfl_to_number(float2));
 
     int64_t man1 =
         get_mantissa(float1).value() * (is_negative(float1) ? -1LL : 1LL);
@@ -1349,6 +1399,20 @@ HookAPI::float_sto_set(Bytes const& data) const
     if (mantissa == 0)
         return 0;
 
+    if (hookCtx.applyCtx.view().rules().enabled(fixHookUniversalNumber))
+    {
+        try
+        {
+            return number_to_xfl(ripple::Number{
+                is_negative ? -(int64_t)mantissa : (int64_t)mantissa,
+                exponent});
+        }
+        catch (std::overflow_error const&)
+        {
+            return Unexpected(XFL_OVERFLOW);
+        }
+    }
+
     return hook_float::normalize_xfl(mantissa, exponent, is_negative);
 }
 
@@ -1454,6 +1518,23 @@ HookAPI::float_root(uint64_t float1, uint32_t n) const
     int32_t exp1 = get_exponent(float1).value();
     if (is_negative(float1))
         return Unexpected(COMPLEX_NOT_SUPPORTED);
+
+    if (hookCtx.applyCtx.view().rules().enabled(fixHookUniversalNumber))
+    {
+        // ripple::root's int curve-fit coefficients overflow at n >= 710 and
+        // its Newton iteration cost grows with n; bound it.
+        if (n > 64)
+            return Unexpected(INVALID_ARGUMENT);
+
+        try
+        {
+            return number_to_xfl(ripple::root(xfl_to_number(float1), n));
+        }
+        catch (std::overflow_error const&)
+        {
+            return Unexpected(XFL_OVERFLOW);
+        }
+    }
 
     double inp = (double)(man1)*pow(10, exp1);
     double result = pow(inp, ((double)1.0f) / ((double)(n)));
@@ -2572,6 +2653,9 @@ HookAPI::float_divide_internal(uint64_t float1, uint64_t float2) const
     // RH TODO: add more special cases (division by power of 10)
     if (float2 == float_one_internal)
         return float1;
+
+    if (hookCtx.applyCtx.view().rules().enabled(fixHookUniversalNumber))
+        return number_to_xfl(xfl_to_number(float1) / xfl_to_number(float2));
 
     uint64_t man1 = get_mantissa(float1).value();
     int32_t exp1 = get_exponent(float1).value();

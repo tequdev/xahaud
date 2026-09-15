@@ -2012,6 +2012,187 @@ public:
     }
 
     void
+    test_float_universal_number(FeatureBitset features)
+    {
+        testcase("Test float universal number");
+
+        using namespace jtx;
+        using namespace hook_api;
+        using namespace hook;
+
+        auto const alice = Account{"alice"};
+        Env env{*this, features};
+        STTx invokeTx = STTx(ttINVOKE, [&](STObject& obj) {});
+        OpenView ov{*env.current()};
+        ApplyContext applyCtx = createApplyContext(env, ov, invokeTx);
+        auto hookCtx =
+            makeStubHookContext(applyCtx, alice.id(), alice.id(), {});
+        auto& api = hookCtx.api();
+
+        // Mirror Transactor::operator(), which scopes IOUAmount/STAmount's
+        // Number-based arithmetic to fixUniversalNumber for the duration of
+        // tx application.
+        NumberSO stNumberSO{features[fixUniversalNumber]};
+
+        bool const hasFix = features[fixHookUniversalNumber];
+
+        auto float_exponent = [](uint64_t f) -> int32_t {
+            return ((int32_t)(((f) >> 54U) & 0xFFU)) - 97;
+        };
+
+        // float_set: 12345678901234567 (17 digits) rounds when normalized to
+        // a 16-digit mantissa. Legacy truncates, fix rounds to nearest.
+        {
+            int64_t const expectedMantissa =
+                hasFix ? 1234567890123457LL : 1234567890123456LL;
+
+            auto const pos = api.float_set(0, 12345678901234567LL);
+            BEAST_EXPECT(pos.has_value());
+            BEAST_EXPECT(
+                api.float_mantissa(pos.value()).value() == expectedMantissa);
+            BEAST_EXPECT(float_exponent(pos.value()) == 1);
+
+            auto const neg = api.float_set(0, -12345678901234567LL);
+            BEAST_EXPECT(neg.has_value());
+            BEAST_EXPECT(
+                api.float_mantissa(neg.value()).value() == expectedMantissa);
+            BEAST_EXPECT(api.float_sign(neg.value()) == 1);
+        }
+
+        // float_multiply: 1.7 * 1.111111111111111 = 1.8888888888888887
+        // (operands are exact 16-digit mantissas, so float_set is identical
+        // in both modes and safe to use to build expected values)
+        {
+            auto const op1 = api.float_set(-1, 17).value();
+            auto const op2 = api.float_set(-15, 1111111111111111LL).value();
+            auto const result = api.float_multiply(op1, op2).value();
+            auto const expected = hasFix
+                ? api.float_set(-15, 1888888888888889LL).value()
+                : api.float_set(-15, 1888888888888888LL).value();
+            BEAST_EXPECT(result == expected);
+        }
+
+        // float_divide: 2 / 3 = 0.6666666666666666...
+        {
+            auto const two = api.float_set(0, 2).value();
+            auto const three = api.float_set(0, 3).value();
+            auto const result = api.float_divide(two, three).value();
+            int64_t const expectedMantissa =
+                hasFix ? 6666666666666667LL : 6666666666666660LL;
+            BEAST_EXPECT(
+                api.float_mantissa(result).value() == expectedMantissa);
+            BEAST_EXPECT(float_exponent(result) == -16);
+
+            // 1/3 rounds the same way: legacy truncates, fix rounds nearest
+            auto const invThree = api.float_invert(three).value();
+            int64_t const expectedInvMantissa =
+                hasFix ? 3333333333333333LL : 3333333333333330LL;
+            BEAST_EXPECT(
+                api.float_mantissa(invThree).value() == expectedInvMantissa);
+        }
+
+        // float_sum: 1 + 6.6e-16. float_sum's addition goes through
+        // ripple::IOUAmount, whose own arithmetic is separately gated by
+        // fixUniversalNumber (mirrored above via NumberSO); with that off
+        // (mainnet-equivalent) legacy alignment truncates the tiny operand
+        // away entirely, while the fix rounds it into the last digit.
+        {
+            auto const one = api.float_one();
+            auto const tiny = api.float_set(-17, 66).value();
+            auto const result = api.float_sum(one, tiny).value();
+            if (hasFix)
+                BEAST_EXPECT(
+                    result == api.float_set(-15, 1000000000000001LL).value());
+            else
+                BEAST_EXPECT(result == one);
+        }
+
+        // float_sto_set: hand-encoded IOU amount, mantissa 12345678901234567
+        // (17 digits), exponent -16 -> value 1.2345678901234567
+        {
+            int64_t const exp = -16;
+            uint64_t const man = 12345678901234567ULL;
+            uint8_t const expField = (uint8_t)(exp + 97);
+
+            Bytes data(8);
+            data[0] = 0b11000000U | (expField >> 2U);
+            data[1] =
+                (uint8_t)(((expField & 0x3U) << 6U) | ((man >> 48U) & 0x3FU));
+            data[2] = (uint8_t)((man >> 40U) & 0xFFU);
+            data[3] = (uint8_t)((man >> 32U) & 0xFFU);
+            data[4] = (uint8_t)((man >> 24U) & 0xFFU);
+            data[5] = (uint8_t)((man >> 16U) & 0xFFU);
+            data[6] = (uint8_t)((man >> 8U) & 0xFFU);
+            data[7] = (uint8_t)(man & 0xFFU);
+
+            auto const result = api.float_sto_set(data);
+            BEAST_EXPECT(result.has_value());
+            int64_t const expectedMantissa =
+                hasFix ? 1234567890123457LL : 1234567890123456LL;
+            BEAST_EXPECT(
+                api.float_mantissa(result.value()).value() == expectedMantissa);
+            BEAST_EXPECT(float_exponent(result.value()) == -15);
+        }
+
+        // float_root: sqrt(5) = 2.2360679774997896964...
+        {
+            auto const five = api.float_set(0, 5).value();
+            auto const result = api.float_root(five, 2).value();
+            if (hasFix)
+                BEAST_EXPECT(
+                    api.float_mantissa(result).value() == 2236067977499790LL);
+            else
+                // legacy double-based path; pinning the observed value.
+                BEAST_EXPECT(
+                    api.float_mantissa(result).value() == 2236067977499789LL);
+            BEAST_EXPECT(float_exponent(result) == -15);
+        }
+
+        // float_root: n bound. The fix path's ripple::root has int
+        // curve-fit coefficients that overflow at n >= 710 and Newton
+        // iteration cost that grows with n, so it is capped at n <= 64;
+        // the legacy double-based path accepts any n.
+        {
+            auto const five = api.float_set(0, 5).value();
+            auto const result65 = api.float_root(five, 65);
+            if (hasFix)
+                BEAST_EXPECT(result65.error() == INVALID_ARGUMENT);
+            else
+                BEAST_EXPECT(result65.has_value());
+
+            // 1e64 rooted to the 64th power is exactly 10
+            auto const huge = api.float_set(64, 1).value();
+            auto const ten = api.float_set(0, 10).value();
+            auto const result64 = api.float_root(huge, 64).value();
+            if (hasFix)
+                // exact: same bit pattern as float_set(0, 10)
+                BEAST_EXPECT(result64 == ten);
+            else
+                ASSERT_FLOAT_EQUAL(api, result64, ten);
+        }
+
+        // overflow/underflow behaviour is preserved identically in both
+        // modes
+        {
+            // 1e+95 * 1e+95 -> overflow
+            BEAST_EXPECT(
+                api.float_multiply(7801234554605699072LL, 7801234554605699072LL)
+                    .error() == XFL_OVERFLOW);
+
+            // 1e-65 * 1e-65 -> underflow to canonical 0
+            auto const tinyOp = api.float_set(-80, 1000000000000000LL).value();
+            BEAST_EXPECT(api.float_multiply(tinyOp, tinyOp).value() == 0);
+
+            BEAST_EXPECT(
+                api.float_divide(api.float_one(), 0).error() ==
+                DIVISION_BY_ZERO);
+
+            BEAST_EXPECT(api.float_set(200, 1).error() == INVALID_FLOAT);
+            BEAST_EXPECT(api.float_set(-200, 1).error() == INVALID_FLOAT);
+        }
+    }
+
+    void
     test_hook_account(FeatureBitset features)
     {
         testcase("Test hook_account");
@@ -4862,21 +5043,31 @@ public:
         test_ledger_keylet(features);
 
         test_float_compare(features);
+        test_float_divide(features - fixHookUniversalNumber);
         test_float_divide(features);
         test_float_int(features);
+        test_float_invert(features - fixHookUniversalNumber);
         test_float_invert(features);
         test_float_log(features);
         test_float_mantissa(features);
         test_float_mulratio(features);
+        test_float_multiply(features - fixHookUniversalNumber);
         test_float_multiply(features);
         test_float_negate(features);
         test_float_one(features);
+        test_float_root(features - fixHookUniversalNumber);
         test_float_root(features);
+        test_float_set(features - fixHookUniversalNumber);
         test_float_set(features);
         test_float_sign(features);
         test_float_sto(features);
+        test_float_sto_set(features - fixHookUniversalNumber);
         test_float_sto_set(features);
+        test_float_sum(features - fixHookUniversalNumber);
         test_float_sum(features);
+        test_float_universal_number(
+            features - fixHookUniversalNumber - fixUniversalNumber);
+        test_float_universal_number(features);
 
         test_hook_account(features);
         test_hook_again(features);
