@@ -19,11 +19,15 @@
 
 #include <test/jtx.h>
 #include <xrpld/core/Config.h>
+#include <xrpl/hook/Enum.h>
+#include <xrpl/json/to_string.h>
 #include <xrpl/protocol/jss.h>
+#include <cctype>
+#include <string>
 
 namespace ripple {
 
-// Smallest valid hook with hook() and cbak() from SetHook_wasm.h
+// A valid hook exporting both hook() and cbak() (emit test hook).
 static char const validHex[] =
     "0061736D0100000001250660027F7F017F60037F7F7E017E60017F017E600001"
     "7E60027F7F017E60047F7F7F7F017E028F010903656E76025F67000003656E76"
@@ -62,51 +66,103 @@ class HookValidate_test : public beast::unit_test::suite
     static Json::Value
     call(test::jtx::Env& env, std::string const& code)
     {
-        return env.rpc(
-            "json",
-            "hook_validate",
-            "{\"code\": \"" + code + "\"}")[jss::result];
+        Json::Value params(Json::objectValue);
+        params[jss::code] = code;
+        return env.rpc("json", "hook_validate", to_string(params))[jss::result];
+    }
+
+    static std::unique_ptr<Config>
+    withRpc(std::unique_ptr<Config> cfg, bool enabled)
+    {
+        cfg->HOOK_VALIDATE_RPC = enabled;
+        return cfg;
     }
 
     void
     testDisabled()
     {
-        testcase("Disabled by default");
+        testcase("Disabled");
         using namespace test::jtx;
-        Env env{*this};
+        Env env{*this, envconfig(withRpc, false)};
         auto const r = call(env, validHex);
         BEAST_EXPECT(r[jss::error] == "notSupported");
     }
 
     void
-    testEnabled()
+    testParams()
     {
-        testcase("Enabled");
+        testcase("Parameter validation");
         using namespace test::jtx;
-        Env env{*this, envconfig([](std::unique_ptr<Config> cfg) {
-                    cfg->HOOK_VALIDATE_RPC = true;
-                    return cfg;
-                })};
+        Env env{*this, envconfig(withRpc, true)};
 
         {
+            // missing code
             auto const r = env.rpc("json", "hook_validate", "{}")[jss::result];
             BEAST_EXPECT(r[jss::error] == "invalidParams");
         }
+        {
+            // code not a string
+            auto const r =
+                env.rpc("json", "hook_validate", "{\"code\": 1}")[jss::result];
+            BEAST_EXPECT(r[jss::error] == "invalidParams");
+        }
+        {
+            // empty, odd-length and non-hex input
+            for (auto const& bad : {"", "0", "0061736Z"})
+            {
+                auto const r = call(env, bad);
+                BEAST_EXPECT(r[jss::error] == "invalidParams");
+            }
+        }
+        {
+            // one byte over the maximum hook size
+            auto const r =
+                call(env, std::string(2 * (hook::maxHookWasmSize() + 1), '0'));
+            BEAST_EXPECT(r[jss::error] == "invalidParams");
+        }
+    }
+
+    void
+    testValidate()
+    {
+        testcase("Validate");
+        using namespace test::jtx;
+        Env env{*this, envconfig(withRpc, true)};
+
         {
             auto const r = call(env, validHex);
             BEAST_EXPECT(r[jss::valid] == true);
             BEAST_EXPECT(r.isMember(jss::instruction_count_hook));
             BEAST_EXPECT(r.isMember(jss::instruction_count_cbak));
+            BEAST_EXPECT(!r.isMember(jss::vm_error));
+            BEAST_EXPECT(r[jss::log].isArray());
         }
         {
+            // the lowercase hex the toolchains emit is accepted too
+            std::string lower = validHex;
+            for (auto& c : lower)
+                c = std::tolower(static_cast<unsigned char>(c));
+            auto const r = call(env, lower);
+            BEAST_EXPECT(r[jss::valid] == true);
+        }
+        {
+            // not webassembly
             auto const r = call(env, std::string(140, '0'));
             BEAST_EXPECT(r[jss::valid] == false);
+            BEAST_EXPECT(!r.isMember(jss::instruction_count_hook));
             BEAST_EXPECT(r[jss::log].isArray() && r[jss::log].size() > 0);
         }
         {
             std::string bad = validHex;
             bad[2] = 'F';  // corrupt magic header
             auto const r = call(env, bad);
+            BEAST_EXPECT(r[jss::valid] == false);
+            BEAST_EXPECT(r[jss::log].isArray() && r[jss::log].size() > 0);
+        }
+        {
+            // truncated module
+            std::string const truncated = std::string(validHex).substr(0, 200);
+            auto const r = call(env, truncated);
             BEAST_EXPECT(r[jss::valid] == false);
         }
     }
@@ -132,7 +188,8 @@ class HookValidate_test : public beast::unit_test::suite
     {
         testConfigDefault();
         testDisabled();
-        testEnabled();
+        testParams();
+        testValidate();
     }
 };
 

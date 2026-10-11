@@ -234,7 +234,7 @@ JSS(closed);                 // out: NetworkOPs, LedgerToJson,
                              //      handlers/Ledger
 JSS(closed_ledger);          // out: NetworkOPs
 JSS(cluster);                // out: PeerImp
-JSS(code);                   // out: errors
+JSS(code);                   // in: HookValidate; out: errors
 JSS(command);                // in: RPCHandler
 JSS(complete);               // out: NetworkOPs, InboundLedger
 JSS(complete_ledgers);       // out: NetworkOPs, PeerImp
@@ -372,10 +372,10 @@ JSS(inbound);  // out: PeerImp
 JSS(index);    // in: LedgerEntry,
                // out: STLedgerEntry,
                //      LedgerEntry, TxHistory, LedgerData
-JSS(instruction_count_cbak);  // out: HookValidate
-JSS(instruction_count_hook);  // out: HookValidate
 JSS(info);     // out: ServerInfo, ConsensusInfo, FetchInfo
 JSS(initial_sync_duration_us);
+JSS(instruction_count_cbak);  // out: HookValidate
+JSS(instruction_count_hook);  // out: HookValidate
 JSS(internal_command);     // in: Internal
 JSS(invalid_API_version);  // out: Many, when a request has an invalid
                            //      version
@@ -769,9 +769,9 @@ JSS(validator_sites);  // out: ValidatorSites
 JSS(value);            // out: STAmount
 JSS(version);          // out: RPCVersion
 JSS(vetoed);           // out: AmendmentTableImpl
+JSS(vm_error);         // out: HookValidate
 JSS(volume_a);         // out: BookChanges
 JSS(volume_b);         // out: BookChanges
-JSS(vm_error);         // out: HookValidate
 JSS(vote);             // in: Feature
 JSS(vote_slots);       // out: amm_info
 JSS(vote_weight);      // out: amm_info

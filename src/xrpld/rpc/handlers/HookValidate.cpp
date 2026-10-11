@@ -26,9 +26,11 @@
 #include <xrpl/hook/Guard.h>
 #include <xrpl/protocol/ErrorCodes.h>
 #include <xrpl/protocol/RPCErr.h>
+#include <xrpl/protocol/Rules.h>
 #include <xrpl/protocol/jss.h>
 #include <xrpl/resource/Fees.h>
 #include <sstream>
+#include <string>
 
 namespace ripple {
 
@@ -40,21 +42,27 @@ doHookValidate(RPC::JsonContext& context)
 
     context.loadType = Resource::feeHeavyBurdenRPC;
 
-    if (!context.params.isMember(jss::code) ||
-        !context.params[jss::code].isString())
-        return rpcError(rpcINVALID_PARAMS);
+    if (!context.params.isMember(jss::code))
+        return RPC::missing_field_error(jss::code);
 
-    auto const blob = strUnHex(context.params[jss::code].asString());
-    if (!blob || blob->empty())
-        return rpcError(rpcINVALID_PARAMS);
+    if (!context.params[jss::code].isString())
+        return RPC::expected_field_error(jss::code, "hex string");
 
-    if (blob->size() > hook::maxHookWasmSize())
-        return RPC::make_error(
-            rpcINVALID_PARAMS,
+    std::string const hex = context.params[jss::code].asString();
+
+    // Reject oversized input before decoding it.
+    if (hex.size() > 2 * static_cast<std::size_t>(hook::maxHookWasmSize()))
+        return RPC::make_param_error(
             "code exceeds the maximum hook size of " +
-                std::to_string(hook::maxHookWasmSize()) + " bytes");
+            std::to_string(hook::maxHookWasmSize()) + " bytes");
 
-    auto const& rules = context.app.openLedger().current()->rules();
+    auto const blob = strUnHex(hex);
+    if (!blob || blob->empty())
+        return RPC::invalid_field_error(jss::code);
+
+    // Copy the Rules: current() hands back a temporary snapshot, so binding a
+    // reference to its rules() would dangle once the open ledger moves on.
+    Rules const rules = context.app.openLedger().current()->rules();
 
     std::ostringstream loggerStream;
     std::optional<std::reference_wrapper<std::basic_ostream<char>>> logger =
