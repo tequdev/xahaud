@@ -50,6 +50,11 @@ doHookValidate(RPC::JsonContext& context)
 
     std::string const hex = context.params[jss::code].asString();
 
+    // strUnHex accepts odd-length input by treating the leading nibble as a
+    // byte, which would let half-byte garbage through as a 1-byte module.
+    if (hex.size() % 2 != 0)
+        return RPC::invalid_field_error(jss::code);
+
     // Reject oversized input before decoding it.
     if (hex.size() > 2 * static_cast<std::size_t>(hook::maxHookWasmSize()))
         return RPC::make_param_error(
